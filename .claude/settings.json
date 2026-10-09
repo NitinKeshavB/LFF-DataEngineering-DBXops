@@ -1,0 +1,51 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(make install)",
+      "Bash(make test)",
+      "Bash(make test-quick)",
+      "Bash(make test-ci)",
+      "Bash(make lint)",
+      "Bash(make lint-ci)",
+      "Bash(make build)",
+      "Bash(make clean)",
+      "Bash(make help)",
+      "Bash(make serve-coverage-report)",
+      "Bash(bash run.sh:*)",
+      "Bash(python -m pytest:*)",
+      "Bash(python -X dev -m pytest:*)",
+      "Bash(pytest:*)",
+      "Bash(pre-commit run:*)",
+      "Bash(python -c:*)",
+      "Bash(python -m build:*)",
+      "Bash(pip show:*)",
+      "Bash(pip list:*)",
+      "Bash(git status:*)",
+      "Bash(git diff:*)",
+      "Bash(git log:*)",
+      "Bash(git show:*)",
+      "Bash(git branch:*)",
+      "Bash(git blame:*)",
+      "Bash(ls:*)",
+      "Bash(find:*)",
+      "Bash(grep:*)",
+      "Bash(cat:*)",
+      "Bash(head:*)",
+      "Bash(tail:*)",
+      "Bash(wc:*)"
+    ],
+    "ask": [
+      "Bash(make publish-prod)",
+      "Bash(make publish-test)",
+      "Bash(make release-prod)",
+      "Bash(make release-test)",
+      "Bash(make test-wheel-locally)",
+      "Bash(twine upload:*)",
+      "Bash(pip install:*)",
+      "Bash(git push:*)",
+      "Bash(git commit:*)",
+      "Bash(gh pr create:*)"
+    ],
+    "deny": []
+  }
+}
