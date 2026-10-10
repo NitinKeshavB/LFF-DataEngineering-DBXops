@@ -38,8 +38,6 @@ repos:
           )
       # Sort requirements in requirements.txt files.
       - id: requirements-txt-fixer
-      # Prevent addition of new git submodules.
-      - id: forbid-new-submodules
       # Prevent committing directly to trunk (since Bitbucket wants us to pay for this feature)
       - id: no-commit-to-branch
         args: ["--branch=main"]
@@ -56,6 +54,8 @@ repos:
             --ignore-missing-imports,
             --config-file=./pyproject.toml,
           ]
+        additional_dependencies:
+          - types-PyYAML
 
   - repo: https://github.com/psf/black
     rev: 24.10.0
