@@ -2,11 +2,13 @@
 # See https://pre-commit.com/hooks.html for more hooks
 
 # Vendored third-party files must stay byte-identical to upstream (checksums in
-# .claude/skills/VENDORED.json), so no hook may rewrite or reject them.
+# .claude/skills/VENDORED.json), and metadata/_platform is generated and hash-protected
+# by the registry, so no hook may rewrite or reject them.
 exclude: |
   (?x)^(
       framework/lakeflow_framework/|
       THIRD_PARTY/|
+      metadata/_platform/|
       \.claude/commands/databricks-(doctor|setup)\.md$|
       \.claude/skills/(databricks-[a-z-]+|agent-evaluation|instrumenting-with-mlflow-tracing|dataflowspec-builder)/
   )

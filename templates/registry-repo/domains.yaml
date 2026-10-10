@@ -1,0 +1,346 @@
+#
+# Domain taxonomy: Business Domain -> Sub-domain -> Data Domain.
+# Every node is identified by its domain path: the slugs of its ancestors and itself
+# joined with "__", e.g. claims__litigation__claim_litigation. Tables (ODCS contracts)
+# must reference a data-domain path, so each table shows what it rolls up to.
+#
+# Slug rule: lowercase; drop "&" and any parenthetical; every other run of
+# non-alphanumerics becomes "_". Explicit slugs below are authoritative.
+# notes ending in "…" were truncated in the source document.
+
+source: "Client domain taxonomy (email 'break down these group'), received 2026-10-10"
+path_separator: "__"
+
+business_domains:
+  - name: Customer
+    slug: customer
+    sub_domains:
+      - name: Party & Profile
+        slug: party_profile
+        data_domains:
+          - {name: Client, slug: client, status: existing}
+          - {name: Customer Relationship, slug: customer_relationship, status: new, notes: "Household, linked pa…"}
+      - name: Consent & Contact Preferences
+        slug: consent_contact_preferences
+        data_domains:
+          - {name: Consent & Preference, slug: consent_preference, status: renamed, previous_name: Preference, notes: "Was Preference"}
+      - name: Communications
+        slug: communications
+        data_domains:
+          - {name: Communication, slug: communication, status: existing}
+          - {name: Customer Interaction, slug: customer_interaction, status: new, notes: "Calls, chats, contact …"}
+      - name: Complaints & Disputes
+        slug: complaints_disputes
+        data_domains:
+          - {name: Complaint, slug: complaint, status: new}
+          - {name: External Dispute, slug: external_dispute, status: new, notes: "AFCA"}
+      - name: Vulnerability & Hardship
+        slug: vulnerability_hardship
+        data_domains:
+          - {name: Vulnerability Indicator, slug: vulnerability_indicator, status: new, sensitivity: restricted}
+          - {name: Hardship Arrangement, slug: hardship_arrangement, status: new, sensitivity: restricted}
+      - name: Voice of Customer
+        slug: voice_of_customer
+        data_domains:
+          - {name: Customer Feedback, slug: customer_feedback, status: new, notes: "NPS, surveys"}
+
+  - name: Distribution
+    slug: distribution
+    sub_domains:
+      - name: UW Agency / Non-UW Agency
+        slug: uw_agency_non_uw_agency
+        data_domains:
+          - {name: Agent, slug: agent, status: existing}
+      - name: Broker
+        slug: broker
+        data_domains:
+          - {name: Broker, slug: broker, status: new, notes: "Confirm whether held … systems"}
+      - name: FI & Partnerships
+        slug: fi_partnerships
+        data_domains:
+          - {name: Partner, slug: partner, status: existing}
+      - name: Distributor & Agreement Mgmt
+        slug: distributor_agreement_mgmt
+        data_domains:
+          - {name: Distribution Agreement, slug: distribution_agreement, status: new, notes: "Includes binders"}
+      - name: Commission & Profit Share
+        slug: commission_profit_share
+        data_domains:
+          - {name: Commission, slug: commission, status: new}
+          - {name: Profit Share, slug: profit_share, status: new}
+
+  - name: Product
+    slug: product
+    sub_domains:
+      - name: Product Definition & Catalogue
+        slug: product_definition_catalogue
+        data_domains:
+          - {name: Product, slug: product, status: existing}
+          - {name: Coverage Definition, slug: coverage_definition, status: new, notes: "Benefits, limits, exces…"}
+      - name: Wordings & PDS
+        slug: wordings_pds
+        data_domains:
+          - {name: Product Wording, slug: product_wording, status: new}
+      - name: Product Governance
+        slug: product_governance
+        data_domains:
+          - {name: Target Market Determination, slug: target_market_determination, status: new, notes: "DDO"}
+
+  - name: Contract & Underwriting
+    slug: contract_underwriting
+    sub_domains:
+      - name: Quote & Risk Assessment
+        slug: quote_risk_assessment
+        data_domains:
+          - {name: Quote, slug: quote, status: existing}
+      - name: Insured Risk & Exposure
+        slug: insured_risk_exposure
+        data_domains:
+          - {name: Insured Risk, slug: insured_risk, status: renamed, previous_name: Risk, notes: "Was Risk; vehicle, bu…"}
+          - {name: Exposure & Accumulation, slug: exposure_accumulation, status: new}
+      - name: Pricing & Rating
+        slug: pricing_rating
+        data_domains:
+          - {name: Premium, slug: premium, status: existing, notes: "Rated/written premiu…"}
+          - {name: Rating Factor, slug: rating_factor, status: new}
+      - name: Policy Admin & Servicing
+        slug: policy_admin_servicing
+        data_domains:
+          - {name: Policy, slug: policy, status: existing}
+          - {name: Policy Transaction, slug: policy_transaction, status: new, notes: "New business, endor…"}
+          - {name: Policy Coverage, slug: policy_coverage, status: new}
+      - name: UW Authority & Referral
+        slug: uw_authority_referral
+        data_domains:
+          - {name: Underwriting Referral & Decision, slug: underwriting_referral_decision, status: new}
+
+  - name: Claims
+    slug: claims
+    sub_domains:
+      - name: Lodgement / Assessment & Liability
+        slug: lodgement_assessment_liability
+        data_domains:
+          - {name: Claim, slug: claim, status: existing, notes: "Absorbs CTP; lob tag…"}
+          - {name: Claim Party, slug: claim_party, status: new, notes: "Claimant, witness, thi…"}
+      - name: Case Reserving
+        slug: case_reserving
+        data_domains:
+          - {name: Claim Reserve, slug: claim_reserve, status: new}
+      - name: Settlement & Payments
+        slug: settlement_payments
+        data_domains:
+          - {name: Claim Payment, slug: claim_payment, status: new}
+      - name: Recovery, Subrogation & Salvage
+        slug: recovery_subrogation_salvage
+        data_domains:
+          - {name: Claim Recovery, slug: claim_recovery, status: new}
+      - name: Injury & Return-to-Work Mgmt
+        slug: injury_return_to_work_mgmt
+        data_domains:
+          - {name: Injury & Medical Treatment, slug: injury_medical_treatment, status: new, sensitivity: restricted, notes: "Health data; CTP/WC…"}
+          - {name: Return to Work & Rehabilitation, slug: return_to_work_rehabilitation, status: new, sensitivity: restricted}
+      - name: Litigation
+        slug: litigation
+        data_domains:
+          - {name: Claim Litigation, slug: claim_litigation, status: new, sensitivity: restricted, notes: "Legal privilege"}
+      - name: Fraud & Investigations
+        slug: fraud_investigations
+        data_domains:
+          - {name: Fraud Investigation, slug: fraud_investigation, status: new, sensitivity: restricted}
+      - name: Repair & Supply Chain
+        slug: repair_supply_chain
+        data_domains:
+          - {name: Repair & Assessment, slug: repair_assessment, status: new, notes: "Quotes, assessments…"}
+
+  - name: Billing & Payments
+    slug: billing_payments
+    sub_domains:
+      - name: Premium Billing & Instalments
+        slug: premium_billing_instalments
+        data_domains:
+          - {name: Billing & Invoice, slug: billing_invoice, status: new, notes: "Billed premium (split…"}
+      - name: Collections & Receivables
+        slug: collections_receivables
+        data_domains:
+          - {name: Receivable & Collection, slug: receivable_collection, status: new}
+      - name: Payment Instruments
+        slug: payment_instruments
+        data_domains:
+          - {name: Payment Instrument, slug: payment_instrument, status: new, sensitivity: restricted, notes: "PCI"}
+      - name: Refunds
+        slug: refunds
+        data_domains:
+          - {name: Refund & Disbursement, slug: refund_disbursement, status: new}
+
+  - name: Reinsurance
+    slug: reinsurance
+    sub_domains:
+      - name: Treaty / Facultative
+        slug: treaty_facultative
+        data_domains:
+          - {name: Reinsurance Contract, slug: reinsurance_contract, status: new}
+      - name: Cessions & Bordereaux
+        slug: cessions_bordereaux
+        data_domains:
+          - {name: Reinsurance Cession, slug: reinsurance_cession, status: new}
+      - name: RI Recoveries
+        slug: ri_recoveries
+        data_domains:
+          - {name: Reinsurance Recovery, slug: reinsurance_recovery, status: new}
+
+  - name: Finance
+    slug: finance
+    sub_domains:
+      - name: GL & Accounting
+        slug: gl_accounting
+        data_domains:
+          - {name: General Ledger & Journal, slug: general_ledger_journal, status: new, notes: "Split from Finance"}
+          - {name: Chart of Accounts, slug: chart_of_accounts, status: new}
+          - {name: Cost Centre & Org Hierarchy, slug: cost_centre_org_hierarchy, status: new}
+      - name: Statutory & AASB 17 Reporting
+        slug: statutory_aasb_17_reporting
+        data_domains:
+          - {name: Insurance Contract Group, slug: insurance_contract_group, status: new, notes: "Portfolio, cohort, LRC…"}
+          - {name: Financial Statement, slug: financial_statement, status: new}
+      - name: APRA Regulatory Reporting
+        slug: apra_regulatory_reporting
+        data_domains:
+          - {name: Regulatory Return, slug: regulatory_return, status: new}
+      - name: Tax
+        slug: tax
+        data_domains:
+          - {name: Tax, slug: tax, status: new, notes: "GST, stamp duty, ES…"}
+      - name: Actuarial Reserving & Capital
+        slug: actuarial_reserving_capital
+        data_domains:
+          - {name: Actuarial Reserve, slug: actuarial_reserve, status: new, notes: "IBNR, risk margin"}
+          - {name: Capital, slug: capital, status: new}
+      - name: FP&A
+        slug: fpa
+        data_domains:
+          - {name: Budget & Forecast, slug: budget_forecast, status: new}
+
+  - name: Investment
+    slug: investment
+    sub_domains:
+      - name: Portfolio & Holdings
+        slug: portfolio_holdings
+        data_domains:
+          - {name: Investment Holding, slug: investment_holding, status: new}
+          - {name: Investment Transaction, slug: investment_transaction, status: new}
+
+  - name: Marketing & Campaign
+    slug: marketing_campaign
+    sub_domains:
+      - name: Marketing
+        slug: marketing
+        data_domains:
+          - {name: Marketing, slug: marketing, status: existing}
+      - name: Campaign
+        slug: campaign
+        data_domains:
+          - {name: Campaign, slug: campaign, status: new}
+          - {name: Lead & Prospect, slug: lead_prospect, status: new}
+      - name: Loyalty
+        slug: loyalty
+        data_domains:
+          - {name: Loyalty, slug: loyalty, status: new}
+
+  - name: Other Party
+    slug: other_party
+    sub_domains:
+      - name: Repairers & Suppliers
+        slug: repairers_suppliers
+        data_domains:
+          - {name: Supplier, slug: supplier, status: new, notes: "Split from Thirdparty"}
+      - name: Medical & Allied Health
+        slug: medical_allied_health
+        data_domains:
+          - {name: Health Service Provider, slug: health_service_provider, status: new, notes: "Split from Thirdparty"}
+      - name: Legal Panel & Assessors
+        slug: legal_panel_assessors
+        data_domains:
+          - {name: Legal & Assessor Firm, slug: legal_assessor_firm, status: new, notes: "Split from Thirdparty"}
+      - name: Schemes & Regulators
+        slug: schemes_regulators
+        data_domains:
+          - {name: Scheme & Regulator, slug: scheme_regulator, status: new, notes: "Split from Thirdparty"}
+
+  - name: Corporate Governance, Risk & Legal
+    slug: corporate_governance_risk_legal
+    sub_domains:
+      - name: Risk & Compliance
+        slug: risk_compliance
+        data_domains:
+          - {name: Obligation, slug: obligation, status: new}
+          - {name: Risk Event & Incident, slug: risk_event_incident, status: new}
+          - {name: Breach, slug: breach, status: new, sensitivity: restricted}
+      - name: Legal Matters
+        slug: legal_matters
+        data_domains:
+          - {name: Legal Matter, slug: legal_matter, status: new, sensitivity: restricted, notes: "Legal privilege"}
+      - name: Customer Advocacy & Remediation
+        slug: customer_advocacy_remediation
+        data_domains:
+          - {name: Remediation, slug: remediation, status: new}
+      - name: Internal Audit
+        slug: internal_audit
+        data_domains:
+          - {name: Audit Finding, slug: audit_finding, status: new}
+
+  - name: Employee
+    slug: employee
+    sub_domains:
+      - name: Workforce & Org
+        slug: workforce_org
+        data_domains:
+          - {name: Employee, slug: employee, status: renamed, previous_name: HR, notes: "Was HR (mis-mappe…"}
+      - name: Payroll & Remuneration
+        slug: payroll_remuneration
+        data_domains:
+          - {name: Payroll, slug: payroll, status: new, sensitivity: restricted}
+
+  - name: Sustainability
+    slug: sustainability
+    sub_domains:
+      - name: Emissions
+        slug: emissions
+        data_domains:
+          - {name: Emissions, slug: emissions, status: new}
+      - name: Climate Risk
+        slug: climate_risk
+        data_domains:
+          - {name: Climate Risk Metric, slug: climate_risk_metric, status: new}
+      - name: Climate Disclosure
+        slug: climate_disclosure
+        data_domains:
+          - {name: ESG Disclosure, slug: esg_disclosure, status: new, notes: "AASB S2"}
+
+  - name: Shared Reference & Geography
+    slug: shared_reference_geography
+    sub_domains:
+      - name: Address & Location
+        slug: address_location
+        data_domains:
+          - {name: Address & Geocode, slug: address_geocode, status: new}
+      - name: Peril & Hazard
+        slug: peril_hazard
+        data_domains:
+          - {name: Peril & Hazard Zone, slug: peril_hazard_zone, status: new}
+      - name: Code Sets
+        slug: code_sets
+        data_domains:
+          - {name: Reference, slug: reference, status: existing, notes: "Code sets, currency …"}
+
+  - name: Technology & Security
+    slug: technology_security
+    tentative: true  # source says "(if in scope)"
+    sub_domains:
+      - name: Identity & Access
+        slug: identity_access
+        data_domains:
+          - {name: Access Log, slug: access_log, status: new}
+      - name: Security Events
+        slug: security_events
+        data_domains:
+          - {name: Security Event, slug: security_event, status: new}

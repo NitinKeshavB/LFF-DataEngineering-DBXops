@@ -16,6 +16,15 @@ check-placeholders:
 clean:
 	bash run.sh clean
 
+contracts:
+	bash run.sh contracts $(if $(CHECK),--check,)
+
+export-ontos:
+	bash run.sh export-ontos $(TARGET)
+
+render-platform:
+	bash run.sh render-platform $(PROJECT)
+
 help:
 	bash run.sh help
 
@@ -63,3 +72,9 @@ test-wheel-locally:
 
 validate-domains:
 	bash run.sh validate-domains
+
+validate-metadata:
+	bash run.sh validate-metadata
+
+validate-registry:
+	bash run.sh validate-registry $(REGISTRY) $(if $(STRICT),--strict,)

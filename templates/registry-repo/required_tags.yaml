@@ -1,0 +1,6 @@
+# Tag keys every registration must define. Values are free-form.
+# Each becomes a Unity Catalog tag on the project's schemas, jobs and pipelines.
+# Add keys here as the platform team agrees them.
+required:
+  - cost_center
+  - region

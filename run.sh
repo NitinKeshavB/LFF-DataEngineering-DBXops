@@ -168,6 +168,31 @@ function validate-domains {
     python -m dbxops.registry.domains "$THIS_DIR/metadata/_platform/domains.yaml"
 }
 
+# run every metadata rule; BASELINE=origin/main also checks contract/product semver bumps against that ref
+function validate-metadata {
+    python -m dbxops.metadata --root "$THIS_DIR" validate ${BASELINE:+--baseline "$BASELINE"}
+}
+
+# create or refresh contracts from the dataflow specs (pass --check to only report what would change)
+function contracts {
+    python -m dbxops.metadata --root "$THIS_DIR" contracts "$@"
+}
+
+# write Ontos upload files for one target into build/ontos/<target>
+function export-ontos {
+    python -m dbxops.metadata --root "$THIS_DIR" export-ontos --target "${1:?usage: ./run.sh export-ontos <target>}"
+}
+
+# validate registrations in a registry checkout (default: the scaffold in this repo); pass --strict to reject placeholders
+function validate-registry {
+    python -m dbxops.registry validate "${1:-$THIS_DIR/templates/registry-repo}" "${@:2}"
+}
+
+# regenerate metadata/_platform from the registry scaffold (template maintainers only; squad repos never run this)
+function render-platform {
+    python -m dbxops.registry render "$THIS_DIR/templates/registry-repo" "${1:-example_claims}" "$THIS_DIR/metadata/_platform"
+}
+
 # re-download one vendored skill source at its pinned ref (needs network); e.g. ./run.sh sync-skills mlflow-skills
 function sync-skills {
     python "$THIS_DIR/scripts/vendor_skills.py" sync "${1:?usage: ./run.sh sync-skills <source-id>}"
