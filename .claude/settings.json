@@ -58,6 +58,7 @@
       "Bash(git commit:*)",
       "Bash(gh pr create:*)",
       "Bash(make deploy:*)",
+      "Bash(make deploy-framework:*)",
       "Bash(make sync-skills:*)",
       "Bash(make upgrade-lakeflow:*)",
       "Bash(make publish-metadata:*)",

@@ -16,6 +16,15 @@ check-placeholders:
 clean:
 	bash run.sh clean
 
+stage-framework:
+	bash run.sh stage-framework
+
+deploy-framework:
+	bash run.sh deploy-framework $(TARGET) $(PROFILE)
+
+validate-specs:
+	bash run.sh validate-specs
+
 contracts:
 	bash run.sh contracts $(if $(CHECK),--check,)
 

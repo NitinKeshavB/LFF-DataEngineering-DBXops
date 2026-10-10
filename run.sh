@@ -168,6 +168,31 @@ function validate-domains {
     python -m dbxops.registry.domains "$THIS_DIR/metadata/_platform/domains.yaml"
 }
 
+# stage the pinned framework plus framework/local into framework/build (or the directory given)
+function stage-framework {
+    bash "$THIS_DIR/scripts/stage_framework.sh" "$@"
+}
+
+# deploy the staged framework bundle (platform team only; needs approval): ./run.sh deploy-framework <target> <profile>
+function deploy-framework {
+    local target="${1:?usage: ./run.sh deploy-framework <target> <databricks-profile>}"
+    local profile="${2:?a Databricks CLI profile is required and is never auto-selected}"
+    check-placeholders --strict
+    stage-framework
+    local version
+    version="$(sed -n 's/^framework_version: //p' "$THIS_DIR/conf/environments.yml")"
+    (
+        cd "$THIS_DIR/framework/build"
+        databricks bundle validate -t "$target" --profile "$profile" --var="version=$version"
+        databricks bundle deploy -t "$target" --profile "$profile" --var="version=$version"
+    )
+}
+
+# validate every dataflow spec under bundles/ with the framework's own validator
+function validate-specs {
+    python -I "$THIS_DIR/framework/lakeflow_framework/scripts/validate_dataflows.py" "$THIS_DIR/bundles"
+}
+
 # run every metadata rule; BASELINE=origin/main also checks contract/product semver bumps against that ref
 function validate-metadata {
     python -m dbxops.metadata --root "$THIS_DIR" validate ${BASELINE:+--baseline "$BASELINE"}
