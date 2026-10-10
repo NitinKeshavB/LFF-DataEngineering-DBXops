@@ -1,0 +1,64 @@
+apiVersion: v3.1.0
+kind: DataContract
+id: dc_example_claims_gold_claims_frequency_severity
+name: claims_frequency_severity
+version: 1.0.0
+status: active
+domain: claims__lodgement_assessment_liability__claim
+dataProduct: dp_example_claims_claims_analytics
+description:
+  purpose: Claim count and average reserve (severity) by loss month and cause.
+  usage: Reporting and analysis; refreshed incrementally by the gold pipeline.
+  limitations: Reflects source data as of the last pipeline run.
+servers:
+- server: dev
+  type: databricks
+  environment: dev
+  catalog: <PLACEHOLDER-dev-catalog>
+  schema: example_claims_gold
+- server: test
+  type: databricks
+  environment: test
+  catalog: <PLACEHOLDER-test-catalog>
+  schema: example_claims_gold
+- server: uat
+  type: databricks
+  environment: uat
+  catalog: <PLACEHOLDER-uat-catalog>
+  schema: example_claims_gold
+- server: preprod
+  type: databricks
+  environment: preprod
+  catalog: <PLACEHOLDER-preprod-catalog>
+  schema: example_claims_gold
+- server: prod
+  type: databricks
+  environment: prod
+  catalog: <PLACEHOLDER-prod-catalog>
+  schema: example_claims_gold
+schema:
+- name: claims_frequency_severity
+  physicalName: <PLACEHOLDER-prod-catalog>.example_claims_gold.claims_frequency_severity
+  logicalType: object
+  properties:
+  - name: loss_month
+    logicalType: date
+    physicalType: date
+    required: false
+  - name: cause
+    logicalType: string
+    physicalType: string
+    required: false
+  - name: claim_count
+    logicalType: integer
+    physicalType: long
+    required: true
+  - name: average_severity
+    logicalType: number
+    physicalType: decimal(38,6)
+    required: false
+  customProperties:
+  - property: dbx.asset_id
+    value: example_claims_gold.claims_frequency_severity
+  - property: dbx.spec_id
+    value: claims_frequency_severity

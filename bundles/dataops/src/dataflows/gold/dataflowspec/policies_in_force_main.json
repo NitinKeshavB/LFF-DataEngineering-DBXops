@@ -1,0 +1,26 @@
+{
+  "data_flow_id": "policies_in_force",
+  "data_flow_group": "gold",
+  "data_flow_type": "nodespec",
+  "tags": {
+    "data_domain": "contract_underwriting__policy_admin_servicing__policy",
+    "data_product": "dp_example_claims_claims_analytics"
+  },
+  "nodes": [
+    {
+      "name": "target_policies_in_force",
+      "node_type": "target",
+      "config": {
+        "database": "{gold_schema}",
+        "table": "policies_in_force",
+        "table_type": "mv",
+        "sql_path": "policies_in_force.sql",
+        "schema_path": "policies_in_force_schema.json",
+        "comment": "Active policies and annual premium by product, from the current version of each policy.",
+        "table_properties": {
+          "delta.enableRowTracking": "true"
+        }
+      }
+    }
+  ]
+}

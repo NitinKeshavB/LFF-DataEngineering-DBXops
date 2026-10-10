@@ -155,9 +155,9 @@ def test__schemas_must_be_the_project_id_plus_a_known_layer(repo_root: Path):
 def test__an_unknown_substitution_token_is_reported_not_raised(repo_root: Path):
     """A spec using an undefined token yields a finding naming the token, instead of crashing the run."""
     spec = copy.deepcopy(SPEC)
-    spec["nodes"][1]["config"]["database"] = "{gold_schema}"
+    spec["nodes"][1]["config"]["database"] = "{nope_schema}"
     write_json(repo_root / f"{SILVER}/dataflowspec/orders_main.json", spec)
-    assert any("unknown substitution token {gold_schema}" in m for m in errors(repo_root, "spec-coverage"))
+    assert any("unknown substitution token {nope_schema}" in m for m in errors(repo_root, "spec-coverage"))
     assert any("cannot compute contracts" in m for m in errors(repo_root, "drift"))
 
 

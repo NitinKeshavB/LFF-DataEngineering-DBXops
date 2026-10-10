@@ -1,0 +1,66 @@
+{
+  "data_flow_id": "fact_claim",
+  "data_flow_group": "silver",
+  "data_flow_type": "nodespec",
+  "tags": {
+    "data_domain": "claims__lodgement_assessment_liability__claim",
+    "data_product": "dp_example_claims_claims_conformed"
+  },
+  "nodes": [
+    {
+      "name": "v_claim",
+      "node_type": "source",
+      "source_type": "delta",
+      "config": {
+        "mode": "stream",
+        "database": "{bronze_schema}",
+        "table": "claim",
+        "select_exp": [
+          "claim_id",
+          "policy_id",
+          "loss_date",
+          "reported_date",
+          "status",
+          "cause",
+          "reserve_amount",
+          "state",
+          "_op",
+          "_seq"
+        ]
+      }
+    },
+    {
+      "name": "target_fact_claim",
+      "node_type": "target",
+      "config": {
+        "database": "{silver_schema}",
+        "table": "fact_claim",
+        "schema_path": "fact_claim_schema.json",
+        "cluster_by_auto": true,
+        "table_properties": {
+          "delta.enableChangeDataFeed": "true",
+          "delta.enableRowTracking": "true"
+        },
+        "sources": [
+          "v_claim"
+        ],
+        "cdc_settings": {
+          "keys": [
+            "claim_id"
+          ],
+          "scd_type": "1",
+          "sequence_by": "_seq",
+          "apply_as_deletes": "_op = 'D'",
+          "except_column_list": [
+            "_op",
+            "_seq"
+          ]
+        },
+        "data_quality": {
+          "enabled": true,
+          "expectations_path": "./fact_claim_dqe.json"
+        }
+      }
+    }
+  ]
+}

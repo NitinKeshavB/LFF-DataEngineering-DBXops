@@ -1,0 +1,21 @@
+{
+  "expect_or_drop": [
+    {
+      "name": "premium_id not null",
+      "constraint": "premium_id IS NOT NULL",
+      "tag": "Completeness"
+    },
+    {
+      "name": "written premium non-negative",
+      "constraint": "written_premium >= 0",
+      "tag": "Accuracy"
+    }
+  ],
+  "expect": [
+    {
+      "name": "earned premium within written",
+      "constraint": "earned_premium <= written_premium",
+      "tag": "Consistency"
+    }
+  ]
+}

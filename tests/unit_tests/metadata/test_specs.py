@@ -55,7 +55,8 @@ def test__an_unknown_token_names_the_known_ones(repo_root: Path):
     """A misspelt token is an error that lists the tokens the bundle defines."""
     tokens = load_tokens(repo_root / "bundles/dataops")
     with pytest.raises(
-        SpecError, match=r"unknown substitution token \{silvr_schema\}; known: bronze_schema, silver_schema"
+        SpecError,
+        match=r"unknown substitution token \{silvr_schema\}; known: ai_schema, bronze_schema, gold_schema, landing_path, ml_schema, silver_schema",
     ):
         schema_name("{silvr_schema}", tokens)
 

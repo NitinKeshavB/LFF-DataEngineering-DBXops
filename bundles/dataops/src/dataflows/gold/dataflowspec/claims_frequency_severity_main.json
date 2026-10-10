@@ -1,0 +1,26 @@
+{
+  "data_flow_id": "claims_frequency_severity",
+  "data_flow_group": "gold",
+  "data_flow_type": "nodespec",
+  "tags": {
+    "data_domain": "claims__lodgement_assessment_liability__claim",
+    "data_product": "dp_example_claims_claims_analytics"
+  },
+  "nodes": [
+    {
+      "name": "target_claims_frequency_severity",
+      "node_type": "target",
+      "config": {
+        "database": "{gold_schema}",
+        "table": "claims_frequency_severity",
+        "table_type": "mv",
+        "sql_path": "claims_frequency_severity.sql",
+        "schema_path": "claims_frequency_severity_schema.json",
+        "comment": "Claim count and average reserve (severity) by loss month and cause.",
+        "table_properties": {
+          "delta.enableRowTracking": "true"
+        }
+      }
+    }
+  ]
+}

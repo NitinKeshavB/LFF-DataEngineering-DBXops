@@ -1,0 +1,88 @@
+apiVersion: v3.1.0
+kind: DataContract
+id: dc_example_claims_bronze_claim
+name: claim
+version: 1.0.0
+status: active
+domain: claims__lodgement_assessment_liability__claim
+dataProduct: dp_example_claims_claims_raw
+description:
+  purpose: Raw claim change records exactly as landed by the source feed.
+  usage: Input to the conformed layer only; not for analytics or reporting.
+  limitations: Holds every change record (_op, _seq) including duplicates and late arrivals; schema is the source's.
+servers:
+- server: dev
+  type: databricks
+  environment: dev
+  catalog: <PLACEHOLDER-dev-catalog>
+  schema: example_claims_bronze
+- server: test
+  type: databricks
+  environment: test
+  catalog: <PLACEHOLDER-test-catalog>
+  schema: example_claims_bronze
+- server: uat
+  type: databricks
+  environment: uat
+  catalog: <PLACEHOLDER-uat-catalog>
+  schema: example_claims_bronze
+- server: preprod
+  type: databricks
+  environment: preprod
+  catalog: <PLACEHOLDER-preprod-catalog>
+  schema: example_claims_bronze
+- server: prod
+  type: databricks
+  environment: prod
+  catalog: <PLACEHOLDER-prod-catalog>
+  schema: example_claims_bronze
+schema:
+- name: claim
+  physicalName: <PLACEHOLDER-prod-catalog>.example_claims_bronze.claim
+  logicalType: object
+  properties:
+  - name: claim_id
+    logicalType: string
+    physicalType: string
+    required: true
+  - name: policy_id
+    logicalType: string
+    physicalType: string
+    required: true
+  - name: loss_date
+    logicalType: date
+    physicalType: date
+    required: false
+  - name: reported_date
+    logicalType: date
+    physicalType: date
+    required: false
+  - name: status
+    logicalType: string
+    physicalType: string
+    required: false
+  - name: cause
+    logicalType: string
+    physicalType: string
+    required: false
+  - name: reserve_amount
+    logicalType: number
+    physicalType: decimal(18,2)
+    required: false
+  - name: state
+    logicalType: string
+    physicalType: string
+    required: false
+  - name: _op
+    logicalType: string
+    physicalType: string
+    required: true
+  - name: _seq
+    logicalType: integer
+    physicalType: long
+    required: true
+  customProperties:
+  - property: dbx.asset_id
+    value: example_claims_bronze.claim
+  - property: dbx.spec_id
+    value: bronze_claim

@@ -1,0 +1,109 @@
+apiVersion: v3.1.0
+kind: DataContract
+id: dc_example_claims_silver_fact_claim
+name: fact_claim
+version: 1.0.0
+status: active
+domain: claims__lodgement_assessment_liability__claim
+dataProduct: dp_example_claims_claims_conformed
+description:
+  purpose: 'Current state of each claim: status, cause and reserve (SCD1).'
+  usage: Conformed, validated data for analytics and downstream data products.
+  limitations: Reflects source data as of the last pipeline run.
+servers:
+- server: dev
+  type: databricks
+  environment: dev
+  catalog: <PLACEHOLDER-dev-catalog>
+  schema: example_claims_silver
+- server: test
+  type: databricks
+  environment: test
+  catalog: <PLACEHOLDER-test-catalog>
+  schema: example_claims_silver
+- server: uat
+  type: databricks
+  environment: uat
+  catalog: <PLACEHOLDER-uat-catalog>
+  schema: example_claims_silver
+- server: preprod
+  type: databricks
+  environment: preprod
+  catalog: <PLACEHOLDER-preprod-catalog>
+  schema: example_claims_silver
+- server: prod
+  type: databricks
+  environment: prod
+  catalog: <PLACEHOLDER-prod-catalog>
+  schema: example_claims_silver
+schema:
+- name: fact_claim
+  physicalName: <PLACEHOLDER-prod-catalog>.example_claims_silver.fact_claim
+  logicalType: object
+  properties:
+  - name: claim_id
+    logicalType: string
+    physicalType: string
+    required: true
+  - name: policy_id
+    logicalType: string
+    physicalType: string
+    required: true
+  - name: loss_date
+    logicalType: date
+    physicalType: date
+    required: false
+  - name: reported_date
+    logicalType: date
+    physicalType: date
+    required: false
+  - name: status
+    logicalType: string
+    physicalType: string
+    required: false
+  - name: cause
+    logicalType: string
+    physicalType: string
+    required: false
+  - name: reserve_amount
+    logicalType: number
+    physicalType: decimal(18,2)
+    required: false
+  - name: state
+    logicalType: string
+    physicalType: string
+    required: false
+  quality:
+  - id: fact_claim_reserve_non_negative
+    name: reserve non-negative
+    type: sql
+    dimension: accuracy
+    severity: warning
+    query: SELECT COUNT(*) FROM ${table} WHERE NOT (reserve_amount >= 0)
+    mustBe: 0
+    customProperties:
+    - property: dbx.origin
+      value: expectation
+    - property: dbx.action
+      value: warn
+    - property: dbx.constraint
+      value: reserve_amount >= 0
+  - id: fact_claim_claim_id_not_null
+    name: claim_id not null
+    type: sql
+    dimension: completeness
+    severity: error
+    query: SELECT COUNT(*) FROM ${table} WHERE NOT (claim_id IS NOT NULL)
+    mustBe: 0
+    customProperties:
+    - property: dbx.origin
+      value: expectation
+    - property: dbx.action
+      value: fail
+    - property: dbx.constraint
+      value: claim_id IS NOT NULL
+  customProperties:
+  - property: dbx.asset_id
+    value: example_claims_silver.fact_claim
+  - property: dbx.spec_id
+    value: fact_claim

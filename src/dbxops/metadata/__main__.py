@@ -22,6 +22,10 @@ from dbxops.metadata.rules import (
     validate,
 )
 from dbxops.metadata.specs import SpecError
+from dbxops.metadata.substitutions import (
+    plan_substitutions,
+    write_substitutions,
+)
 
 
 def _print(findings: list[Finding]) -> None:
@@ -51,6 +55,15 @@ def _contracts(ctx: RepoContext, check: bool) -> int:
     return 1 if (check and changed) else 0
 
 
+def _substitutions(ctx: RepoContext, check: bool) -> int:
+    changed = [p for p in plan_substitutions(ctx) if not p.current] if check else write_substitutions(ctx)
+    for plan in changed:
+        print(f"{'would write' if check else 'wrote'} {plan.path.relative_to(ctx.root)}")
+    if not changed:
+        print("substitution files are up to date")
+    return 1 if (check and changed) else 0
+
+
 def main(argv: list[str] | None = None) -> int:
     """Run the CLI and return a process exit code."""
     parser = argparse.ArgumentParser(prog="python -m dbxops.metadata")
@@ -64,6 +77,8 @@ def main(argv: list[str] | None = None) -> int:
     contracts_cmd.add_argument(
         "--check", action="store_true", help="report what would change; exit 1 if anything would"
     )
+    subs_cmd = commands.add_parser("substitutions", help="write each bundle's <target>_substitutions.json from conf/")
+    subs_cmd.add_argument("--check", action="store_true", help="report what would change; exit 1 if anything would")
     export_cmd = commands.add_parser("export-ontos", help="write Ontos upload files for one target")
     export_cmd.add_argument("--target", required=True)
     export_cmd.add_argument("--out", type=Path, help="output directory (default: build/ontos/<target>)")
@@ -73,6 +88,8 @@ def main(argv: list[str] | None = None) -> int:
         return _validate(ctx, args.baseline)
     if args.command == "contracts":
         return _contracts(ctx, args.check)
+    if args.command == "substitutions":
+        return _substitutions(ctx, args.check)
     out = args.out or ctx.root / "build" / "ontos" / args.target
     paths = export_ontos(ctx, args.target, out)
     print(f"wrote {len(paths)} files under {out}")

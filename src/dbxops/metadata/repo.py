@@ -143,5 +143,5 @@ def _glossary_iris(path: Path) -> frozenset[str]:
 
 def _spec_infos(path: Path) -> list[SpecInfo]:
     bundle_dir = next(parent for parent in path.parents if parent.name == "src").parent
-    tokens = load_tokens(bundle_dir)
+    tokens = load_tokens(bundle_dir, required=False)
     return [SpecInfo(spec=spec, bundle_dir=bundle_dir, tokens=tokens) for spec in load_specs(path)]

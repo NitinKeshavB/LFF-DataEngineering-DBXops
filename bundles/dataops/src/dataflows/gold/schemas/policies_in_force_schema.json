@@ -1,0 +1,23 @@
+{
+  "type": "struct",
+  "fields": [
+    {
+      "name": "product",
+      "type": "string",
+      "nullable": true,
+      "metadata": {}
+    },
+    {
+      "name": "policies_in_force",
+      "type": "long",
+      "nullable": false,
+      "metadata": {}
+    },
+    {
+      "name": "annual_premium",
+      "type": "decimal(38,2)",
+      "nullable": true,
+      "metadata": {}
+    }
+  ]
+}

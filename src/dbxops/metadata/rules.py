@@ -36,6 +36,7 @@ from dbxops.metadata.specs import (
     SpecError,
     schema_name,
 )
+from dbxops.metadata.substitutions import plan_substitutions
 from dbxops.registry.domains import (
     DomainError,
     DomainTaxonomy,
@@ -421,9 +422,19 @@ def rule_repo_kind(ctx: RepoContext, _: Options) -> list[Finding]:
     return findings
 
 
+def rule_substitutions(ctx: RepoContext, _: Options) -> list[Finding]:
+    """Check that every bundle's generated substitution files match conf/environments.yml and the project id."""
+    return [
+        Finding("substitutions", str(plan.path.relative_to(ctx.root)), "out of date (run: make sync-substitutions)")
+        for plan in plan_substitutions(ctx)
+        if not plan.current
+    ]
+
+
 DEFAULT_RULES: tuple[Rule, ...] = (
     rule_platform_integrity,
     rule_repo_kind,
+    rule_substitutions,
     rule_json_schema,
     rule_api_version,
     rule_ids,

@@ -1,0 +1,59 @@
+{
+  "data_flow_id": "dim_policy_coverage",
+  "data_flow_group": "silver",
+  "data_flow_type": "nodespec",
+  "tags": {
+    "data_domain": "contract_underwriting__policy_admin_servicing__policy_coverage",
+    "data_product": "dp_example_claims_claims_conformed"
+  },
+  "nodes": [
+    {
+      "name": "v_coverage",
+      "node_type": "source",
+      "source_type": "delta",
+      "config": {
+        "mode": "stream",
+        "database": "{bronze_schema}",
+        "table": "coverage",
+        "select_exp": [
+          "coverage_id",
+          "policy_id",
+          "coverage_type",
+          "limit_amount",
+          "excess_amount",
+          "_op",
+          "_seq"
+        ]
+      }
+    },
+    {
+      "name": "target_dim_policy_coverage",
+      "node_type": "target",
+      "config": {
+        "database": "{silver_schema}",
+        "table": "dim_policy_coverage",
+        "schema_path": "dim_policy_coverage_schema.json",
+        "cluster_by_auto": true,
+        "table_properties": {
+          "delta.enableChangeDataFeed": "true",
+          "delta.enableRowTracking": "true"
+        },
+        "sources": [
+          "v_coverage"
+        ],
+        "cdc_settings": {
+          "keys": [
+            "coverage_id"
+          ],
+          "scd_type": "1",
+          "sequence_by": "_seq",
+          "apply_as_deletes": "_op = 'D'",
+          "except_column_list": [
+            "_op",
+            "_seq"
+          ]
+        }
+      }
+    }
+  ]
+}

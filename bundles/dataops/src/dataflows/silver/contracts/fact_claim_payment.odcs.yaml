@@ -1,0 +1,101 @@
+apiVersion: v3.1.0
+kind: DataContract
+id: dc_example_claims_silver_fact_claim_payment
+name: fact_claim_payment
+version: 1.0.0
+status: active
+domain: claims__settlement_payments__claim_payment
+dataProduct: dp_example_claims_claims_conformed
+description:
+  purpose: Claim payments, validated; invalid rows are quarantined.
+  usage: Conformed, validated data for analytics and downstream data products.
+  limitations: Reflects source data as of the last pipeline run. Rows failing validation are quarantined, not loaded.
+servers:
+- server: dev
+  type: databricks
+  environment: dev
+  catalog: <PLACEHOLDER-dev-catalog>
+  schema: example_claims_silver
+- server: test
+  type: databricks
+  environment: test
+  catalog: <PLACEHOLDER-test-catalog>
+  schema: example_claims_silver
+- server: uat
+  type: databricks
+  environment: uat
+  catalog: <PLACEHOLDER-uat-catalog>
+  schema: example_claims_silver
+- server: preprod
+  type: databricks
+  environment: preprod
+  catalog: <PLACEHOLDER-preprod-catalog>
+  schema: example_claims_silver
+- server: prod
+  type: databricks
+  environment: prod
+  catalog: <PLACEHOLDER-prod-catalog>
+  schema: example_claims_silver
+schema:
+- name: fact_claim_payment
+  physicalName: <PLACEHOLDER-prod-catalog>.example_claims_silver.fact_claim_payment
+  logicalType: object
+  properties:
+  - name: payment_id
+    logicalType: string
+    physicalType: string
+    required: true
+  - name: claim_id
+    logicalType: string
+    physicalType: string
+    required: true
+  - name: paid_at
+    logicalType: timestamp
+    physicalType: timestamp
+    required: false
+  - name: amount
+    logicalType: number
+    physicalType: decimal(18,2)
+    required: false
+  - name: payment_type
+    logicalType: string
+    physicalType: string
+    required: false
+  quality:
+  - id: fact_claim_payment_payment_id_not_null
+    name: payment_id not null
+    type: sql
+    dimension: completeness
+    severity: error
+    query: SELECT COUNT(*) FROM ${table} WHERE NOT (payment_id IS NOT NULL)
+    mustBe: 0
+    customProperties:
+    - property: dbx.origin
+      value: expectation
+    - property: dbx.action
+      value: quarantine
+    - property: dbx.constraint
+      value: payment_id IS NOT NULL
+    - property: dbx.quarantine_asset_id
+      value: example_claims_silver.fact_claim_payment_quarantine
+  - id: fact_claim_payment_payment_amount_positive
+    name: payment amount positive
+    type: sql
+    dimension: accuracy
+    severity: error
+    query: SELECT COUNT(*) FROM ${table} WHERE NOT (amount > 0)
+    mustBe: 0
+    customProperties:
+    - property: dbx.origin
+      value: expectation
+    - property: dbx.action
+      value: quarantine
+    - property: dbx.constraint
+      value: amount > 0
+    - property: dbx.quarantine_asset_id
+      value: example_claims_silver.fact_claim_payment_quarantine
+  customProperties:
+  - property: dbx.asset_id
+    value: example_claims_silver.fact_claim_payment
+  - property: dbx.spec_id
+    value: fact_claim_payment

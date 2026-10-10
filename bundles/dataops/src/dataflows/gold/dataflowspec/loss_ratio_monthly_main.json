@@ -1,0 +1,26 @@
+{
+  "data_flow_id": "loss_ratio_monthly",
+  "data_flow_group": "gold",
+  "data_flow_type": "nodespec",
+  "tags": {
+    "data_domain": "contract_underwriting__pricing_rating__premium",
+    "data_product": "dp_example_claims_claims_analytics"
+  },
+  "nodes": [
+    {
+      "name": "target_loss_ratio_monthly",
+      "node_type": "target",
+      "config": {
+        "database": "{gold_schema}",
+        "table": "loss_ratio_monthly",
+        "table_type": "mv",
+        "sql_path": "loss_ratio_monthly.sql",
+        "schema_path": "loss_ratio_monthly_schema.json",
+        "comment": "Monthly loss ratio: (claim payments + outstanding reserves) over earned premium.",
+        "table_properties": {
+          "delta.enableRowTracking": "true"
+        }
+      }
+    }
+  ]
+}

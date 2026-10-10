@@ -17,6 +17,7 @@ import yaml
 
 from dbxops.metadata.contracts import write_contracts
 from dbxops.metadata.repo import RepoContext
+from dbxops.metadata.substitutions import write_substitutions
 from dbxops.registry.snapshots import render_snapshots
 from tests.consts import PROJECT_DIR
 
@@ -137,15 +138,8 @@ def build_repo(root: Path, kind: str = "project", domain: str = "claims") -> Pat
     write_platform(root, kind, domain)
     write_yaml(root / "conf/environments.yml", ENVIRONMENTS)
     bundle = root / "bundles/dataops/src"
-    write_json(
-        bundle / "pipeline_configs/dev_substitutions.json",
-        {
-            "tokens": {
-                "bronze_schema": f"dev_cat.{PROJECT_ID}_bronze{{logical_env}}",
-                "silver_schema": f"dev_cat.{PROJECT_ID}_silver{{logical_env}}",
-            }
-        },
-    )
+    (bundle / "pipeline_configs").mkdir(parents=True)
+    write_substitutions(RepoContext.load(root))
     layer = bundle / "dataflows/silver"
     write_json(layer / "dataflowspec/orders_main.json", SPEC)
     write_json(layer / "schemas/orders_schema.json", ORDERS_SCHEMA)

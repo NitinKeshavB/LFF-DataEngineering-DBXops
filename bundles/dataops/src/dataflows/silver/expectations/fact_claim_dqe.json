@@ -1,0 +1,16 @@
+{
+  "expect_or_fail": [
+    {
+      "name": "claim_id not null",
+      "constraint": "claim_id IS NOT NULL",
+      "tag": "Completeness"
+    }
+  ],
+  "expect": [
+    {
+      "name": "reserve non-negative",
+      "constraint": "reserve_amount >= 0",
+      "tag": "Accuracy"
+    }
+  ]
+}

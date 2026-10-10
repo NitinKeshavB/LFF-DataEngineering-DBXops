@@ -1,0 +1,35 @@
+{
+  "type": "struct",
+  "fields": [
+    {
+      "name": "month_start",
+      "type": "date",
+      "nullable": false,
+      "metadata": {}
+    },
+    {
+      "name": "earned_premium",
+      "type": "decimal(38,2)",
+      "nullable": true,
+      "metadata": {}
+    },
+    {
+      "name": "paid_amount",
+      "type": "decimal(38,2)",
+      "nullable": true,
+      "metadata": {}
+    },
+    {
+      "name": "outstanding_reserve",
+      "type": "decimal(38,2)",
+      "nullable": true,
+      "metadata": {}
+    },
+    {
+      "name": "loss_ratio",
+      "type": "decimal(38,6)",
+      "nullable": true,
+      "metadata": {}
+    }
+  ]
+}

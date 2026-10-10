@@ -1,0 +1,79 @@
+{
+  "name": "bronze_autoloader_template",
+  "parameters": {
+    "dataFlowId": {
+      "type": "string",
+      "required": true
+    },
+    "sourceViewName": {
+      "type": "string",
+      "required": true
+    },
+    "path": {
+      "type": "string",
+      "required": true
+    },
+    "database": {
+      "type": "string",
+      "required": true
+    },
+    "table": {
+      "type": "string",
+      "required": true
+    },
+    "schemaPath": {
+      "type": "string",
+      "required": true
+    },
+    "dataDomain": {
+      "type": "string",
+      "required": true
+    },
+    "dataProduct": {
+      "type": "string",
+      "required": true
+    }
+  },
+  "template": {
+    "data_flow_id": "${param.dataFlowId}",
+    "data_flow_group": "bronze",
+    "data_flow_type": "nodespec",
+    "tags": {
+      "data_domain": "${param.dataDomain}",
+      "data_product": "${param.dataProduct}"
+    },
+    "nodes": [
+      {
+        "name": "${param.sourceViewName}",
+        "node_type": "source",
+        "source_type": "cloud_files",
+        "config": {
+          "mode": "stream",
+          "path": "${param.path}",
+          "schema_path": "${param.schemaPath}",
+          "reader_options": {
+            "cloudFiles.format": "json",
+            "cloudFiles.schemaEvolutionMode": "addNewColumns"
+          }
+        }
+      },
+      {
+        "name": "target_${param.table}",
+        "node_type": "target",
+        "config": {
+          "database": "${param.database}",
+          "table": "${param.table}",
+          "schema_path": "${param.schemaPath}",
+          "cluster_by_auto": true,
+          "table_properties": {
+            "delta.enableChangeDataFeed": "true",
+            "delta.enableRowTracking": "true"
+          },
+          "sources": [
+            "${param.sourceViewName}"
+          ]
+        }
+      }
+    ]
+  }
+}

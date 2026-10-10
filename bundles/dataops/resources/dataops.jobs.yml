@@ -1,0 +1,39 @@
+resources:
+  jobs:
+    dataops_run:
+      name: '[${var.project_id}] dataops run (${bundle.target}${var.logical_env})'
+      tags:
+        cost_center: ${var.cost_center}
+        region: ${var.region}
+      performance_target: ${var.performance_target}
+      queue:
+        enabled: true
+      environments:
+      - environment_key: default
+        spec:
+          client: '4'
+          dependencies:
+          - faker
+      tasks:
+      - task_key: generate_data
+        environment_key: default
+        spark_python_task:
+          python_file: ../src/jobs/generate_data.py
+          parameters:
+          - --output
+          - /Volumes/${var.catalog}/${var.project_id}_bronze${var.logical_env}/landing
+      - task_key: bronze
+        depends_on:
+        - task_key: generate_data
+        pipeline_task:
+          pipeline_id: ${resources.pipelines.dataops_bronze.id}
+      - task_key: silver
+        depends_on:
+        - task_key: bronze
+        pipeline_task:
+          pipeline_id: ${resources.pipelines.dataops_silver.id}
+      - task_key: gold
+        depends_on:
+        - task_key: silver
+        pipeline_task:
+          pipeline_id: ${resources.pipelines.dataops_gold.id}

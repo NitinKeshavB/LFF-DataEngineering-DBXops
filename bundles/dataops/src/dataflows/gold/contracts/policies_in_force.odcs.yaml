@@ -1,0 +1,60 @@
+apiVersion: v3.1.0
+kind: DataContract
+id: dc_example_claims_gold_policies_in_force
+name: policies_in_force
+version: 1.0.0
+status: active
+domain: contract_underwriting__policy_admin_servicing__policy
+dataProduct: dp_example_claims_claims_analytics
+description:
+  purpose: Active policies and annual premium by product, from the current version of each policy.
+  usage: Reporting and analysis; refreshed incrementally by the gold pipeline.
+  limitations: Reflects source data as of the last pipeline run.
+servers:
+- server: dev
+  type: databricks
+  environment: dev
+  catalog: <PLACEHOLDER-dev-catalog>
+  schema: example_claims_gold
+- server: test
+  type: databricks
+  environment: test
+  catalog: <PLACEHOLDER-test-catalog>
+  schema: example_claims_gold
+- server: uat
+  type: databricks
+  environment: uat
+  catalog: <PLACEHOLDER-uat-catalog>
+  schema: example_claims_gold
+- server: preprod
+  type: databricks
+  environment: preprod
+  catalog: <PLACEHOLDER-preprod-catalog>
+  schema: example_claims_gold
+- server: prod
+  type: databricks
+  environment: prod
+  catalog: <PLACEHOLDER-prod-catalog>
+  schema: example_claims_gold
+schema:
+- name: policies_in_force
+  physicalName: <PLACEHOLDER-prod-catalog>.example_claims_gold.policies_in_force
+  logicalType: object
+  properties:
+  - name: product
+    logicalType: string
+    physicalType: string
+    required: false
+  - name: policies_in_force
+    logicalType: integer
+    physicalType: long
+    required: true
+  - name: annual_premium
+    logicalType: number
+    physicalType: decimal(38,2)
+    required: false
+  customProperties:
+  - property: dbx.asset_id
+    value: example_claims_gold.policies_in_force
+  - property: dbx.spec_id
+    value: policies_in_force

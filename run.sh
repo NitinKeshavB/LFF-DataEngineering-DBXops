@@ -203,6 +203,11 @@ function contracts {
     python -m dbxops.metadata --root "$THIS_DIR" contracts "$@"
 }
 
+# write each bundle's <target>_substitutions.json from conf/environments.yml (pass --check to only report)
+function sync-substitutions {
+    python -m dbxops.metadata --root "$THIS_DIR" substitutions "$@"
+}
+
 # write Ontos upload files for one target into build/ontos/<target>
 function export-ontos {
     python -m dbxops.metadata --root "$THIS_DIR" export-ontos --target "${1:?usage: ./run.sh export-ontos <target>}"

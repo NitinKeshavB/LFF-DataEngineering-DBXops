@@ -25,6 +25,9 @@ deploy-framework:
 validate-specs:
 	bash run.sh validate-specs
 
+sync-substitutions:
+	bash run.sh sync-substitutions $(if $(CHECK),--check,)
+
 contracts:
 	bash run.sh contracts $(if $(CHECK),--check,)
 

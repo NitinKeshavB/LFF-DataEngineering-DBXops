@@ -188,12 +188,19 @@ def _spec_from_doc(path: Path, doc: dict[str, Any]) -> DataflowSpec:
     )
 
 
-def load_tokens(bundle_dir: Path) -> dict[str, str]:
-    """Return a bundle's substitution tokens from the first `*_substitutions.json` (dev preferred)."""
+def load_tokens(bundle_dir: Path, required: bool = True) -> dict[str, str]:
+    """
+    Return a bundle's substitution tokens from the first `*_substitutions.json` (dev preferred).
+
+    With `required` false, a bundle that has none yet yields no tokens instead of an error; the
+    substitutions rule reports the missing files.
+    """
     configs = bundle_dir / "src" / "pipeline_configs"
     candidates = sorted(
         configs.glob("*_substitutions.json"), key=lambda p: (p.name != "dev_substitutions.json", p.name)
     )
+    if not candidates and not required:
+        return {}
     if not candidates:
         raise SpecError(f"{configs}: no *_substitutions.json found")
     return json.loads(candidates[0].read_text(encoding="utf-8")).get("tokens", {})
