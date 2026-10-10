@@ -1,0 +1,23 @@
+resources:
+  pipelines:
+    mlops_features:
+      name: '[${var.project_id}] mlops features (${bundle.target}${var.logical_env})'
+      channel: CURRENT
+      serverless: true
+      catalog: ${var.catalog}
+      schema: ${var.project_id}_ml${var.logical_env}
+      libraries:
+      - notebook:
+          path: ${var.framework_source_path}/dlt_pipeline
+      root_path: ${workspace.file_path}/src
+      tags:
+        cost_center: ${var.cost_center}
+        region: ${var.region}
+      configuration:
+        bundle.sourcePath: ${workspace.file_path}/src
+        bundle.target: ${bundle.target}
+        framework.sourcePath: ${var.framework_source_path}
+        workspace.host: ${var.workspace_host}
+        pipeline.layer: ml
+        logicalEnv: ${var.logical_env}
+        pipeline.dataFlowGroupFilter: ml

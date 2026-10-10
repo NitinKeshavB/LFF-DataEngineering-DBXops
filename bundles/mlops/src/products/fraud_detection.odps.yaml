@@ -1,0 +1,48 @@
+apiVersion: v1.0.0
+kind: DataProduct
+id: dp_example_claims_fraud_detection
+name: example_claims_fraud_detection
+version: 1.0.0
+status: active
+domain: claims
+description:
+  purpose: 'Claims fraud detection: per-claim fraud features, the claims fraud model, its batch scores and its serving endpoint'
+  usage: Triage of claims for fraud investigation; the label is synthetic, so the scores are for demonstration only.
+  limitations: Refreshed by the MLOps job; the endpoint is deployed in uat, preprod and prod only.
+inputPorts:
+- name: dim_policy
+  version: 1.0.0
+  contractId: dc_example_claims_silver_dim_policy
+- name: fact_claim
+  version: 1.0.0
+  contractId: dc_example_claims_silver_fact_claim
+- name: fact_claim_payment
+  version: 1.0.0
+  contractId: dc_example_claims_silver_fact_claim_payment
+outputPorts:
+- name: claims_fraud_features
+  version: 1.0.0
+  type: uc_materialized_view
+  contractId: dc_example_claims_ml_claims_fraud_features
+  customProperties:
+  - property: dbx.assetId
+    value: example_claims_ml.claims_fraud_features
+- name: claims_fraud_scores
+  version: 1.0.0
+  description: Written by the scoring job task, not by a dataflow spec, so it has no contract.
+  type: uc_table
+  customProperties:
+  - property: dbx.assetId
+    value: example_claims_ml.claims_fraud_scores
+- name: claims_fraud_model
+  version: 1.0.0
+  type: uc_model
+  customProperties:
+  - property: dbx.assetId
+    value: example_claims_ml.claims_fraud_model
+- name: claims_fraud_endpoint
+  version: 1.0.0
+  type: serving_endpoint
+  customProperties:
+  - property: dbx.assetId
+    value: serving_endpoint/example_claims/claims_fraud_endpoint
