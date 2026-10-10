@@ -20,4 +20,5 @@ pytest_plugins = [
     "tests.fixtures.example_fixture",
     "tests.fixtures.domain_taxonomy",
     "tests.fixtures.metadata_repo",
+    "tests.fixtures.workspace",
 ]
