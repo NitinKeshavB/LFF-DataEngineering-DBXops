@@ -1,0 +1,88 @@
+resources:
+  jobs:
+    mlops_run:
+      name: '[${var.project_id}] mlops run (${bundle.target}${var.logical_env})'
+      tags:
+        cost_center: ${var.cost_center}
+        region: ${var.region}
+      performance_target: ${var.performance_target}
+      queue:
+        enabled: true
+      environments:
+      - environment_key: default
+        spec:
+          client: '4'
+          dependencies:
+          - ${var.dbxops_wheel_path}
+          - mlflow>=3.1
+          - scikit-learn
+          - pandas
+          - databricks-feature-engineering>=0.16.0
+      tasks:
+      - task_key: features
+        pipeline_task:
+          pipeline_id: ${resources.pipelines.mlops_features.id}
+      - task_key: train
+        depends_on:
+        - task_key: features
+        environment_key: default
+        spark_python_task:
+          python_file: ../src/jobs/train_model.py
+          parameters:
+          - --features-table
+          - ${var.catalog}.${var.project_id}_ml${var.logical_env}.claims_fraud_features
+          - --model
+          - ${var.catalog}.${var.project_id}_ml${var.logical_env}.claims_fraud_model
+          - --experiment
+          - /Shared/${var.project_id}_claims_fraud_${bundle.target}${var.logical_env}
+      - task_key: promote
+        depends_on:
+        - task_key: train
+        environment_key: default
+        spark_python_task:
+          python_file: ../src/jobs/lifecycle_task.py
+          parameters:
+          - promote
+          - --model
+          - ${var.catalog}.${var.project_id}_ml${var.logical_env}.claims_fraud_model
+          - --gate
+          - ${workspace.file_path}/src/gates/claims_fraud_model.gate.yml
+      - task_key: score
+        depends_on:
+        - task_key: promote
+        environment_key: default
+        spark_python_task:
+          python_file: ../src/jobs/score_batch.py
+          parameters:
+          - --features-table
+          - ${var.catalog}.${var.project_id}_ml${var.logical_env}.claims_fraud_features
+          - --model
+          - ${var.catalog}.${var.project_id}_ml${var.logical_env}.claims_fraud_model
+          - --scores-table
+          - ${var.catalog}.${var.project_id}_ml${var.logical_env}.claims_fraud_scores
+      - task_key: serving_enabled
+        depends_on:
+        - task_key: score
+        condition_task:
+          op: EQUAL_TO
+          left: ${var.deploy_serving}
+          right: 'true'
+      - task_key: serve
+        depends_on:
+        - task_key: serving_enabled
+          outcome: 'true'
+        environment_key: default
+        spark_python_task:
+          python_file: ../src/jobs/lifecycle_task.py
+          parameters:
+          - reconcile
+          - --model
+          - ${var.catalog}.${var.project_id}_ml${var.logical_env}.claims_fraud_model
+          - --config
+          - ${workspace.file_path}/src/serving/claims_fraud_endpoint.yml
+          - --catalog
+          - ${var.catalog}
+          - --project-id
+          - ${var.project_id}
+          - --target
+          - ${bundle.target}

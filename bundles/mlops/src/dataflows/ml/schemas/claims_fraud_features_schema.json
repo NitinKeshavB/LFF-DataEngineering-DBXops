@@ -1,0 +1,77 @@
+{
+  "type": "struct",
+  "fields": [
+    {
+      "name": "claim_id",
+      "type": "string",
+      "nullable": false,
+      "metadata": {}
+    },
+    {
+      "name": "policy_id",
+      "type": "string",
+      "nullable": true,
+      "metadata": {}
+    },
+    {
+      "name": "claim_reserve",
+      "type": "decimal(18,2)",
+      "nullable": true,
+      "metadata": {}
+    },
+    {
+      "name": "days_loss_to_report",
+      "type": "integer",
+      "nullable": true,
+      "metadata": {}
+    },
+    {
+      "name": "policy_age_days",
+      "type": "integer",
+      "nullable": true,
+      "metadata": {}
+    },
+    {
+      "name": "sum_insured",
+      "type": "decimal(18,2)",
+      "nullable": true,
+      "metadata": {}
+    },
+    {
+      "name": "annual_premium",
+      "type": "decimal(18,2)",
+      "nullable": true,
+      "metadata": {}
+    },
+    {
+      "name": "reserve_to_sum_insured",
+      "type": "double",
+      "nullable": true,
+      "metadata": {}
+    },
+    {
+      "name": "prior_claim_count",
+      "type": "integer",
+      "nullable": true,
+      "metadata": {}
+    },
+    {
+      "name": "payment_count",
+      "type": "integer",
+      "nullable": true,
+      "metadata": {}
+    },
+    {
+      "name": "total_paid",
+      "type": "decimal(18,2)",
+      "nullable": true,
+      "metadata": {}
+    },
+    {
+      "name": "is_fraud_suspected",
+      "type": "integer",
+      "nullable": true,
+      "metadata": {}
+    }
+  ]
+}

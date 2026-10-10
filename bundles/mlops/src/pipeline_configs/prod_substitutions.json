@@ -1,0 +1,10 @@
+{
+  "tokens": {
+    "bronze_schema": "<PLACEHOLDER-prod-catalog>.example_claims_bronze{logical_env}",
+    "silver_schema": "<PLACEHOLDER-prod-catalog>.example_claims_silver{logical_env}",
+    "gold_schema": "<PLACEHOLDER-prod-catalog>.example_claims_gold{logical_env}",
+    "ml_schema": "<PLACEHOLDER-prod-catalog>.example_claims_ml{logical_env}",
+    "ai_schema": "<PLACEHOLDER-prod-catalog>.example_claims_ai{logical_env}",
+    "landing_path": "/Volumes/<PLACEHOLDER-prod-catalog>/example_claims_bronze{logical_env}/landing"
+  }
+}
