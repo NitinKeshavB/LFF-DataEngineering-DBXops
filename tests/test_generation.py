@@ -146,7 +146,7 @@ def test__a_framework_that_cannot_be_added_is_reported_and_the_project_is_still_
         {"squad_title": 'Bad "title"'},
         {"domain": "Claims"},
     ],
-    ids=["id-chars", "id-short", "repo-prefix", "title-quote", "domain-case"],
+    ids=["id-chars", "id-short", "repo-underscore", "title-quote", "domain-case"],
 )
 def test__bad_answers_are_rejected_before_anything_is_generated(render: Render, answers: dict, tmp_path: Path):
     """Each answer that the registry would refuse is refused here, and no project is left behind."""
@@ -180,3 +180,14 @@ def test__a_hyphenated_project_name_and_a_repo_name_without_the_registry_prefix_
     registration = project / "templates/registry-repo/projects/finance_data_hub.yaml"
     assert yaml.safe_load(registration.read_text(encoding="utf-8"))["repo"] == {"name": "dbx-finance-data-hub"}
     assert not [p for p in text_files(project) if EXAMPLE_IDENTITY.search(p.read_text("utf-8"))]
+
+
+@pytest.mark.parametrize(
+    "project_name", ["Finance Data-Hub", "finance data hub", "finance-data-hub", "  Finance__Data  Hub "]
+)
+def test__the_default_repo_name_is_normalised_like_the_project_name(render: Render, project_name: str):
+    """Without a repo_name, any spelling of the squad name gives dbx-finance-data-hub and id finance_data_hub."""
+    project = render(project_name=project_name, squad_title="Finance Data Hub")
+    assert project.name == "dbx-finance-data-hub"
+    repo = yaml.safe_load((project / "metadata/_platform/repo.yaml").read_text(encoding="utf-8").split("\n", 1)[1])
+    assert repo["project_id"] == "finance_data_hub"

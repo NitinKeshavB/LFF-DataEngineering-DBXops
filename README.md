@@ -92,8 +92,8 @@ The generated `README.md` continues from there ("Start building"): fill in the p
 | `domain` | the squad's place in the domain taxonomy, any level: `claims`, `claims__litigation`, `claims__litigation__claim_litigation` | `claims` |
 | `include_examples` | `yes` keeps the three example bundles; `no` removes them and the tests written for them | `yes` |
 
-Answers are checked before anything is written, against the same rules the registry applies, so a project made here can later be registered
-without renaming anything. `domain` must exist in the taxonomy shipped with the template (16 business domains, 62 sub-domains, 82 data
+Answers are checked before anything is written. `project_name` becomes the squad id the registry uses, so it follows the registry's pattern after normalising;
+`repo_name` is only the directory and distribution name, and the registration the project ships with is always `dbx-<project_name>`. `domain` must exist in the taxonomy shipped with the template (16 business domains, 62 sub-domains, 82 data
 domains); a typo gets a "did you mean". For `kind=domain` the examples are always left out (with a note), because they span several business domains.
 
 Non-interactive:

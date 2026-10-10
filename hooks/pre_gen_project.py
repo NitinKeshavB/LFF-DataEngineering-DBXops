@@ -1,8 +1,8 @@
 """
 Reject answers that would produce a broken project, before anything is generated.
 
-The rules mirror `dbxops.registry`: the same patterns a registry registration is held to, so a project
-generated here can later be registered without renaming anything.
+The squad id (`project_name`) follows the registry's pattern, so it registers unchanged. `repo_name` is only the
+directory and distribution name: the registration the project ships with is always named `dbx-<project_name>`.
 """
 
 import re
