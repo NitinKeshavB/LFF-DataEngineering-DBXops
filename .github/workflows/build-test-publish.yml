@@ -54,11 +54,9 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        # pyproject.toml declares requires-python = ">=3.7", but 3.7 and 3.8
-        # are end-of-life and unavailable on current runners, so the declared
-        # floor is not actually exercised. Either raise the floor or accept
-        # that it is aspirational.
-        python-version: ["3.9", "3.10", "3.11", "3.12", "3.13"]
+        # pyproject.toml declares requires-python = ">=3.11"; the matrix covers
+        # every supported minor version up to the newest.
+        python-version: ["3.11", "3.12", "3.13"]
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
