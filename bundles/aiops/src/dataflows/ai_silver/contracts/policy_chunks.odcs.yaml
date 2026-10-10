@@ -1,0 +1,102 @@
+apiVersion: v3.1.0
+kind: DataContract
+id: dc_example_claims_ai_policy_chunks
+name: policy_chunks
+version: 1.0.0
+status: active
+domain: product__wordings_pds__product_wording
+dataProduct: dp_example_claims_policy_assistant
+description:
+  purpose: Policy wording passages with a stable chunk id, ready to embed; the source table of the policy vector search index.
+  usage: Delta Sync source for the vector index; change data feed is on, and chunk_id is the primary key.
+  limitations: Passages are paragraph-sized splits of the parsed text, not semantic chunks; a passage shorter than 41 characters is dropped.
+servers:
+- server: dev
+  type: databricks
+  environment: dev
+  catalog: <PLACEHOLDER-dev-catalog>
+  schema: example_claims_ai
+- server: test
+  type: databricks
+  environment: test
+  catalog: <PLACEHOLDER-test-catalog>
+  schema: example_claims_ai
+- server: uat
+  type: databricks
+  environment: uat
+  catalog: <PLACEHOLDER-uat-catalog>
+  schema: example_claims_ai
+- server: preprod
+  type: databricks
+  environment: preprod
+  catalog: <PLACEHOLDER-preprod-catalog>
+  schema: example_claims_ai
+- server: prod
+  type: databricks
+  environment: prod
+  catalog: <PLACEHOLDER-prod-catalog>
+  schema: example_claims_ai
+schema:
+- name: policy_chunks
+  physicalName: <PLACEHOLDER-prod-catalog>.example_claims_ai.policy_chunks
+  logicalType: object
+  properties:
+  - name: chunk_id
+    logicalType: string
+    physicalType: string
+    required: true
+    primaryKey: true
+  - name: document_path
+    logicalType: string
+    physicalType: string
+    required: true
+  - name: document_name
+    logicalType: string
+    physicalType: string
+    required: false
+  - name: chunk_index
+    logicalType: integer
+    physicalType: integer
+    required: true
+  - name: chunk_text
+    logicalType: string
+    physicalType: string
+    required: true
+  - name: modified_at
+    logicalType: timestamp
+    physicalType: timestamp
+    required: false
+  quality:
+  - id: policy_chunks_chunk_id_not_null
+    name: chunk_id not null
+    type: sql
+    dimension: completeness
+    severity: error
+    query: SELECT COUNT(*) FROM ${table} WHERE NOT (chunk_id IS NOT NULL)
+    mustBe: 0
+    customProperties:
+    - property: dbx.origin
+      value: expectation
+    - property: dbx.action
+      value: drop
+    - property: dbx.constraint
+      value: chunk_id IS NOT NULL
+  - id: policy_chunks_chunk_has_text
+    name: chunk has text
+    type: sql
+    dimension: completeness
+    severity: error
+    query: SELECT COUNT(*) FROM ${table} WHERE NOT (length(trim(chunk_text)) > 0)
+    mustBe: 0
+    customProperties:
+    - property: dbx.origin
+      value: expectation
+    - property: dbx.action
+      value: drop
+    - property: dbx.constraint
+      value: length(trim(chunk_text)) > 0
+  customProperties:
+  - property: dbx.asset_id
+    value: example_claims_ai.policy_chunks
+  - property: dbx.spec_id
+    value: policy_chunks

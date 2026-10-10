@@ -1,0 +1,44 @@
+resources:
+  pipelines:
+    aiops_ai_bronze:
+      name: '[${var.project_id}] aiops ai_bronze (${bundle.target}${var.logical_env})'
+      channel: CURRENT
+      serverless: true
+      catalog: ${var.catalog}
+      schema: ${var.project_id}_ai${var.logical_env}
+      libraries:
+      - notebook:
+          path: ${var.framework_source_path}/dlt_pipeline
+      root_path: ${workspace.file_path}/src
+      tags:
+        cost_center: ${var.cost_center}
+        region: ${var.region}
+      configuration:
+        bundle.sourcePath: ${workspace.file_path}/src
+        bundle.target: ${bundle.target}
+        framework.sourcePath: ${var.framework_source_path}
+        workspace.host: ${var.workspace_host}
+        pipeline.layer: bronze
+        logicalEnv: ${var.logical_env}
+        pipeline.dataFlowGroupFilter: ai_bronze
+    aiops_ai_silver:
+      name: '[${var.project_id}] aiops ai_silver (${bundle.target}${var.logical_env})'
+      channel: CURRENT
+      serverless: true
+      catalog: ${var.catalog}
+      schema: ${var.project_id}_ai${var.logical_env}
+      libraries:
+      - notebook:
+          path: ${var.framework_source_path}/dlt_pipeline
+      root_path: ${workspace.file_path}/src
+      tags:
+        cost_center: ${var.cost_center}
+        region: ${var.region}
+      configuration:
+        bundle.sourcePath: ${workspace.file_path}/src
+        bundle.target: ${bundle.target}
+        framework.sourcePath: ${var.framework_source_path}
+        workspace.host: ${var.workspace_host}
+        pipeline.layer: silver
+        logicalEnv: ${var.logical_env}
+        pipeline.dataFlowGroupFilter: ai_silver
