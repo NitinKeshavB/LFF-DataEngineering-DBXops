@@ -27,7 +27,13 @@ advisory but still read.
 
 | Term | Definition | Synonyms / Notes |
 |---|---|---|
-| | | |
+| Domain Taxonomy | The platform-owned three-level hierarchy Business Domain → Sub-domain → Data Domain, held in `metadata/_platform/domains.yaml` (client source, 2026-10-10). | (avoid) domain list, domain model |
+| Business Domain | Top level of the Domain Taxonomy, e.g. Claims, Finance. | (avoid) area, LOB |
+| Sub-domain | Second level, grouping related Data Domains within a Business Domain, e.g. Claims > Litigation. | (use) Subdomain · (avoid) category |
+| Data Domain | Leaf level of the Domain Taxonomy. Every table (ODCS contract) belongs to exactly one Data Domain. | (avoid) "domain" on its own when a level matters |
+| Domain Path | The identifier of any taxonomy node: its ancestors' slugs and its own joined with `__`, e.g. `claims__litigation__claim_litigation`. Shows what a table rolls up to. | (avoid) domain id, domain code |
+| Display Path | The human-readable form of a Domain Path, e.g. "Claims > Litigation > Claim Litigation". Never used as a key. | |
+| Restricted | Sensitivity flag on a Data Domain (e.g. health, legal-privilege, PCI data). | |
 
 <!-- Example rows from a hypothetical order-management package — delete these and
      write your own:

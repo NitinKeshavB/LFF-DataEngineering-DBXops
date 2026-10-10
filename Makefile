@@ -7,6 +7,9 @@
 build:
 	bash run.sh build
 
+check-placeholders:
+	bash run.sh check-placeholders $(if $(STRICT),--strict,)
+
 clean:
 	bash run.sh clean
 
@@ -21,6 +24,9 @@ lint:
 
 lint-ci:
 	bash run.sh lint:ci
+
+onboard-check:
+	bash run.sh onboard-check
 
 publish-prod:
 	bash run.sh publish:prod
@@ -48,3 +54,6 @@ test:
 
 test-wheel-locally:
 	bash run.sh test:wheel-locally
+
+validate-domains:
+	bash run.sh validate-domains

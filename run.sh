@@ -137,6 +137,42 @@ function clean {
       -exec rm {} +
 }
 
+# list tracked config placeholders (PLACEHOLDER-<what>); warn by default, fail with --strict
+function check-placeholders {
+    local paths=()
+    for path in conf metadata bundles framework/databricks.yml; do
+        if [ -e "$THIS_DIR/$path" ]; then
+            paths+=("$THIS_DIR/$path")
+        fi
+    done
+
+    local found=""
+    if [ ${#paths[@]} -gt 0 ]; then
+        found="$(grep -rnoE 'PLACEHOLDER-[a-z0-9-]+' "${paths[@]}" | sed "s|^$THIS_DIR/||" || true)"
+    fi
+
+    if [ -z "$found" ]; then
+        echo "no placeholders found"
+        return 0
+    fi
+
+    echo "$found"
+    echo "$(echo "$found" | wc -l) placeholder(s) found"
+    if [ "${1:-}" == "--strict" ]; then
+        return 1
+    fi
+}
+
+# validate the domain taxonomy snapshot (business domain -> sub-domain -> data domain)
+function validate-domains {
+    python -m dbxops.registry.domains "$THIS_DIR/metadata/_platform/domains.yaml"
+}
+
+# check that a squad repo is ready to deploy
+function onboard-check {
+    check-placeholders --strict
+}
+
 # export the contents of .env as environment variables
 function try-load-dotenv {
     if [ ! -f "$THIS_DIR/.env" ]; then

@@ -1,0 +1,28 @@
+# Metadata database sinks per target (master plan §D8).
+# "{catalog}" resolves from conf/environments.yml. Every repo publishes into the
+# shared `platform_meta` schema of the target. PLACEHOLDER values are tracked by
+# `make check-placeholders`.
+
+targets:
+  dev:
+    retention_days: 400
+    sinks:
+      - {backend: uc, catalog: "{catalog}", schema: platform_meta, warehouse_id: "<PLACEHOLDER-dev-warehouse-id>"}
+  test:
+    retention_days: 400
+    sinks:
+      - {backend: uc, catalog: "{catalog}", schema: platform_meta, warehouse_id: "<PLACEHOLDER-test-warehouse-id>"}
+  uat:
+    retention_days: 400
+    sinks:
+      - {backend: uc, catalog: "{catalog}", schema: platform_meta, warehouse_id: "<PLACEHOLDER-uat-warehouse-id>"}
+  preprod:
+    retention_days: 400
+    sinks:
+      - {backend: uc, catalog: "{catalog}", schema: platform_meta, warehouse_id: "<PLACEHOLDER-preprod-warehouse-id>"}
+  prod:
+    retention_days: 400
+    sinks:
+      - {backend: uc, catalog: "{catalog}", schema: platform_meta, warehouse_id: "<PLACEHOLDER-prod-warehouse-id>"}
+      - {backend: lakebase, instance: "<PLACEHOLDER-lakebase-instance>", database: platform_meta}
+      # - {backend: postgres, host: "<postgres-host>", database: platform_meta, secret_scope: kv-platform, user_key: pg-user, password_key: pg-password}
