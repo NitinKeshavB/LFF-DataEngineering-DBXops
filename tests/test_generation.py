@@ -14,7 +14,7 @@ SNAPSHOT_HEADER = (
 )
 EXAMPLE_IDENTITY = re.compile(r"example_claims|example-claims|EXAMPLECLAIMS|exampleclaims|Example Claims|dbx-example")
 ANSWERS = {
-    "project_id": "claims_fraud",
+    "project_name": "claims_fraud",
     "squad_title": "Claims Fraud Squad",
     "domain": "claims__litigation",
 }
@@ -140,14 +140,13 @@ def test__a_framework_that_cannot_be_added_is_reported_and_the_project_is_still_
 @pytest.mark.parametrize(
     "answers",
     [
-        {"project_id": "Claims-Fraud"},
-        {"project_id": "ab"},
+        {"project_name": "Claims-Fraud"},
+        {"project_name": "ab"},
         {"repo_name": "claims-fraud"},
         {"squad_title": 'Bad "title"'},
         {"domain": "Claims"},
-        {"kind": "domain"},
     ],
-    ids=["id-chars", "id-short", "repo-prefix", "title-quote", "domain-case", "domain-kind-with-examples"],
+    ids=["id-chars", "id-short", "repo-prefix", "title-quote", "domain-case"],
 )
 def test__bad_answers_are_rejected_before_anything_is_generated(render: Render, answers: dict, tmp_path: Path):
     """Each answer that the registry would refuse is refused here, and no project is left behind."""
@@ -162,3 +161,10 @@ def test__an_unknown_domain_is_rejected_with_a_suggestion(render: Render, capfd,
         render(domain="claims__litigaton")
     assert "did you mean" in capfd.readouterr().err
     assert not any((tmp_path / "out").glob("*"))
+
+
+def test__a_domain_repository_never_gets_the_examples_even_when_asked_for_them(render: Render, capfd):
+    """The examples span several business domains, so kind=domain drops them with a note instead of failing."""
+    project = render(**ANSWERS, kind="domain", include_examples="yes")
+    assert [path.name for path in (project / "bundles").iterdir()] == [".gitkeep"]
+    assert "example bundles were not included" in capfd.readouterr().out

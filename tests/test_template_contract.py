@@ -12,8 +12,8 @@ def test__the_prompts_are_the_documented_ones():
     """The README documents these prompts, in this order; the example squad is the default."""
     config = json.loads((TEMPLATE_DIR / "cookiecutter.json").read_text(encoding="utf-8"))
     prompts = [key for key in config if not key.startswith("_")]
-    assert prompts == ["project_id", "repo_name", "squad_title", "kind", "domain", "include_examples"]
-    assert config["project_id"] == "example_claims"
+    assert prompts == ["project_name", "repo_name", "squad_title", "kind", "domain", "include_examples"]
+    assert config["project_name"] == "example_claims"
     assert config["kind"] == ["project", "domain"]
     assert config["include_examples"] == ["yes", "no"]
 

@@ -23,12 +23,12 @@ import subprocess
 import sys
 from pathlib import Path
 
-PROJECT_ID = "{{ cookiecutter.project_id }}"
+PROJECT_ID = "{{ cookiecutter.project_name }}"
 REPO_NAME = "{{ cookiecutter.repo_name }}"
 SQUAD_TITLE = "{{ cookiecutter.squad_title }}"
 KIND = "{{ cookiecutter.kind }}"
 DOMAIN = "{{ cookiecutter.domain }}"
-EXAMPLES = "{{ cookiecutter.include_examples }}"
+EXAMPLES = "no" if KIND == "domain" else "{{ cookiecutter.include_examples }}"
 
 EXAMPLE_DOMAIN = "claims"
 SKIP_DIRS = {".git", "__pycache__", "lakeflow_framework"}
@@ -167,6 +167,8 @@ def main() -> int:
     """Customise the generated project in place."""
     root = Path.cwd()
     check_domain(root)
+    if KIND == "domain" and "{{ cookiecutter.include_examples }}" == "yes":
+        print("NOTE: a domain repository holds only its own domain, so the example bundles were not included.")
     if EXAMPLES == "no":
         remove_examples(root)
     rewrite_text(root)

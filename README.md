@@ -85,8 +85,8 @@ The generated `README.md` continues from there ("Start building"): fill in the p
 
 | Prompt | Meaning | Default |
 |---|---|---|
-| `project_id` | the squad's slug: prefixes every schema, contract and product id; `^[a-z][a-z0-9_]{2,39}$` | `example_claims` |
-| `repo_name` | the directory and the Python distribution name; `^dbx-[a-z0-9-]{3,60}$` | `dbx-<project_id>` with `-` for `_` |
+| `project_name` | the squad's slug: prefixes every schema, contract and product id; `^[a-z][a-z0-9_]{2,39}$` | `example_claims` |
+| `repo_name` | the directory and the Python distribution name; `^dbx-[a-z0-9-]{3,60}$` | `dbx-<project_name>` with `-` for `_` |
 | `squad_title` | the squad's display name | `Example Claims Squad` |
 | `kind` | `project` (consumes domain data products) or `domain` (builds them; may only hold data in its own domain) | `project` |
 | `domain` | the squad's place in the domain taxonomy, any level: `claims`, `claims__litigation`, `claims__litigation__claim_litigation` | `claims` |
@@ -94,13 +94,13 @@ The generated `README.md` continues from there ("Start building"): fill in the p
 
 Answers are checked before anything is written, against the same rules the registry applies, so a project made here can later be registered
 without renaming anything. `domain` must exist in the taxonomy shipped with the template (16 business domains, 62 sub-domains, 82 data
-domains); a typo gets a "did you mean". A `domain` repository needs `include_examples=no`, because the examples span several business domains.
+domains); a typo gets a "did you mean". For `kind=domain` the examples are always left out (with a note), because they span several business domains.
 
 Non-interactive:
 
 ```bash
 cookiecutter --no-input https://github.com/NitinKeshavB/cookiecutter-dbxops.git \
-    project_id=claims_fraud squad_title="Claims Fraud Squad" kind=domain domain=claims__litigation include_examples=no
+    project_name=claims_fraud squad_title="Claims Fraud Squad" kind=domain domain=claims__litigation include_examples=no
 ```
 
 ## What you get

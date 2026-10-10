@@ -14,7 +14,7 @@ from tests.consts import TEMPLATE_DIR
 VARIANTS = {
     "example-squad": {},
     "domain-squad-no-examples": {
-        "project_id": "claims_fraud",
+        "project_name": "claims_fraud",
         "squad_title": "Claims Fraud Squad",
         "kind": "domain",
         "domain": "claims__litigation",

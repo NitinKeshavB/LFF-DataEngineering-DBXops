@@ -1,6 +1,6 @@
 {
-  "project_id": "example_claims",
-  "repo_name": "dbx-{{ cookiecutter.project_id | replace('_', '-') }}",
+  "project_name": "example_claims",
+  "repo_name": "dbx-{{ cookiecutter.project_name | replace('_', '-') }}",
   "squad_title": "Example Claims Squad",
   "kind": ["project", "domain"],
   "domain": "claims",
