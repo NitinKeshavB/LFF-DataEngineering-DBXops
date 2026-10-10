@@ -6,6 +6,7 @@ from pathlib import Path
 import pytest
 import yaml
 
+from dbxops.config import load_repo_config
 from dbxops.findings import has_errors
 from dbxops.metadata.__main__ import main
 from dbxops.metadata.repo import RepoContext
@@ -14,9 +15,19 @@ from dbxops.metadata.scaffold import (
     ScaffoldError,
     scaffold_bundle,
 )
+from dbxops.registry.domains import DomainTaxonomy
+from tests.consts import PROJECT_DIR
 from tests.fixtures.bundle_schema import load_bundle
 
-DOMAIN = "claims__litigation__claim_litigation"
+
+def data_domain_of_this_repo() -> str:
+    """Return a data domain a bundle in this repository may use: the first one within the registered domain."""
+    taxonomy = DomainTaxonomy.from_yaml(PROJECT_DIR / "metadata/_platform/domains.yaml")
+    registered = load_repo_config(PROJECT_DIR / "metadata/_platform/repo.yaml").domain
+    return next(node.path for node in taxonomy.nodes("data_domain") if taxonomy.is_within(node.path, registered))
+
+
+DOMAIN = data_domain_of_this_repo()
 
 
 def test__a_scaffolded_bundle_passes_every_metadata_rule(real_conf_root: Path):
