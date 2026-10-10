@@ -1,0 +1,22 @@
+# Desired state of the policy Knowledge Assistant (Agent Bricks), applied by `lifecycle_task.py reconcile`
+# (dbxops.lifecycle, KnowledgeAssistantReconciler) only when the bundle variable enable_agent_bricks is true.
+#
+# Honest status: Knowledge Assistants are Beta, and the REST calls behind the reconciler (/api/2.1/knowledge-assistants
+# and its knowledge-sources paths, called through the SDK's api_client) are inferred from the CLI command names in the
+# databricks-agent-bricks skill. They have NOT been verified against a live workspace; the author of the lifecycle
+# library flagged the same. Treat the first run as a trial and read the dry-run output first.
+#
+# The source is the same vector search index as the agent's retriever (source_type index, with the text and document
+# columns of the chunks table), as described in the skill's references/1-knowledge-assistants.md. Tokens: {project_id},
+# {target} and {logical_env} are filled by the wrapper, {catalog} by the lifecycle library.
+knowledge_assistants:
+  - display_name: "{project_id}_{target}_policy_ka{logical_env}"
+    description: Answers questions about insurance policy wordings, such as excesses, limits and claim time limits.
+    sources:
+      - display_name: policy_wordings
+        description: Policy wording passages, one row per passage, from the policy chunks vector search index.
+        source_type: index
+        index:
+          index_name: "{catalog}.{project_id}_ai{logical_env}.policy_chunks_index"
+          text_col: chunk_text
+          doc_uri_col: document_path

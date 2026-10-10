@@ -1,0 +1,65 @@
+resources:
+  pipelines:
+    dataops_bronze:
+      name: '[${var.project_id}] dataops bronze (${bundle.target}${var.logical_env})'
+      channel: CURRENT
+      serverless: true
+      catalog: ${var.catalog}
+      schema: ${var.project_id}_bronze${var.logical_env}
+      libraries:
+      - notebook:
+          path: ${var.framework_source_path}/dlt_pipeline
+      root_path: ${workspace.file_path}/src
+      tags:
+        cost_center: ${var.cost_center}
+        region: ${var.region}
+      configuration:
+        bundle.sourcePath: ${workspace.file_path}/src
+        bundle.target: ${bundle.target}
+        framework.sourcePath: ${var.framework_source_path}
+        workspace.host: ${var.workspace_host}
+        pipeline.layer: bronze
+        logicalEnv: ${var.logical_env}
+        pipeline.dataFlowGroupFilter: bronze
+    dataops_silver:
+      name: '[${var.project_id}] dataops silver (${bundle.target}${var.logical_env})'
+      channel: CURRENT
+      serverless: true
+      catalog: ${var.catalog}
+      schema: ${var.project_id}_silver${var.logical_env}
+      libraries:
+      - notebook:
+          path: ${var.framework_source_path}/dlt_pipeline
+      root_path: ${workspace.file_path}/src
+      tags:
+        cost_center: ${var.cost_center}
+        region: ${var.region}
+      configuration:
+        bundle.sourcePath: ${workspace.file_path}/src
+        bundle.target: ${bundle.target}
+        framework.sourcePath: ${var.framework_source_path}
+        workspace.host: ${var.workspace_host}
+        pipeline.layer: silver
+        logicalEnv: ${var.logical_env}
+        pipeline.dataFlowGroupFilter: silver
+    dataops_gold:
+      name: '[${var.project_id}] dataops gold (${bundle.target}${var.logical_env})'
+      channel: CURRENT
+      serverless: true
+      catalog: ${var.catalog}
+      schema: ${var.project_id}_gold${var.logical_env}
+      libraries:
+      - notebook:
+          path: ${var.framework_source_path}/dlt_pipeline
+      root_path: ${workspace.file_path}/src
+      tags:
+        cost_center: ${var.cost_center}
+        region: ${var.region}
+      configuration:
+        bundle.sourcePath: ${workspace.file_path}/src
+        bundle.target: ${bundle.target}
+        framework.sourcePath: ${var.framework_source_path}
+        workspace.host: ${var.workspace_host}
+        pipeline.layer: gold
+        logicalEnv: ${var.logical_env}
+        pipeline.dataFlowGroupFilter: gold

@@ -1,0 +1,58 @@
+{
+  "data_flow_id": "fact_claim_payment",
+  "data_flow_group": "silver",
+  "data_flow_type": "nodespec",
+  "tags": {
+    "data_domain": "claims__settlement_payments__claim_payment",
+    "data_product": "dp_example_claims_claims_conformed"
+  },
+  "nodes": [
+    {
+      "name": "v_claim_payment",
+      "node_type": "source",
+      "source_type": "delta",
+      "config": {
+        "mode": "stream",
+        "database": "{bronze_schema}",
+        "table": "claim_payment",
+        "select_exp": [
+          "payment_id",
+          "claim_id",
+          "paid_at",
+          "amount",
+          "payment_type",
+          "_op",
+          "_seq"
+        ]
+      }
+    },
+    {
+      "name": "target_fact_claim_payment",
+      "node_type": "target",
+      "config": {
+        "database": "{silver_schema}",
+        "table": "fact_claim_payment",
+        "schema_path": "fact_claim_payment_schema.json",
+        "cluster_by_auto": true,
+        "table_properties": {
+          "delta.enableChangeDataFeed": "true",
+          "delta.enableRowTracking": "true"
+        },
+        "sources": [
+          "v_claim_payment"
+        ],
+        "data_quality": {
+          "enabled": true,
+          "expectations_path": "./fact_claim_payment_dqe.json",
+          "quarantine": {
+            "mode": "table",
+            "target": {
+              "target_format": "delta",
+              "database": "{silver_schema}"
+            }
+          }
+        }
+      }
+    }
+  ]
+}

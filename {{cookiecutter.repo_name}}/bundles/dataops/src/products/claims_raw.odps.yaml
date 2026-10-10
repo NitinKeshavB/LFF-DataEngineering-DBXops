@@ -1,0 +1,54 @@
+apiVersion: v1.0.0
+kind: DataProduct
+id: dp_example_claims_claims_raw
+name: example_claims_claims_raw
+version: 1.0.0
+status: active
+domain: claims
+description:
+  purpose: Raw change feeds from the claims source systems
+  usage: Source-aligned data for the conformed layer.
+  limitations: Refreshed by the DataOps job; not real-time.
+outputPorts:
+- name: claim
+  version: 1.0.0
+  type: uc_streaming_table
+  contractId: dc_example_claims_bronze_claim
+  customProperties:
+  - property: dbx.assetId
+    value: example_claims_bronze.claim
+- name: claim_payment
+  version: 1.0.0
+  type: uc_streaming_table
+  contractId: dc_example_claims_bronze_claim_payment
+  customProperties:
+  - property: dbx.assetId
+    value: example_claims_bronze.claim_payment
+- name: coverage
+  version: 1.0.0
+  type: uc_streaming_table
+  contractId: dc_example_claims_bronze_coverage
+  customProperties:
+  - property: dbx.assetId
+    value: example_claims_bronze.coverage
+- name: party
+  version: 1.0.0
+  type: uc_streaming_table
+  contractId: dc_example_claims_bronze_party
+  customProperties:
+  - property: dbx.assetId
+    value: example_claims_bronze.party
+- name: policy
+  version: 1.0.0
+  type: uc_streaming_table
+  contractId: dc_example_claims_bronze_policy
+  customProperties:
+  - property: dbx.assetId
+    value: example_claims_bronze.policy
+- name: premium
+  version: 1.0.0
+  type: uc_streaming_table
+  contractId: dc_example_claims_bronze_premium
+  customProperties:
+  - property: dbx.assetId
+    value: example_claims_bronze.premium

@@ -1,0 +1,80 @@
+apiVersion: v3.1.0
+kind: DataContract
+id: dc_example_claims_silver_dim_policyholder
+name: dim_policyholder
+version: 1.0.0
+status: active
+domain: customer__party_profile__client
+dataProduct: dp_example_claims_claims_conformed
+description:
+  purpose: 'Policyholders with full history (SCD2): who the customer was at each point in time.'
+  usage: Conformed, validated data for analytics and downstream data products.
+  limitations: Reflects source data as of the last pipeline run.
+servers:
+- server: dev
+  type: databricks
+  environment: dev
+  catalog: <PLACEHOLDER-dev-catalog>
+  schema: example_claims_silver
+- server: test
+  type: databricks
+  environment: test
+  catalog: <PLACEHOLDER-test-catalog>
+  schema: example_claims_silver
+- server: uat
+  type: databricks
+  environment: uat
+  catalog: <PLACEHOLDER-uat-catalog>
+  schema: example_claims_silver
+- server: preprod
+  type: databricks
+  environment: preprod
+  catalog: <PLACEHOLDER-preprod-catalog>
+  schema: example_claims_silver
+- server: prod
+  type: databricks
+  environment: prod
+  catalog: <PLACEHOLDER-prod-catalog>
+  schema: example_claims_silver
+schema:
+- name: dim_policyholder
+  physicalName: <PLACEHOLDER-prod-catalog>.example_claims_silver.dim_policyholder
+  logicalType: object
+  properties:
+  - name: party_id
+    logicalType: string
+    physicalType: string
+    required: true
+  - name: first_name
+    logicalType: string
+    physicalType: string
+    required: false
+  - name: last_name
+    logicalType: string
+    physicalType: string
+    required: false
+  - name: date_of_birth
+    logicalType: date
+    physicalType: date
+    required: false
+  - name: email
+    logicalType: string
+    physicalType: string
+    required: false
+  - name: postcode
+    logicalType: string
+    physicalType: string
+    required: false
+  - name: state
+    logicalType: string
+    physicalType: string
+    required: false
+  - name: created_at
+    logicalType: timestamp
+    physicalType: timestamp
+    required: false
+  customProperties:
+  - property: dbx.asset_id
+    value: example_claims_silver.dim_policyholder
+  - property: dbx.spec_id
+    value: dim_policyholder

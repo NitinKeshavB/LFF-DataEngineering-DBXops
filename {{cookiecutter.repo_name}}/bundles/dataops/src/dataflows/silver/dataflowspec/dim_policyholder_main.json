@@ -1,0 +1,68 @@
+{
+  "data_flow_id": "dim_policyholder",
+  "data_flow_group": "silver",
+  "data_flow_type": "nodespec",
+  "tags": {
+    "data_domain": "customer__party_profile__client",
+    "data_product": "dp_example_claims_claims_conformed"
+  },
+  "nodes": [
+    {
+      "name": "v_party",
+      "node_type": "source",
+      "source_type": "delta",
+      "config": {
+        "mode": "stream",
+        "database": "{bronze_schema}",
+        "table": "party",
+        "select_exp": [
+          "party_id",
+          "first_name",
+          "last_name",
+          "date_of_birth",
+          "email",
+          "postcode",
+          "state",
+          "created_at",
+          "_op",
+          "_seq"
+        ]
+      }
+    },
+    {
+      "name": "target_dim_policyholder",
+      "node_type": "target",
+      "config": {
+        "database": "{silver_schema}",
+        "table": "dim_policyholder",
+        "schema_path": "dim_policyholder_schema.json",
+        "cluster_by_auto": true,
+        "table_properties": {
+          "delta.enableChangeDataFeed": "true",
+          "delta.enableRowTracking": "true"
+        },
+        "sources": [
+          "v_party"
+        ],
+        "cdc_settings": {
+          "keys": [
+            "party_id"
+          ],
+          "scd_type": "2",
+          "sequence_by": "_seq",
+          "apply_as_deletes": "_op = 'D'",
+          "except_column_list": [
+            "_op",
+            "_seq"
+          ],
+          "track_history_column_list": [
+            "last_name",
+            "email",
+            "postcode",
+            "state"
+          ]
+        }
+      }
+    }
+  ]
+}

@@ -1,0 +1,27 @@
+# The example squad this template ships with. Replace it through the registry's onboarding flow.
+project_id: example_claims
+kind: project
+squad:
+  name: example_claims_squad
+  title: Example Claims Squad
+  github_team: example-claims
+domain: claims
+contacts:
+  technical_owner: PLACEHOLDER-technical-owner-email
+  data_owner: PLACEHOLDER-data-owner-email
+  executive_owner: PLACEHOLDER-executive-owner-email
+  data_steward: PLACEHOLDER-data-steward-email
+  support:
+    email: PLACEHOLDER-support-email
+    channel: PLACEHOLDER-support-channel-url
+groups:
+  developers: AAD-DBX-EXAMPLECLAIMS-DEV
+  readers: AAD-DBX-EXAMPLECLAIMS-READ
+  admins: AAD-DBX-EXAMPLECLAIMS-ADMIN
+service_principal:
+  application_id: PLACEHOLDER-project-sp-application-id
+tags:
+  cost_center: PLACEHOLDER-cost-center
+  region: PLACEHOLDER-region
+repo:
+  name: dbx-example-claims

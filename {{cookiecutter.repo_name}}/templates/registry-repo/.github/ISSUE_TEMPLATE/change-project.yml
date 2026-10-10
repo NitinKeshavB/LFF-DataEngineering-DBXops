@@ -1,0 +1,126 @@
+name: Change a project
+description: 'Change owners, contacts, tags or other details of a registered project. Fill in every field: the answers replace
+  the current registration.'
+title: '[change-project] '
+labels:
+- change-project
+body:
+- type: markdown
+  attributes:
+    value: 'Change owners, contacts, tags or other details of a registered project. Fill in every field: the answers replace
+      the current registration.'
+- type: input
+  id: project_id
+  attributes:
+    label: Project id
+    description: Lowercase letters, digits and '_', 3-40 characters, starting with a letter (e.g. claims_fraud). It prefixes
+      every schema, product and contract id.
+  validations:
+    required: true
+- type: dropdown
+  id: kind
+  attributes:
+    label: Repository kind
+    description: '''domain'' for a squad that owns a data domain''s products; ''project'' for a squad that builds on other
+      domains'' products.'
+    options:
+    - domain
+    - project
+  validations:
+    required: true
+- type: input
+  id: squad_name
+  attributes:
+    label: Squad name
+    description: Lowercase with '_' (e.g. claims_fraud_squad).
+  validations:
+    required: true
+- type: input
+  id: squad_title
+  attributes:
+    label: Squad title
+    description: Display name (e.g. Claims Fraud Squad).
+  validations:
+    required: true
+- type: input
+  id: github_team
+  attributes:
+    label: GitHub team
+    description: Slug of the GitHub team that will maintain the repository (e.g. claims-fraud).
+  validations:
+    required: true
+- type: input
+  id: domain
+  attributes:
+    label: Data domain
+    description: A domain path from the taxonomy, joined with '__' (e.g. claims__litigation__claim_litigation). A business
+      domain or sub-domain path is also accepted here; contracts later use data-domain paths.
+  validations:
+    required: true
+- type: input
+  id: technical_owner
+  attributes:
+    label: Technical owner email
+    description: Accountable for the code and its operation.
+  validations:
+    required: true
+- type: input
+  id: data_owner
+  attributes:
+    label: Data owner email
+    description: Accountable for the data and its quality.
+  validations:
+    required: true
+- type: input
+  id: executive_owner
+  attributes:
+    label: Executive owner email
+    description: Executive sponsor.
+  validations:
+    required: true
+- type: input
+  id: data_steward
+  attributes:
+    label: Data steward email
+    description: Looks after definitions and quality day to day.
+  validations:
+    required: true
+- type: input
+  id: support_email
+  attributes:
+    label: Support email
+    description: Where consumers raise issues.
+  validations:
+    required: true
+- type: input
+  id: support_channel
+  attributes:
+    label: Support channel
+    description: URL or name of the support channel (Teams/Slack).
+  validations:
+    required: true
+- type: input
+  id: sp
+  attributes:
+    label: Service principal application id
+    description: Leave empty if it does not exist yet; deployment is blocked until it is set.
+  validations:
+    required: false
+- type: textarea
+  id: tags
+  attributes:
+    label: Tags
+    description: 'One ''key: value'' per line. The platform''s required keys (see required_tags.yaml, currently cost_center
+      and region) must be present.'
+    placeholder: 'cost_center: 12345
+
+      region: au-east'
+  validations:
+    required: true
+- type: input
+  id: repo_name
+  attributes:
+    label: Repository name
+    description: 'Optional. Default: dbx-<project id with ''-''>. Must match ^dbx-[a-z0-9-]{3,60}$.'
+  validations:
+    required: false

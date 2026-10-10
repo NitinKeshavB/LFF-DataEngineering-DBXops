@@ -1,0 +1,52 @@
+apiVersion: v1.0.0
+kind: DataProduct
+id: dp_example_claims_claims_analytics
+name: example_claims_claims_analytics
+version: 1.0.0
+status: active
+domain: claims
+description:
+  purpose: 'Claims analytics: loss ratio, policies in force, claims frequency and severity'
+  usage: Governed reporting measures.
+  limitations: Refreshed by the DataOps job; not real-time.
+inputPorts:
+- name: dim_policy
+  version: 1.0.0
+  contractId: dc_example_claims_silver_dim_policy
+- name: dim_policy_coverage
+  version: 1.0.0
+  contractId: dc_example_claims_silver_dim_policy_coverage
+- name: dim_policyholder
+  version: 1.0.0
+  contractId: dc_example_claims_silver_dim_policyholder
+- name: fact_claim
+  version: 1.0.0
+  contractId: dc_example_claims_silver_fact_claim
+- name: fact_claim_payment
+  version: 1.0.0
+  contractId: dc_example_claims_silver_fact_claim_payment
+- name: fact_premium
+  version: 1.0.0
+  contractId: dc_example_claims_silver_fact_premium
+outputPorts:
+- name: claims_frequency_severity
+  version: 1.0.0
+  type: uc_materialized_view
+  contractId: dc_example_claims_gold_claims_frequency_severity
+  customProperties:
+  - property: dbx.assetId
+    value: example_claims_gold.claims_frequency_severity
+- name: loss_ratio_monthly
+  version: 1.0.0
+  type: uc_materialized_view
+  contractId: dc_example_claims_gold_loss_ratio_monthly
+  customProperties:
+  - property: dbx.assetId
+    value: example_claims_gold.loss_ratio_monthly
+- name: policies_in_force
+  version: 1.0.0
+  type: uc_materialized_view
+  contractId: dc_example_claims_gold_policies_in_force
+  customProperties:
+  - property: dbx.assetId
+    value: example_claims_gold.policies_in_force

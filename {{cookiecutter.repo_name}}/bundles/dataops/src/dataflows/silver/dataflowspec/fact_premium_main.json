@@ -1,0 +1,60 @@
+{
+  "data_flow_id": "fact_premium",
+  "data_flow_group": "silver",
+  "data_flow_type": "nodespec",
+  "tags": {
+    "data_domain": "contract_underwriting__pricing_rating__premium",
+    "data_product": "dp_example_claims_claims_conformed"
+  },
+  "nodes": [
+    {
+      "name": "v_premium",
+      "node_type": "source",
+      "source_type": "delta",
+      "config": {
+        "mode": "stream",
+        "database": "{bronze_schema}",
+        "table": "premium",
+        "select_exp": [
+          "premium_id",
+          "policy_id",
+          "period_start",
+          "period_end",
+          "written_premium",
+          "earned_premium",
+          "billed_at",
+          "_op",
+          "_seq"
+        ]
+      }
+    },
+    {
+      "name": "target_fact_premium",
+      "node_type": "target",
+      "config": {
+        "database": "{silver_schema}",
+        "table": "fact_premium",
+        "schema_path": "fact_premium_schema.json",
+        "cluster_by_auto": true,
+        "table_properties": {
+          "delta.enableChangeDataFeed": "true",
+          "delta.enableRowTracking": "true"
+        },
+        "sources": [
+          "v_premium"
+        ],
+        "data_quality": {
+          "enabled": true,
+          "expectations_path": "./fact_premium_dqe.json",
+          "quarantine": {
+            "mode": "table",
+            "target": {
+              "target_format": "delta",
+              "database": "{silver_schema}"
+            }
+          }
+        }
+      }
+    }
+  ]
+}

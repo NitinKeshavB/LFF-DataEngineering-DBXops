@@ -1,0 +1,24 @@
+# Desired state of the policy wording vector search index, applied by `lifecycle_task.py reconcile`
+# (dbxops.lifecycle, VectorSearchIndexReconciler). The tokens {project_id}, {target} and {logical_env} are filled by the
+# wrapper from the job, and {catalog} by the lifecycle library.
+#
+# The index is a Delta Sync index with managed embeddings over the chunks table, which has change data feed on and
+# chunk_id as its primary key. Embedding source and model follow the databricks-vector-search skill. No
+# columns_to_sync is set on purpose: the API does not return it, so the reconciler could not compare it and would
+# report the index as different on every run. All columns of the chunks table are therefore synced.
+#
+# An index spec cannot be changed in place; a change to this file is reported as an error and the index must be
+# recreated by hand.
+vector_search_indexes:
+  - name: "{catalog}.{project_id}_ai{logical_env}.policy_chunks_index"
+    endpoint_name: "{project_id}_{target}_vs"
+    endpoint_type: STANDARD
+    primary_key: chunk_id
+    index_type: DELTA_SYNC
+    sync: true
+    delta_sync_index_spec:
+      source_table: "{catalog}.{project_id}_ai{logical_env}.policy_chunks"
+      pipeline_type: TRIGGERED
+      embedding_source_columns:
+        - name: chunk_text
+          embedding_model_endpoint_name: databricks-gte-large-en

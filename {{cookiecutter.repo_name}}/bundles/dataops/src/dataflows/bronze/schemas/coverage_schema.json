@@ -1,0 +1,47 @@
+{
+  "type": "struct",
+  "fields": [
+    {
+      "name": "coverage_id",
+      "type": "string",
+      "nullable": false,
+      "metadata": {}
+    },
+    {
+      "name": "policy_id",
+      "type": "string",
+      "nullable": false,
+      "metadata": {}
+    },
+    {
+      "name": "coverage_type",
+      "type": "string",
+      "nullable": true,
+      "metadata": {}
+    },
+    {
+      "name": "limit_amount",
+      "type": "decimal(18,2)",
+      "nullable": true,
+      "metadata": {}
+    },
+    {
+      "name": "excess_amount",
+      "type": "decimal(18,2)",
+      "nullable": true,
+      "metadata": {}
+    },
+    {
+      "name": "_op",
+      "type": "string",
+      "nullable": false,
+      "metadata": {}
+    },
+    {
+      "name": "_seq",
+      "type": "long",
+      "nullable": false,
+      "metadata": {}
+    }
+  ]
+}

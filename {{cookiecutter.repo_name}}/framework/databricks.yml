@@ -1,0 +1,49 @@
+# Wrapper bundle that deploys the pinned Lakeflow Framework (framework/lakeflow_framework) as-is.
+#
+# `make stage-framework` copies the submodule's src/ plus our framework/local/ overlay into
+# framework/build/, and copies THIS file next to it as framework/build/databricks.yml. The bundle
+# root is framework/build/, so the framework lands at <root_path>/files/src, which is what pipeline
+# bundles reference as `framework_source_path`.
+#
+# The framework is deployed once per target by the platform team (it is a shared, versioned path);
+# squad repositories only reference it. Every value containing PLACEHOLDER is tracked by
+# `make check-placeholders` and blocks deployment until it is replaced.
+bundle:
+  name: lakeflow_framework
+
+variables:
+  version:
+    description: The framework version this deployment is published as (must equal framework_version in conf/environments.yml)
+    default: v0.24.1
+
+targets:
+  dev:
+    mode: development
+    default: true
+    workspace:
+      host: "https://PLACEHOLDER-workspace-host.azuredatabricks.net"
+      root_path: /Workspace/Shared/.bundle/${bundle.name}/${bundle.target}/${var.version}
+
+  test:
+    mode: production
+    workspace:
+      host: "https://PLACEHOLDER-workspace-host.azuredatabricks.net"
+      root_path: /Workspace/Shared/.bundle/${bundle.name}/${bundle.target}/${var.version}
+
+  uat:
+    mode: production
+    workspace:
+      host: "https://PLACEHOLDER-workspace-host.azuredatabricks.net"
+      root_path: /Workspace/Shared/.bundle/${bundle.name}/${bundle.target}/${var.version}
+
+  preprod:
+    mode: production
+    workspace:
+      host: "https://PLACEHOLDER-workspace-host.azuredatabricks.net"
+      root_path: /Workspace/Shared/.bundle/${bundle.name}/${bundle.target}/${var.version}
+
+  prod:
+    mode: production
+    workspace:
+      host: "https://PLACEHOLDER-workspace-host.azuredatabricks.net"
+      root_path: /Workspace/Shared/.bundle/${bundle.name}/${bundle.target}/${var.version}

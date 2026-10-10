@@ -1,0 +1,65 @@
+{
+  "data_flow_id": "policy_chunks",
+  "data_flow_group": "ai_silver",
+  "data_flow_type": "nodespec",
+  "tags": {
+    "data_domain": "product__wordings_pds__product_wording",
+    "data_product": "dp_example_claims_policy_assistant"
+  },
+  "nodes": [
+    {
+      "name": "v_policy_documents",
+      "node_type": "source",
+      "source_type": "delta",
+      "config": {
+        "mode": "stream",
+        "database": "{ai_schema}",
+        "table": "policy_documents_parsed",
+        "select_exp": [
+          "document_path",
+          "document_name",
+          "modified_at",
+          "parsed_text"
+        ]
+      }
+    },
+    {
+      "name": "v_split_policy_documents",
+      "node_type": "transformation",
+      "transformation_type": "sql",
+      "config": {
+        "mode": "stream",
+        "sql_path": "split_policy_documents.sql"
+      }
+    },
+    {
+      "name": "target_policy_chunks",
+      "node_type": "target",
+      "config": {
+        "database": "{ai_schema}",
+        "table": "policy_chunks",
+        "schema_path": "policy_chunks_schema.json",
+        "cluster_by_auto": true,
+        "comment": "Policy wording passages with a stable chunk id; the source table of the policy vector search index.",
+        "table_properties": {
+          "delta.enableChangeDataFeed": "true",
+          "delta.enableRowTracking": "true"
+        },
+        "sources": [
+          "v_split_policy_documents"
+        ],
+        "cdc_settings": {
+          "keys": [
+            "chunk_id"
+          ],
+          "scd_type": "1",
+          "sequence_by": "modified_at"
+        },
+        "data_quality": {
+          "enabled": true,
+          "expectations_path": "./policy_chunks_dqe.json"
+        }
+      }
+    }
+  ]
+}

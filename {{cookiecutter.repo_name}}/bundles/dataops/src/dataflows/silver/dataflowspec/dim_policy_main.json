@@ -1,0 +1,68 @@
+{
+  "data_flow_id": "dim_policy",
+  "data_flow_group": "silver",
+  "data_flow_type": "nodespec",
+  "tags": {
+    "data_domain": "contract_underwriting__policy_admin_servicing__policy",
+    "data_product": "dp_example_claims_claims_conformed"
+  },
+  "nodes": [
+    {
+      "name": "v_policy",
+      "node_type": "source",
+      "source_type": "delta",
+      "config": {
+        "mode": "stream",
+        "database": "{bronze_schema}",
+        "table": "policy",
+        "select_exp": [
+          "policy_id",
+          "party_id",
+          "product",
+          "start_date",
+          "end_date",
+          "status",
+          "sum_insured",
+          "annual_premium",
+          "_op",
+          "_seq"
+        ]
+      }
+    },
+    {
+      "name": "target_dim_policy",
+      "node_type": "target",
+      "config": {
+        "database": "{silver_schema}",
+        "table": "dim_policy",
+        "schema_path": "dim_policy_schema.json",
+        "cluster_by_auto": true,
+        "table_properties": {
+          "delta.enableChangeDataFeed": "true",
+          "delta.enableRowTracking": "true"
+        },
+        "sources": [
+          "v_policy"
+        ],
+        "cdc_settings": {
+          "keys": [
+            "policy_id"
+          ],
+          "scd_type": "2",
+          "sequence_by": "_seq",
+          "apply_as_deletes": "_op = 'D'",
+          "except_column_list": [
+            "_op",
+            "_seq"
+          ],
+          "track_history_column_list": [
+            "product",
+            "status",
+            "sum_insured",
+            "annual_premium"
+          ]
+        }
+      }
+    }
+  ]
+}

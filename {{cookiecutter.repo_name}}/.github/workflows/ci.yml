@@ -1,0 +1,54 @@
+# Pull-request and main checks: lint, tests, and every metadata, spec and bundle check that needs no workspace.
+# The job is named `checks`; the default-branch ruleset that provisioning applies to a squad repository requires it.
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  checks:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: true
+          fetch-depth: 0
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+          cache-dependency-path: pyproject.toml
+      - uses: databricks/setup-cli@v1.20.0
+      - name: Check the submodule is at the pinned commit
+        run: |
+          pinned="$(sed -n 's/^commit=//p' framework/UPSTREAM.lock)"
+          actual="$(git -C framework/lakeflow_framework rev-parse HEAD)"
+          test "$pinned" = "$actual" || { echo "submodule is at $actual but framework/UPSTREAM.lock pins $pinned"; exit 1; }
+      - run: make install
+      - run: make lint-ci
+      - run: make test
+      - name: Metadata, contracts and substitutions
+        env:
+          BASELINE: ${{ github.event_name == 'pull_request' && format('origin/{0}', github.base_ref) || '' }}
+        run: |
+          make validate-metadata
+          make contracts CHECK=1
+          make sync-substitutions CHECK=1
+      - name: Dataflow specs, vendored skills and registry scaffold
+        run: |
+          make validate-specs
+          make check-skills
+          make validate-registry
+      - name: Framework staging
+        run: make stage-framework
+      - name: Placeholders still to fill in (informational)
+        run: make check-placeholders

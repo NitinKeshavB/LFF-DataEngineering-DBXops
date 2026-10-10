@@ -1,0 +1,6 @@
+# Platform-wide settings written into every project's metadata/_platform/repo.yaml.
+iri_base: "https://PLACEHOLDER-ontology-host/"
+standards:
+  odcs: v3.1.0
+  odps: v1.0.0
+  ontos: ">=1.0.2"

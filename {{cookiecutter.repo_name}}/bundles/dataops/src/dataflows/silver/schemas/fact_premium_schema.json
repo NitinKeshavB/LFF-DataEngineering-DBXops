@@ -1,0 +1,47 @@
+{
+  "type": "struct",
+  "fields": [
+    {
+      "name": "premium_id",
+      "type": "string",
+      "nullable": false,
+      "metadata": {}
+    },
+    {
+      "name": "policy_id",
+      "type": "string",
+      "nullable": false,
+      "metadata": {}
+    },
+    {
+      "name": "period_start",
+      "type": "date",
+      "nullable": false,
+      "metadata": {}
+    },
+    {
+      "name": "period_end",
+      "type": "date",
+      "nullable": true,
+      "metadata": {}
+    },
+    {
+      "name": "written_premium",
+      "type": "decimal(18,2)",
+      "nullable": true,
+      "metadata": {}
+    },
+    {
+      "name": "earned_premium",
+      "type": "decimal(18,2)",
+      "nullable": true,
+      "metadata": {}
+    },
+    {
+      "name": "billed_at",
+      "type": "timestamp",
+      "nullable": true,
+      "metadata": {}
+    }
+  ]
+}

@@ -1,0 +1,123 @@
+apiVersion: v3.1.0
+kind: DataContract
+id: dc_example_claims_silver_fact_premium
+name: fact_premium
+version: 1.0.0
+status: active
+domain: contract_underwriting__pricing_rating__premium
+dataProduct: dp_example_claims_claims_conformed
+description:
+  purpose: Written and earned premium per policy period, validated; invalid rows are quarantined.
+  usage: Conformed, validated data for analytics and downstream data products.
+  limitations: Reflects source data as of the last pipeline run. Rows failing validation are quarantined, not loaded.
+servers:
+- server: dev
+  type: databricks
+  environment: dev
+  catalog: <PLACEHOLDER-dev-catalog>
+  schema: example_claims_silver
+- server: test
+  type: databricks
+  environment: test
+  catalog: <PLACEHOLDER-test-catalog>
+  schema: example_claims_silver
+- server: uat
+  type: databricks
+  environment: uat
+  catalog: <PLACEHOLDER-uat-catalog>
+  schema: example_claims_silver
+- server: preprod
+  type: databricks
+  environment: preprod
+  catalog: <PLACEHOLDER-preprod-catalog>
+  schema: example_claims_silver
+- server: prod
+  type: databricks
+  environment: prod
+  catalog: <PLACEHOLDER-prod-catalog>
+  schema: example_claims_silver
+schema:
+- name: fact_premium
+  physicalName: <PLACEHOLDER-prod-catalog>.example_claims_silver.fact_premium
+  logicalType: object
+  properties:
+  - name: premium_id
+    logicalType: string
+    physicalType: string
+    required: true
+  - name: policy_id
+    logicalType: string
+    physicalType: string
+    required: true
+  - name: period_start
+    logicalType: date
+    physicalType: date
+    required: true
+  - name: period_end
+    logicalType: date
+    physicalType: date
+    required: false
+  - name: written_premium
+    logicalType: number
+    physicalType: decimal(18,2)
+    required: false
+  - name: earned_premium
+    logicalType: number
+    physicalType: decimal(18,2)
+    required: false
+  - name: billed_at
+    logicalType: timestamp
+    physicalType: timestamp
+    required: false
+  quality:
+  - id: fact_premium_earned_premium_within_written
+    name: earned premium within written
+    type: sql
+    dimension: consistency
+    severity: warning
+    query: SELECT COUNT(*) FROM ${table} WHERE NOT (earned_premium <= written_premium)
+    mustBe: 0
+    customProperties:
+    - property: dbx.origin
+      value: expectation
+    - property: dbx.action
+      value: warn
+    - property: dbx.constraint
+      value: earned_premium <= written_premium
+  - id: fact_premium_premium_id_not_null
+    name: premium_id not null
+    type: sql
+    dimension: completeness
+    severity: error
+    query: SELECT COUNT(*) FROM ${table} WHERE NOT (premium_id IS NOT NULL)
+    mustBe: 0
+    customProperties:
+    - property: dbx.origin
+      value: expectation
+    - property: dbx.action
+      value: quarantine
+    - property: dbx.constraint
+      value: premium_id IS NOT NULL
+    - property: dbx.quarantine_asset_id
+      value: example_claims_silver.fact_premium_quarantine
+  - id: fact_premium_written_premium_non_negative
+    name: written premium non-negative
+    type: sql
+    dimension: accuracy
+    severity: error
+    query: SELECT COUNT(*) FROM ${table} WHERE NOT (written_premium >= 0)
+    mustBe: 0
+    customProperties:
+    - property: dbx.origin
+      value: expectation
+    - property: dbx.action
+      value: quarantine
+    - property: dbx.constraint
+      value: written_premium >= 0
+    - property: dbx.quarantine_asset_id
+      value: example_claims_silver.fact_premium_quarantine
+  customProperties:
+  - property: dbx.asset_id
+    value: example_claims_silver.fact_premium
+  - property: dbx.spec_id
+    value: fact_premium

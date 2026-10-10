@@ -1,0 +1,68 @@
+apiVersion: v3.1.0
+kind: DataContract
+id: dc_example_claims_gold_loss_ratio_monthly
+name: loss_ratio_monthly
+version: 1.0.0
+status: active
+domain: contract_underwriting__pricing_rating__premium
+dataProduct: dp_example_claims_claims_analytics
+description:
+  purpose: 'Monthly loss ratio: (claim payments + outstanding reserves) over earned premium.'
+  usage: Reporting and analysis; refreshed incrementally by the gold pipeline.
+  limitations: Reflects source data as of the last pipeline run.
+servers:
+- server: dev
+  type: databricks
+  environment: dev
+  catalog: <PLACEHOLDER-dev-catalog>
+  schema: example_claims_gold
+- server: test
+  type: databricks
+  environment: test
+  catalog: <PLACEHOLDER-test-catalog>
+  schema: example_claims_gold
+- server: uat
+  type: databricks
+  environment: uat
+  catalog: <PLACEHOLDER-uat-catalog>
+  schema: example_claims_gold
+- server: preprod
+  type: databricks
+  environment: preprod
+  catalog: <PLACEHOLDER-preprod-catalog>
+  schema: example_claims_gold
+- server: prod
+  type: databricks
+  environment: prod
+  catalog: <PLACEHOLDER-prod-catalog>
+  schema: example_claims_gold
+schema:
+- name: loss_ratio_monthly
+  physicalName: <PLACEHOLDER-prod-catalog>.example_claims_gold.loss_ratio_monthly
+  logicalType: object
+  properties:
+  - name: month_start
+    logicalType: date
+    physicalType: date
+    required: true
+  - name: earned_premium
+    logicalType: number
+    physicalType: decimal(38,2)
+    required: false
+  - name: paid_amount
+    logicalType: number
+    physicalType: decimal(38,2)
+    required: false
+  - name: outstanding_reserve
+    logicalType: number
+    physicalType: decimal(38,2)
+    required: false
+  - name: loss_ratio
+    logicalType: number
+    physicalType: decimal(38,6)
+    required: false
+  customProperties:
+  - property: dbx.asset_id
+    value: example_claims_gold.loss_ratio_monthly
+  - property: dbx.spec_id
+    value: loss_ratio_monthly

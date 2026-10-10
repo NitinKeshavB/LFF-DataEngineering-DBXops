@@ -1,0 +1,27 @@
+{
+  "data_flow_id": "claims_fraud_features",
+  "data_flow_group": "ml",
+  "data_flow_type": "nodespec",
+  "tags": {
+    "data_domain": "claims__fraud_investigations__fraud_investigation",
+    "data_product": "dp_example_claims_fraud_detection"
+  },
+  "nodes": [
+    {
+      "name": "target_claims_fraud_features",
+      "node_type": "target",
+      "config": {
+        "database": "{ml_schema}",
+        "table": "claims_fraud_features",
+        "table_type": "mv",
+        "sql_path": "claims_fraud_features.sql",
+        "schema_path": "claims_fraud_features_schema.json",
+        "refresh_policy": "auto",
+        "comment": "Per-claim fraud features and a synthetic fraud label; the feature table of the claims fraud model.",
+        "table_properties": {
+          "delta.enableRowTracking": "true"
+        }
+      }
+    }
+  ]
+}

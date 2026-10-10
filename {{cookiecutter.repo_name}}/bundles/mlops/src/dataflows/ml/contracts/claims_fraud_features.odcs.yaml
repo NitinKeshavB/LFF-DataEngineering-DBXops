@@ -1,0 +1,104 @@
+apiVersion: v3.1.0
+kind: DataContract
+id: dc_example_claims_ml_claims_fraud_features
+name: claims_fraud_features
+version: 1.0.0
+status: active
+domain: claims__fraud_investigations__fraud_investigation
+dataProduct: dp_example_claims_fraud_detection
+description:
+  purpose: Per-claim fraud features plus a synthetic fraud label, keyed by claim_id; the feature table of the claims
+    fraud model.
+  usage: Training and batch scoring of the claims fraud model through FeatureLookup on claim_id.
+  limitations: The label is_fraud_suspected is synthetic, derived from the features by fixed rules for this example;
+    it is not an investigation outcome. Reflects source data as of the last pipeline run.
+customProperties:
+- property: classification
+  value: restricted
+servers:
+- server: dev
+  type: databricks
+  environment: dev
+  catalog: <PLACEHOLDER-dev-catalog>
+  schema: example_claims_ml
+- server: test
+  type: databricks
+  environment: test
+  catalog: <PLACEHOLDER-test-catalog>
+  schema: example_claims_ml
+- server: uat
+  type: databricks
+  environment: uat
+  catalog: <PLACEHOLDER-uat-catalog>
+  schema: example_claims_ml
+- server: preprod
+  type: databricks
+  environment: preprod
+  catalog: <PLACEHOLDER-preprod-catalog>
+  schema: example_claims_ml
+- server: prod
+  type: databricks
+  environment: prod
+  catalog: <PLACEHOLDER-prod-catalog>
+  schema: example_claims_ml
+schema:
+- name: claims_fraud_features
+  physicalName: <PLACEHOLDER-prod-catalog>.example_claims_ml.claims_fraud_features
+  logicalType: object
+  properties:
+  - name: claim_id
+    logicalType: string
+    physicalType: string
+    required: true
+    primaryKey: true
+    description: Claim identifier; the FeatureLookup key.
+  - name: policy_id
+    logicalType: string
+    physicalType: string
+    required: false
+  - name: claim_reserve
+    logicalType: number
+    physicalType: decimal(18,2)
+    required: false
+  - name: days_loss_to_report
+    logicalType: integer
+    physicalType: integer
+    required: false
+  - name: policy_age_days
+    logicalType: integer
+    physicalType: integer
+    required: false
+  - name: sum_insured
+    logicalType: number
+    physicalType: decimal(18,2)
+    required: false
+  - name: annual_premium
+    logicalType: number
+    physicalType: decimal(18,2)
+    required: false
+  - name: reserve_to_sum_insured
+    logicalType: number
+    physicalType: double
+    required: false
+  - name: prior_claim_count
+    logicalType: integer
+    physicalType: integer
+    required: false
+  - name: payment_count
+    logicalType: integer
+    physicalType: integer
+    required: false
+  - name: total_paid
+    logicalType: number
+    physicalType: decimal(18,2)
+    required: false
+  - name: is_fraud_suspected
+    logicalType: integer
+    physicalType: integer
+    required: false
+    description: Synthetic label (1 suspected, 0 not) derived from the other columns; not a feature of the model.
+  customProperties:
+  - property: dbx.asset_id
+    value: example_claims_ml.claims_fraud_features
+  - property: dbx.spec_id
+    value: claims_fraud_features

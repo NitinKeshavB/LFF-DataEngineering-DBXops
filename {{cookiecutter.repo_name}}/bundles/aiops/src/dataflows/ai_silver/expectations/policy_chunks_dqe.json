@@ -1,0 +1,14 @@
+{
+  "expect_or_drop": [
+    {
+      "name": "chunk_id not null",
+      "constraint": "chunk_id IS NOT NULL",
+      "tag": "Completeness"
+    },
+    {
+      "name": "chunk has text",
+      "constraint": "length(trim(chunk_text)) > 0",
+      "tag": "Completeness"
+    }
+  ]
+}

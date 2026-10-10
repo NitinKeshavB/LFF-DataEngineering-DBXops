@@ -1,0 +1,53 @@
+{
+  "type": "struct",
+  "fields": [
+    {
+      "name": "policy_id",
+      "type": "string",
+      "nullable": false,
+      "metadata": {}
+    },
+    {
+      "name": "party_id",
+      "type": "string",
+      "nullable": false,
+      "metadata": {}
+    },
+    {
+      "name": "product",
+      "type": "string",
+      "nullable": true,
+      "metadata": {}
+    },
+    {
+      "name": "start_date",
+      "type": "date",
+      "nullable": true,
+      "metadata": {}
+    },
+    {
+      "name": "end_date",
+      "type": "date",
+      "nullable": true,
+      "metadata": {}
+    },
+    {
+      "name": "status",
+      "type": "string",
+      "nullable": true,
+      "metadata": {}
+    },
+    {
+      "name": "sum_insured",
+      "type": "decimal(18,2)",
+      "nullable": true,
+      "metadata": {}
+    },
+    {
+      "name": "annual_premium",
+      "type": "decimal(18,2)",
+      "nullable": true,
+      "metadata": {}
+    }
+  ]
+}

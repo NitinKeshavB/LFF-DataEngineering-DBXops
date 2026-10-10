@@ -1,0 +1,76 @@
+{
+  "$schema": "https://json-schema.org/draft/2019-09/schema",
+  "title": "Project registration",
+  "description": "One squad's registration with the platform (registry repo: projects/<project_id>.yaml).",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["project_id", "kind", "squad", "domain", "contacts", "groups", "service_principal", "tags", "repo"],
+  "$defs": {
+    "email": {
+      "type": "string",
+      "pattern": "^([^@\\s]+@[^@\\s]+\\.[^@\\s]+|PLACEHOLDER-[a-z0-9-]+)$"
+    },
+    "adGroup": {
+      "type": "string",
+      "pattern": "^(AAD-DBX-[A-Z0-9]+-(DEV|READ|ADMIN)|PLACEHOLDER-[a-z0-9-]+)$"
+    }
+  },
+  "properties": {
+    "project_id": {"type": "string", "pattern": "^[a-z][a-z0-9_]{2,39}$"},
+    "kind": {"enum": ["domain", "project"]},
+    "squad": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["name", "title", "github_team"],
+      "properties": {
+        "name": {"type": "string", "pattern": "^[a-z][a-z0-9_]{2,63}$"},
+        "title": {"type": "string", "minLength": 3},
+        "github_team": {"type": "string", "pattern": "^[a-z0-9][a-z0-9-]{1,38}$"}
+      }
+    },
+    "domain": {"type": "string", "minLength": 1},
+    "contacts": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["technical_owner", "data_owner", "executive_owner", "data_steward", "support"],
+      "properties": {
+        "technical_owner": {"$ref": "#/$defs/email"},
+        "data_owner": {"$ref": "#/$defs/email"},
+        "executive_owner": {"$ref": "#/$defs/email"},
+        "data_steward": {"$ref": "#/$defs/email"},
+        "support": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["email", "channel"],
+          "properties": {
+            "email": {"$ref": "#/$defs/email"},
+            "channel": {"type": "string", "minLength": 1}
+          }
+        }
+      }
+    },
+    "groups": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["developers", "readers", "admins"],
+      "properties": {
+        "developers": {"$ref": "#/$defs/adGroup"},
+        "readers": {"$ref": "#/$defs/adGroup"},
+        "admins": {"$ref": "#/$defs/adGroup"}
+      }
+    },
+    "service_principal": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["application_id"],
+      "properties": {"application_id": {"type": "string", "minLength": 1}}
+    },
+    "tags": {"type": "object", "additionalProperties": {"type": "string", "minLength": 1}},
+    "repo": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["name"],
+      "properties": {"name": {"type": "string", "pattern": "^dbx-[a-z0-9-]{3,60}$"}}
+    }
+  }
+}

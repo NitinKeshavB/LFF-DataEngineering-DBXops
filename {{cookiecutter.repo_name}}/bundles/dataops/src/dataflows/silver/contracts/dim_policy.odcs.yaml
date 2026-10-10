@@ -1,0 +1,80 @@
+apiVersion: v3.1.0
+kind: DataContract
+id: dc_example_claims_silver_dim_policy
+name: dim_policy
+version: 1.0.0
+status: active
+domain: contract_underwriting__policy_admin_servicing__policy
+dataProduct: dp_example_claims_claims_conformed
+description:
+  purpose: 'Policies with full history (SCD2): product, status and premium over time.'
+  usage: Conformed, validated data for analytics and downstream data products.
+  limitations: Reflects source data as of the last pipeline run.
+servers:
+- server: dev
+  type: databricks
+  environment: dev
+  catalog: <PLACEHOLDER-dev-catalog>
+  schema: example_claims_silver
+- server: test
+  type: databricks
+  environment: test
+  catalog: <PLACEHOLDER-test-catalog>
+  schema: example_claims_silver
+- server: uat
+  type: databricks
+  environment: uat
+  catalog: <PLACEHOLDER-uat-catalog>
+  schema: example_claims_silver
+- server: preprod
+  type: databricks
+  environment: preprod
+  catalog: <PLACEHOLDER-preprod-catalog>
+  schema: example_claims_silver
+- server: prod
+  type: databricks
+  environment: prod
+  catalog: <PLACEHOLDER-prod-catalog>
+  schema: example_claims_silver
+schema:
+- name: dim_policy
+  physicalName: <PLACEHOLDER-prod-catalog>.example_claims_silver.dim_policy
+  logicalType: object
+  properties:
+  - name: policy_id
+    logicalType: string
+    physicalType: string
+    required: true
+  - name: party_id
+    logicalType: string
+    physicalType: string
+    required: true
+  - name: product
+    logicalType: string
+    physicalType: string
+    required: false
+  - name: start_date
+    logicalType: date
+    physicalType: date
+    required: false
+  - name: end_date
+    logicalType: date
+    physicalType: date
+    required: false
+  - name: status
+    logicalType: string
+    physicalType: string
+    required: false
+  - name: sum_insured
+    logicalType: number
+    physicalType: decimal(18,2)
+    required: false
+  - name: annual_premium
+    logicalType: number
+    physicalType: decimal(18,2)
+    required: false
+  customProperties:
+  - property: dbx.asset_id
+    value: example_claims_silver.dim_policy
+  - property: dbx.spec_id
+    value: dim_policy

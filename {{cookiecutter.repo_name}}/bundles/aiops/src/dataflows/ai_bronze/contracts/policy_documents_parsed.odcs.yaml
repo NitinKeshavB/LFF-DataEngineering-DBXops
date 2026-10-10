@@ -1,0 +1,105 @@
+apiVersion: v3.1.0
+kind: DataContract
+id: dc_example_claims_ai_policy_documents_parsed
+name: policy_documents_parsed
+version: 1.0.0
+status: active
+domain: product__wordings_pds__product_wording
+dataProduct: dp_example_claims_policy_assistant
+description:
+  purpose: Policy wording PDFs parsed to text with ai_parse_document, one row per document; documents that fail to parse are quarantined.
+  usage: Source for the policy_chunks table that feeds the policy vector search index.
+  limitations: Text only; tables and figures inside a PDF are flattened to the order the parser returns them. A PDF rewritten in place is not read again.
+servers:
+- server: dev
+  type: databricks
+  environment: dev
+  catalog: <PLACEHOLDER-dev-catalog>
+  schema: example_claims_ai
+- server: test
+  type: databricks
+  environment: test
+  catalog: <PLACEHOLDER-test-catalog>
+  schema: example_claims_ai
+- server: uat
+  type: databricks
+  environment: uat
+  catalog: <PLACEHOLDER-uat-catalog>
+  schema: example_claims_ai
+- server: preprod
+  type: databricks
+  environment: preprod
+  catalog: <PLACEHOLDER-preprod-catalog>
+  schema: example_claims_ai
+- server: prod
+  type: databricks
+  environment: prod
+  catalog: <PLACEHOLDER-prod-catalog>
+  schema: example_claims_ai
+schema:
+- name: policy_documents_parsed
+  physicalName: <PLACEHOLDER-prod-catalog>.example_claims_ai.policy_documents_parsed
+  logicalType: object
+  properties:
+  - name: document_path
+    logicalType: string
+    physicalType: string
+    required: true
+  - name: document_name
+    logicalType: string
+    physicalType: string
+    required: false
+  - name: modified_at
+    logicalType: timestamp
+    physicalType: timestamp
+    required: false
+  - name: size_bytes
+    logicalType: integer
+    physicalType: long
+    required: false
+  - name: parsed_text
+    logicalType: string
+    physicalType: string
+    required: false
+  - name: parse_error
+    logicalType: string
+    physicalType: string
+    required: false
+  quality:
+  - id: policy_documents_parsed_document_parsed_without_errors
+    name: document parsed without errors
+    type: sql
+    dimension: completeness
+    severity: error
+    query: SELECT COUNT(*) FROM ${table} WHERE NOT (parse_error IS NULL)
+    mustBe: 0
+    customProperties:
+    - property: dbx.origin
+      value: expectation
+    - property: dbx.action
+      value: quarantine
+    - property: dbx.constraint
+      value: parse_error IS NULL
+    - property: dbx.quarantine_asset_id
+      value: example_claims_ai.policy_documents_parsed_quarantine
+  - id: policy_documents_parsed_document_has_text
+    name: document has text
+    type: sql
+    dimension: completeness
+    severity: error
+    query: SELECT COUNT(*) FROM ${table} WHERE NOT (parsed_text IS NOT NULL AND length(trim(parsed_text)) > 0)
+    mustBe: 0
+    customProperties:
+    - property: dbx.origin
+      value: expectation
+    - property: dbx.action
+      value: quarantine
+    - property: dbx.constraint
+      value: parsed_text IS NOT NULL AND length(trim(parsed_text)) > 0
+    - property: dbx.quarantine_asset_id
+      value: example_claims_ai.policy_documents_parsed_quarantine
+  customProperties:
+  - property: dbx.asset_id
+    value: example_claims_ai.policy_documents_parsed
+  - property: dbx.spec_id
+    value: policy_documents_parsed

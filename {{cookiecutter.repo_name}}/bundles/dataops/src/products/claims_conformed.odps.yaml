@@ -1,0 +1,73 @@
+apiVersion: v1.0.0
+kind: DataProduct
+id: dp_example_claims_claims_conformed
+name: example_claims_claims_conformed
+version: 1.0.0
+status: active
+domain: claims
+description:
+  purpose: Conformed, validated claims and policy data
+  usage: Trusted entities for analytics and other data products.
+  limitations: Refreshed by the DataOps job; not real-time.
+inputPorts:
+- name: claim
+  version: 1.0.0
+  contractId: dc_example_claims_bronze_claim
+- name: claim_payment
+  version: 1.0.0
+  contractId: dc_example_claims_bronze_claim_payment
+- name: coverage
+  version: 1.0.0
+  contractId: dc_example_claims_bronze_coverage
+- name: party
+  version: 1.0.0
+  contractId: dc_example_claims_bronze_party
+- name: policy
+  version: 1.0.0
+  contractId: dc_example_claims_bronze_policy
+- name: premium
+  version: 1.0.0
+  contractId: dc_example_claims_bronze_premium
+outputPorts:
+- name: dim_policy
+  version: 1.0.0
+  type: uc_streaming_table
+  contractId: dc_example_claims_silver_dim_policy
+  customProperties:
+  - property: dbx.assetId
+    value: example_claims_silver.dim_policy
+- name: dim_policy_coverage
+  version: 1.0.0
+  type: uc_streaming_table
+  contractId: dc_example_claims_silver_dim_policy_coverage
+  customProperties:
+  - property: dbx.assetId
+    value: example_claims_silver.dim_policy_coverage
+- name: dim_policyholder
+  version: 1.0.0
+  type: uc_streaming_table
+  contractId: dc_example_claims_silver_dim_policyholder
+  customProperties:
+  - property: dbx.assetId
+    value: example_claims_silver.dim_policyholder
+- name: fact_claim
+  version: 1.0.0
+  type: uc_streaming_table
+  contractId: dc_example_claims_silver_fact_claim
+  customProperties:
+  - property: dbx.assetId
+    value: example_claims_silver.fact_claim
+- name: fact_claim_payment
+  version: 1.0.0
+  type: uc_streaming_table
+  contractId: dc_example_claims_silver_fact_claim_payment
+  customProperties:
+  - property: dbx.assetId
+    value: example_claims_silver.fact_claim_payment
+- name: fact_premium
+  version: 1.0.0
+  type: uc_streaming_table
+  contractId: dc_example_claims_silver_fact_premium
+  customProperties:
+  - property: dbx.assetId
+    value: example_claims_silver.fact_premium

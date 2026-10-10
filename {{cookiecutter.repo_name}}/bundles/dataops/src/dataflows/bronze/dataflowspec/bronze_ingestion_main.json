@@ -1,0 +1,65 @@
+{
+  "template": "bronze_autoloader_template",
+  "parameter_sets": [
+    {
+      "dataFlowId": "bronze_party",
+      "sourceViewName": "v_party",
+      "path": "{landing_path}/party/",
+      "database": "{bronze_schema}",
+      "table": "party",
+      "schemaPath": "party_schema.json",
+      "dataDomain": "customer__party_profile__client",
+      "dataProduct": "dp_example_claims_claims_raw"
+    },
+    {
+      "dataFlowId": "bronze_policy",
+      "sourceViewName": "v_policy",
+      "path": "{landing_path}/policy/",
+      "database": "{bronze_schema}",
+      "table": "policy",
+      "schemaPath": "policy_schema.json",
+      "dataDomain": "contract_underwriting__policy_admin_servicing__policy",
+      "dataProduct": "dp_example_claims_claims_raw"
+    },
+    {
+      "dataFlowId": "bronze_coverage",
+      "sourceViewName": "v_coverage",
+      "path": "{landing_path}/coverage/",
+      "database": "{bronze_schema}",
+      "table": "coverage",
+      "schemaPath": "coverage_schema.json",
+      "dataDomain": "contract_underwriting__policy_admin_servicing__policy_coverage",
+      "dataProduct": "dp_example_claims_claims_raw"
+    },
+    {
+      "dataFlowId": "bronze_premium",
+      "sourceViewName": "v_premium",
+      "path": "{landing_path}/premium/",
+      "database": "{bronze_schema}",
+      "table": "premium",
+      "schemaPath": "premium_schema.json",
+      "dataDomain": "contract_underwriting__pricing_rating__premium",
+      "dataProduct": "dp_example_claims_claims_raw"
+    },
+    {
+      "dataFlowId": "bronze_claim",
+      "sourceViewName": "v_claim",
+      "path": "{landing_path}/claim/",
+      "database": "{bronze_schema}",
+      "table": "claim",
+      "schemaPath": "claim_schema.json",
+      "dataDomain": "claims__lodgement_assessment_liability__claim",
+      "dataProduct": "dp_example_claims_claims_raw"
+    },
+    {
+      "dataFlowId": "bronze_claim_payment",
+      "sourceViewName": "v_claim_payment",
+      "path": "{landing_path}/claim_payment/",
+      "database": "{bronze_schema}",
+      "table": "claim_payment",
+      "schemaPath": "claim_payment_schema.json",
+      "dataDomain": "claims__settlement_payments__claim_payment",
+      "dataProduct": "dp_example_claims_claims_raw"
+    }
+  ]
+}

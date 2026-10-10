@@ -1,0 +1,14 @@
+{
+  "expect_or_drop": [
+    {
+      "name": "payment_id not null",
+      "constraint": "payment_id IS NOT NULL",
+      "tag": "Completeness"
+    },
+    {
+      "name": "payment amount positive",
+      "constraint": "amount > 0",
+      "tag": "Accuracy"
+    }
+  ]
+}

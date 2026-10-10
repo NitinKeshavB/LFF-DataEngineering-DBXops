@@ -1,0 +1,7 @@
+# Promotion gate of the claims fraud model, read by `python -m dbxops.lifecycle promote` (format: dbxops.lifecycle).
+# The decision is recorded as an md_eval_result fact whose gate_source_path is this file, so thresholds change by commit.
+eval_kind: model
+challenger_alias: challenger
+champion_alias: champion
+policies:
+  - {type: metric_threshold, metric: auc, comparator: ">=", threshold: 0.80}

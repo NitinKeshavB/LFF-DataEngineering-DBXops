@@ -1,0 +1,22 @@
+# Desired state of the claims fraud serving endpoint, applied by src/jobs/mlops_lifecycle_task.py reconcile (uat, preprod, prod).
+# Tokens, replaced in every string value: {catalog}, {project_id} and {target} come from the job; {champion_version}
+# is the model version that holds the champion alias. The endpoint name carries the target because all targets share
+# one workspace.
+serving_endpoints:
+  - name: claims-fraud-{target}
+    served_entities:
+      - name: champion
+        entity_name: "{catalog}.{project_id}_ml.claims_fraud_model"
+        entity_version: "{champion_version}"
+        workload_size: Small
+        scale_to_zero_enabled: true
+    traffic_routes:
+      - served_entity_name: champion
+        traffic_percentage: 100
+    inference_table:
+      enabled: true
+      catalog_name: "{catalog}"
+      schema_name: "{project_id}_ml"
+      table_name_prefix: claims_fraud_endpoint
+    tags:
+      data_product: dp_{project_id}_fraud_detection

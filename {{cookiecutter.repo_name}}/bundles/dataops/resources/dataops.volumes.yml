@@ -1,0 +1,7 @@
+resources:
+  volumes:
+    landing:
+      catalog_name: ${var.catalog}
+      schema_name: ${var.project_id}_bronze${var.logical_env}
+      name: landing
+      comment: Landing zone for the synthetic source feeds (one folder per entity).

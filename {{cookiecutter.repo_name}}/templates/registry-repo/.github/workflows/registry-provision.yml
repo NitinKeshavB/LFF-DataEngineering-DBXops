@@ -1,0 +1,46 @@
+# When a new projects/<project_id>.yaml is merged to main, create the squad's repository from the template and set it
+# up (see scripts/provision_project.sh). Runs only on main, as the platform GitHub App.
+# Prerequisites: variables ORG, TEMPLATE_REPO, DBXOPS_VERSION, APP_ID, PLATFORM_RELEASE_TEAM; secret APP_PRIVATE_KEY.
+name: Registry provision
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "projects/*.yaml"
+
+permissions:
+  contents: read
+
+jobs:
+  provision:
+    runs-on: ubuntu-latest
+    environment: provision
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 2
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install dbxops
+        env:
+          DBXOPS_VERSION: ${{ vars.DBXOPS_VERSION }}
+        run: python -m pip install "cookie-cutter-dbx==${DBXOPS_VERSION}"
+      - name: Create the platform App token
+        id: app
+        uses: actions/create-github-app-token@v1
+        with:
+          app-id: ${{ vars.APP_ID }}
+          private-key: ${{ secrets.APP_PRIVATE_KEY }}
+          owner: ${{ vars.ORG }}
+      - name: Provision each newly added project
+        env:
+          GH_TOKEN: ${{ steps.app.outputs.token }}
+          ORG: ${{ vars.ORG }}
+          TEMPLATE_REPO: ${{ vars.TEMPLATE_REPO }}
+          PLATFORM_RELEASE_TEAM: ${{ vars.PLATFORM_RELEASE_TEAM }}
+        run: |
+          git diff --name-only --diff-filter=A HEAD^ HEAD -- 'projects/*.yaml' | while read -r file; do
+            bash scripts/provision_project.sh "$(basename "$file" .yaml)"
+          done

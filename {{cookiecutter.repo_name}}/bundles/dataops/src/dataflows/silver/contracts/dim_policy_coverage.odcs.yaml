@@ -1,0 +1,68 @@
+apiVersion: v3.1.0
+kind: DataContract
+id: dc_example_claims_silver_dim_policy_coverage
+name: dim_policy_coverage
+version: 1.0.0
+status: active
+domain: contract_underwriting__policy_admin_servicing__policy_coverage
+dataProduct: dp_example_claims_claims_conformed
+description:
+  purpose: Current coverages per policy with limits and excesses (SCD1).
+  usage: Conformed, validated data for analytics and downstream data products.
+  limitations: Reflects source data as of the last pipeline run.
+servers:
+- server: dev
+  type: databricks
+  environment: dev
+  catalog: <PLACEHOLDER-dev-catalog>
+  schema: example_claims_silver
+- server: test
+  type: databricks
+  environment: test
+  catalog: <PLACEHOLDER-test-catalog>
+  schema: example_claims_silver
+- server: uat
+  type: databricks
+  environment: uat
+  catalog: <PLACEHOLDER-uat-catalog>
+  schema: example_claims_silver
+- server: preprod
+  type: databricks
+  environment: preprod
+  catalog: <PLACEHOLDER-preprod-catalog>
+  schema: example_claims_silver
+- server: prod
+  type: databricks
+  environment: prod
+  catalog: <PLACEHOLDER-prod-catalog>
+  schema: example_claims_silver
+schema:
+- name: dim_policy_coverage
+  physicalName: <PLACEHOLDER-prod-catalog>.example_claims_silver.dim_policy_coverage
+  logicalType: object
+  properties:
+  - name: coverage_id
+    logicalType: string
+    physicalType: string
+    required: true
+  - name: policy_id
+    logicalType: string
+    physicalType: string
+    required: true
+  - name: coverage_type
+    logicalType: string
+    physicalType: string
+    required: false
+  - name: limit_amount
+    logicalType: number
+    physicalType: decimal(18,2)
+    required: false
+  - name: excess_amount
+    logicalType: number
+    physicalType: decimal(18,2)
+    required: false
+  customProperties:
+  - property: dbx.asset_id
+    value: example_claims_silver.dim_policy_coverage
+  - property: dbx.spec_id
+    value: dim_policy_coverage

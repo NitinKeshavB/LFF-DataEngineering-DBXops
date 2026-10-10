@@ -1,0 +1,81 @@
+# Continuous delivery. A merge to main deploys every bundle to dev, then test. A version tag (v*) promotes through
+# uat, preprod and prod; each of those GitHub environments has required reviewers (the squad, plus the platform release team
+# for preprod and prod). The framework itself is deployed separately by the platform team (deploy-framework.yml).
+name: CD
+
+on:
+  push:
+    branches: [main]
+    tags: ["v*"]
+
+permissions:
+  id-token: write
+  contents: read
+
+jobs:
+  discover:
+    runs-on: ubuntu-latest
+    outputs:
+      bundles: ${{ steps.find.outputs.bundles }}
+    steps:
+      - uses: actions/checkout@v4
+      - id: find
+        run: |
+          echo "bundles=$(find bundles -maxdepth 2 -name databricks.yml -printf '%h\n' | xargs -n1 basename | sort | jq -R . | jq -sc .)" >> "$GITHUB_OUTPUT"
+
+  dev:
+    if: github.ref == 'refs/heads/main'
+    needs: discover
+    strategy:
+      fail-fast: false
+      matrix:
+        bundle: ${{ fromJson(needs.discover.outputs.bundles) }}
+    uses: ./.github/workflows/deploy-bundle.yml
+    with:
+      bundle: ${{ matrix.bundle }}
+      target: dev
+
+  test:
+    needs: [discover, dev]
+    strategy:
+      fail-fast: false
+      matrix:
+        bundle: ${{ fromJson(needs.discover.outputs.bundles) }}
+    uses: ./.github/workflows/deploy-bundle.yml
+    with:
+      bundle: ${{ matrix.bundle }}
+      target: test
+
+  uat:
+    if: startsWith(github.ref, 'refs/tags/v')
+    needs: discover
+    strategy:
+      fail-fast: false
+      matrix:
+        bundle: ${{ fromJson(needs.discover.outputs.bundles) }}
+    uses: ./.github/workflows/deploy-bundle.yml
+    with:
+      bundle: ${{ matrix.bundle }}
+      target: uat
+
+  preprod:
+    needs: [discover, uat]
+    strategy:
+      fail-fast: false
+      matrix:
+        bundle: ${{ fromJson(needs.discover.outputs.bundles) }}
+    uses: ./.github/workflows/deploy-bundle.yml
+    with:
+      bundle: ${{ matrix.bundle }}
+      target: preprod
+
+  prod:
+    needs: [discover, preprod]
+    strategy:
+      fail-fast: false
+      matrix:
+        bundle: ${{ fromJson(needs.discover.outputs.bundles) }}
+    uses: ./.github/workflows/deploy-bundle.yml
+    with:
+      bundle: ${{ matrix.bundle }}
+      target: prod

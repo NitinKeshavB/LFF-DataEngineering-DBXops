@@ -1,0 +1,247 @@
+# The AIOps run: documents -> parse (ai_bronze) -> chunks (ai_silver) -> vector index -> agent (register, evaluate, gate,
+# deploy) -> serving settings, and optionally the Knowledge Assistant.
+#
+# The last task, publish_run_metadata, records the run in the metadata database whatever happened before it
+# (run_if: ALL_DONE); it is the `dbxops-publish-run` entry point of the dbxops wheel.
+#
+# Environments: `docs` has plutoprint (job-only), `lifecycle` has the dbxops wheel (dbxops_wheel_path, set by CI) and
+# `agent` has the libraries of register_agent.AGENT_PIP_REQUIREMENTS (a test keeps the two lists equal). None of these
+# libraries is a dependency of the dbxops package.
+resources:
+  jobs:
+    aiops_run:
+      name: '[${var.project_id}] aiops run (${bundle.target}${var.logical_env})'
+      tags:
+        cost_center: ${var.cost_center}
+        region: ${var.region}
+      performance_target: ${var.performance_target}
+      queue:
+        enabled: true
+      environments:
+      - environment_key: default
+        spec:
+          client: '4'
+      - environment_key: docs
+        spec:
+          client: '4'
+          dependencies:
+          - plutoprint>=0.19
+      - environment_key: lifecycle
+        spec:
+          client: '4'
+          dependencies:
+          - ${var.dbxops_wheel_path}
+      - environment_key: platform
+        spec:
+          client: '4'
+          dependencies:
+          - databricks-sql-connector
+          - ${var.dbxops_wheel_path}
+      - environment_key: agent
+        spec:
+          client: '4'
+          dependencies:
+          - mlflow>=3.11.1
+          - databricks-langchain
+          - langgraph
+          - databricks-agents
+          - pydantic>=2
+      tasks:
+      - task_key: generate_docs
+        environment_key: docs
+        spark_python_task:
+          python_file: ../src/jobs/generate_policy_docs.py
+          parameters:
+          - --output
+          - /Volumes/${var.catalog}/${var.project_id}_bronze${var.logical_env}/landing/policy_docs
+      - task_key: ai_bronze
+        depends_on:
+        - task_key: generate_docs
+        pipeline_task:
+          pipeline_id: ${resources.pipelines.aiops_ai_bronze.id}
+      - task_key: ai_silver
+        depends_on:
+        - task_key: ai_bronze
+        pipeline_task:
+          pipeline_id: ${resources.pipelines.aiops_ai_silver.id}
+      - task_key: create_functions
+        environment_key: default
+        spark_python_task:
+          python_file: ../src/jobs/create_uc_functions.py
+          parameters:
+          - --catalog
+          - ${var.catalog}
+          - --project-id
+          - ${var.project_id}
+          - --logical-env
+          - ${var.logical_env}
+          - --sql
+          - ${workspace.file_path}/src/functions/get_claim_status.sql
+      - task_key: reconcile_index
+        depends_on:
+        - task_key: ai_silver
+        environment_key: lifecycle
+        spark_python_task:
+          python_file: ../src/jobs/lifecycle_task.py
+          parameters:
+          - reconcile
+          - --config
+          - ${workspace.file_path}/src/vector_search/policy_index.yml
+          - --target
+          - ${bundle.target}
+          - --catalog
+          - ${var.catalog}
+          - --workspace-host
+          - ${var.workspace_host}
+          - --var
+          - project_id=${var.project_id}
+          - --var
+          - target=${bundle.target}
+          - --var
+          - logical_env=${var.logical_env}
+      - task_key: wait_for_index
+        depends_on:
+        - task_key: reconcile_index
+        environment_key: lifecycle
+        spark_python_task:
+          python_file: ../src/jobs/lifecycle_task.py
+          parameters:
+          - wait-index
+          - --index
+          - ${var.catalog}.${var.project_id}_ai${var.logical_env}.policy_chunks_index
+      - task_key: register_agent
+        depends_on:
+        - task_key: wait_for_index
+        - task_key: create_functions
+        environment_key: agent
+        spark_python_task:
+          python_file: ../src/jobs/register_agent.py
+          parameters:
+          - --model
+          - ${var.catalog}.${var.project_id}_ai${var.logical_env}.policy_assistant
+          - --agent-file
+          - ${workspace.file_path}/src/agent/policy_assistant.py
+          - --experiment
+          - /Shared/${var.project_id}_policy_assistant_${bundle.target}${var.logical_env}
+          - --llm-endpoint
+          - ${var.llm_endpoint}
+          - --vector-index
+          - ${var.catalog}.${var.project_id}_ai${var.logical_env}.policy_chunks_index
+          - --claim-status-function
+          - ${var.catalog}.${var.project_id}_ai${var.logical_env}.get_claim_status
+      - task_key: evaluate_agent
+        depends_on:
+        - task_key: register_agent
+        environment_key: agent
+        spark_python_task:
+          python_file: ../src/jobs/evaluate_agent.py
+          parameters:
+          - --model
+          - ${var.catalog}.${var.project_id}_ai${var.logical_env}.policy_assistant
+          - --cases
+          - ${workspace.file_path}/src/eval/policy_assistant_cases.json
+          - --experiment
+          - /Shared/${var.project_id}_policy_assistant_${bundle.target}${var.logical_env}
+          - --trace-schema
+          - ${var.catalog}.${var.project_id}_ai${var.logical_env}
+          - --warehouse-id
+          - ${var.warehouse_id}
+      - task_key: gate_agent
+        depends_on:
+        - task_key: evaluate_agent
+        environment_key: lifecycle
+        spark_python_task:
+          python_file: ../src/jobs/lifecycle_task.py
+          parameters:
+          - promote
+          - --model
+          - ${var.catalog}.${var.project_id}_ai${var.logical_env}.policy_assistant
+          - --alias
+          - challenger
+          - --gate
+          - ${workspace.file_path}/src/gates/policy_assistant.gate.yml
+      - task_key: deploy_agent
+        depends_on:
+        - task_key: gate_agent
+        environment_key: agent
+        spark_python_task:
+          python_file: ../src/jobs/deploy_agent.py
+          parameters:
+          - --model
+          - ${var.catalog}.${var.project_id}_ai${var.logical_env}.policy_assistant
+          - --endpoint-name
+          - ${var.project_id}_${bundle.target}_policy_assistant${var.logical_env}
+      - task_key: reconcile_serving
+        depends_on:
+        - task_key: deploy_agent
+        environment_key: lifecycle
+        spark_python_task:
+          python_file: ../src/jobs/lifecycle_task.py
+          parameters:
+          - reconcile
+          - --config
+          - ${workspace.file_path}/src/serving/policy_assistant_endpoint.yml
+          - --target
+          - ${bundle.target}
+          - --catalog
+          - ${var.catalog}
+          - --workspace-host
+          - ${var.workspace_host}
+          - --var
+          - project_id=${var.project_id}
+          - --var
+          - target=${bundle.target}
+          - --var
+          - logical_env=${var.logical_env}
+          - --var
+          - cost_center=${var.cost_center}
+          - --var
+          - region=${var.region}
+      - task_key: agent_bricks_enabled
+        depends_on:
+        - task_key: wait_for_index
+        condition_task:
+          op: EQUAL_TO
+          left: ${var.enable_agent_bricks}
+          right: 'true'
+      - task_key: reconcile_knowledge_assistant
+        depends_on:
+        - task_key: agent_bricks_enabled
+          outcome: 'true'
+        environment_key: lifecycle
+        spark_python_task:
+          python_file: ../src/jobs/lifecycle_task.py
+          parameters:
+          - reconcile
+          - --config
+          - ${workspace.file_path}/src/agent_bricks/policy_ka.yml
+          - --target
+          - ${bundle.target}
+          - --catalog
+          - ${var.catalog}
+          - --workspace-host
+          - ${var.workspace_host}
+          - --var
+          - project_id=${var.project_id}
+          - --var
+          - target=${bundle.target}
+          - --var
+          - logical_env=${var.logical_env}
+      - task_key: publish_run_metadata
+        run_if: ALL_DONE
+        depends_on:
+        - task_key: reconcile_serving
+        - task_key: reconcile_knowledge_assistant
+        environment_key: platform
+        python_wheel_task:
+          package_name: cookie-cutter-dbx
+          entry_point: dbxops-publish-run
+          parameters:
+          - --run-id
+          - '{{job.run_id}}'
+          - --target
+          - ${bundle.target}
+          - --repo-id
+          - ${var.project_id}
+          - --config
+          - ${workspace.file_path}/src/config/metastore.yml
