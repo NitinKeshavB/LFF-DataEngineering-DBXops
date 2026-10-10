@@ -79,7 +79,7 @@ def test__reconcile_dry_run_writes_nothing_and_exits_zero(fake_gateway, factory,
     assert "dry run" in capsys.readouterr().out
 
 
-def test__reconcile_exits_one_when_a_section_reports_errors(fake_gateway, factory, reconcile_config, capsys):
+def test__reconcile_exits_one_when_a_section_reports_errors(factory, reconcile_config, capsys):
     """A tagged table that does not exist is a reconcile error, so the task fails with exit code 1."""
     code = main(_reconcile(reconcile_config), gateway_factory=factory)
     assert code == 1
@@ -116,7 +116,7 @@ def test__an_invalid_entry_exits_two(factory, tmp_path, capsys):
 
 
 def test__missing_required_arguments_exit_two(factory):
-    """argparse usage errors map to exit code 2."""
+    """Usage errors from argparse map to exit code 2."""
     assert main(["promote", "--model", MODEL], gateway_factory=factory) == 2
     assert main([], gateway_factory=factory) == 2
 

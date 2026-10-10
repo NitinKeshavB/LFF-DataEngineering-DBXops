@@ -1,7 +1,5 @@
 """Tests for the Reconciler template method and the vector search, serving, monitor and knowledge assistant kinds."""
 
-import pytest
-
 from dbxops.reconcile import (
     Change,
     DesiredKnowledgeAssistant,
@@ -82,7 +80,7 @@ def test__reconcile_runs_read_diff_plan_in_order_and_does_not_apply_by_default(f
     assert [change.resource for change in result.changes] == ["thing:1"]
     assert result.unchanged == ("thing:0",)
     assert result.applied is False
-    assert called == []
+    assert not called
 
 
 def test__reconcile_applies_the_planned_operations_when_not_a_dry_run(fake_gateway):
@@ -146,10 +144,12 @@ def test__vector_search_apply_performs_exactly_the_planned_calls(fake_gateway):
         (
             "create_vector_search_index",
             "cat.claims_ai.policy_index",
-            "claims-vs",
-            "chunk_id",
-            "DELTA_SYNC",
-            desired.delta_sync_index_spec,
+            {
+                "endpoint_name": "claims-vs",
+                "primary_key": "chunk_id",
+                "index_type": "DELTA_SYNC",
+                "delta_sync_index_spec": desired.delta_sync_index_spec,
+            },
         ),
     ]
 
@@ -159,8 +159,8 @@ def test__vector_search_second_run_is_a_no_op(fake_gateway):
     reconciler = VectorSearchIndexReconciler(fake_gateway)
     reconciler.reconcile([_index()], dry_run=False)
     second = reconciler.reconcile([_index()], dry_run=False)
-    assert second.changes == ()
-    assert second.errors == ()
+    assert not second.changes
+    assert not second.errors
     assert second.unchanged == ("vector_search_endpoint:claims-vs", "vector_search_index:cat.claims_ai.policy_index")
 
 
@@ -175,9 +175,11 @@ def test__vector_search_reports_a_differing_index_and_never_recreates_it(fake_ga
     reconciler = VectorSearchIndexReconciler(fake_gateway)
     reconciler.reconcile([_index()], dry_run=False)
     fake_gateway.calls.clear()
-    changed = _index(delta_sync_index_spec={"source_table": "cat.claims_ai.other_chunks", "pipeline_type": "TRIGGERED"})
+    changed = _index(
+        delta_sync_index_spec={"source_table": "cat.claims_ai.other_chunks", "pipeline_type": "TRIGGERED"}
+    )
     result = reconciler.reconcile([changed], dry_run=False)
-    assert result.changes == ()
+    assert not result.changes
     assert "cannot be updated" in result.errors[0]
     assert fake_gateway.writes == []
 
@@ -237,7 +239,7 @@ def test__serving_second_run_is_a_no_op(fake_gateway):
     reconciler = ServingEndpointReconciler(fake_gateway)
     reconciler.reconcile([_endpoint()], dry_run=False)
     second = reconciler.reconcile([_endpoint()], dry_run=False)
-    assert second.changes == ()
+    assert not second.changes
     assert second.unchanged == ("serving_endpoint:claims_fraud_scorer",)
 
 
@@ -326,7 +328,7 @@ def test__monitor_second_run_is_a_no_op(fake_gateway):
     reconciler = MonitorReconciler(fake_gateway)
     reconciler.reconcile([_monitor()], dry_run=False)
     second = reconciler.reconcile([_monitor()], dry_run=False)
-    assert second.changes == ()
+    assert not second.changes
     assert second.unchanged == ("quality_monitor:cat.claims_ml.fraud_inference",)
 
 
@@ -392,7 +394,7 @@ def test__knowledge_assistant_second_run_is_a_no_op(fake_gateway):
     reconciler.reconcile([_assistant()], dry_run=False)
     fake_gateway.calls.clear()
     second = reconciler.reconcile([_assistant()], dry_run=False)
-    assert second.changes == ()
+    assert not second.changes
     assert second.unchanged == ("knowledge_assistant:policy_assistant",)
     assert fake_gateway.writes == []
 
@@ -430,10 +432,9 @@ def test__knowledge_assistant_reports_a_changed_source_without_touching_it(fake_
     assert fake_gateway.writes == []
 
 
-def test__reconciler_subclasses_must_implement_read_and_diff(fake_gateway):
-    """The base class is abstract."""
-    with pytest.raises(TypeError):
-        Reconciler(fake_gateway)  # type: ignore[abstract]
+def test__reconciler_subclasses_must_implement_read_and_diff():
+    """The base class is abstract in exactly read_actual and diff."""
+    assert Reconciler.__abstractmethods__ == {"read_actual", "diff"}
 
 
 def test__fake_gateway_is_a_complete_workspace_gateway():

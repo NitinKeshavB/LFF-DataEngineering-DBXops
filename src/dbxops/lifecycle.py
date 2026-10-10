@@ -76,8 +76,8 @@ from dbxops.reconcile import (
     MetadataSyncInput,
     MetadataSyncReconciler,
     MonitorReconciler,
-    ReconcileResult,
     Reconciler,
+    ReconcileResult,
     ServingEndpointReconciler,
     VectorSearchIndexReconciler,
 )
@@ -154,9 +154,9 @@ def build_tasks(config: dict, gateway: WorkspaceGateway) -> list[tuple[str, Reco
         ("monitors", MonitorReconciler, DesiredMonitor),
         ("knowledge_assistants", KnowledgeAssistantReconciler, DesiredKnowledgeAssistant),
     )
-    for section, reconciler, desired in simple:
+    for section, reconciler_class, desired in simple:
         if section in config:
-            tasks.append((section, reconciler(gateway), _build(desired, config[section], section)))
+            tasks.append((section, reconciler_class(gateway), _build(desired, config[section], section)))
     if "metadata_sync" in config:
         sync = config["metadata_sync"]
         reconciler = MetadataSyncReconciler(gateway, owned_extra_keys=sync.get("owned_extra_keys", []))
@@ -239,7 +239,7 @@ def main(argv: Sequence[str] | None = None, gateway_factory: GatewayFactory = de
     try:
         args = build_parser().parse_args(argv)
     except SystemExit as error:
-        return EXIT_USAGE if error.code else EXIT_OK
+        return EXIT_OK if error.code in (None, 0) else EXIT_USAGE
     runner = run_reconcile if args.command == "reconcile" else run_promote
     try:
         return runner(args, gateway_factory)

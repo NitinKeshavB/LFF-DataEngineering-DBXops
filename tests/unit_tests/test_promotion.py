@@ -57,7 +57,7 @@ def test__a_missing_metric_fails_with_a_clear_reason():
 
 
 def test__a_nan_metric_fails():
-    """NaN is not a passing value."""
+    """A NaN metric is not a passing value."""
     assert MetricThreshold("auc", 0.8).evaluate({"auc": float("nan")}).passed is False
 
 
@@ -68,7 +68,7 @@ def test__an_unknown_comparator_is_rejected():
 
 
 def test__pass_rate_policy_passes_at_the_boundary_and_fails_below():
-    """EvalPassRate is a >= gate on the pass_rate metric."""
+    """The pass-rate policy is a >= gate on the pass_rate metric."""
     assert EvalPassRate(0.9).evaluate({"pass_rate": 0.9}).passed is True
     assert EvalPassRate(0.9).evaluate({"pass_rate": 0.89}).passed is False
 
@@ -224,7 +224,7 @@ def test__promoting_the_current_champion_again_is_a_no_op(fake_gateway):
 
 
 def test__decision_is_immutable():
-    """GateDecision is a frozen value."""
+    """A gate decision is a frozen value."""
     decision = GateDecision("auc", 0.9, 0.8, ">=", True, "ok")
     with pytest.raises(AttributeError):
         decision.passed = False  # type: ignore[misc]

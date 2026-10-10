@@ -17,6 +17,7 @@ from dataclasses import (
     dataclass,
     field,
 )
+from functools import partial
 from typing import (
     Any,
     Callable,
@@ -110,7 +111,9 @@ def matches(desired: Any, actual: Any) -> bool:
     element by element and must have the same length. Scalars match by equality or by their string form.
     """
     if isinstance(desired, Mapping):
-        return isinstance(actual, Mapping) and all(key in actual and matches(desired[key], actual[key]) for key in desired)
+        return isinstance(actual, Mapping) and all(
+            key in actual and matches(desired[key], actual[key]) for key in desired
+        )
     if isinstance(desired, (list, tuple)):
         return (
             isinstance(actual, (list, tuple))
@@ -216,11 +219,13 @@ class VectorSearchIndexReconciler(Reconciler):
                 builder.change(
                     resource,
                     "create",
-                    lambda i=item: self._gateway.create_vector_search_endpoint(i.endpoint_name, i.endpoint_type),
+                    partial(self._gateway.create_vector_search_endpoint, item.endpoint_name, item.endpoint_type),
                     f"type {item.endpoint_type}",
                 )
             elif found.get("endpoint_type", item.endpoint_type) != item.endpoint_type:
-                builder.fail(f"{resource}: type is {found['endpoint_type']}, desired {item.endpoint_type}; not changed")
+                builder.fail(
+                    f"{resource}: type is {found['endpoint_type']}, desired {item.endpoint_type}; not changed"
+                )
             else:
                 builder.keep(resource)
 
@@ -236,7 +241,9 @@ class VectorSearchIndexReconciler(Reconciler):
             "delta_sync_index_spec": item.delta_sync_index_spec,
         }
         if not matches(wanted, found):
-            builder.fail(f"{resource}: differs from the desired spec and a spec cannot be updated; recreate it manually")
+            builder.fail(
+                f"{resource}: differs from the desired spec and a spec cannot be updated; recreate it manually"
+            )
         elif item.sync and found.get("delta_sync_index_spec", {}).get("pipeline_type") == "TRIGGERED":
             builder.change(resource, "sync", lambda: self._gateway.sync_vector_search_index(item.name))
         else:
@@ -244,7 +251,13 @@ class VectorSearchIndexReconciler(Reconciler):
 
     def _create_index(self, item: DesiredVectorSearchIndex) -> None:
         self._gateway.create_vector_search_index(
-            item.name, item.endpoint_name, item.primary_key, item.index_type, item.delta_sync_index_spec
+            item.name,
+            {
+                "endpoint_name": item.endpoint_name,
+                "primary_key": item.primary_key,
+                "index_type": item.index_type,
+                "delta_sync_index_spec": item.delta_sync_index_spec,
+            },
         )
 
 
@@ -298,7 +311,7 @@ class ServingEndpointReconciler(Reconciler):
         for item in desired:
             found = actual[item.name]
             if found is None:
-                builder.change(f"serving_endpoint:{item.name}", "create", lambda i=item: self._create(i))
+                builder.change(f"serving_endpoint:{item.name}", "create", partial(self._create, item))
             else:
                 self._diff_existing(builder, item, found)
         return builder.build()
@@ -311,7 +324,9 @@ class ServingEndpointReconciler(Reconciler):
         in_sync = True
         if not matches(item.config, found.get("config", {})):
             in_sync = False
-            builder.change(resource, "update_config", lambda: self._gateway.update_serving_endpoint_config(item.name, item.config))
+            builder.change(
+                resource, "update_config", lambda: self._gateway.update_serving_endpoint_config(item.name, item.config)
+            )
         if item.ai_gateway and not matches(item.ai_gateway, found.get("ai_gateway", {})):
             in_sync = False
             builder.change(
@@ -326,7 +341,7 @@ class ServingEndpointReconciler(Reconciler):
                 builder.change(
                     f"{resource}/tag:{key}",
                     "set_tag",
-                    lambda k=key, v=value: self._gateway.set_tag("serving_endpoint", item.name, k, v),
+                    partial(self._gateway.set_tag, "serving_endpoint", item.name, key, value),
                 )
         if in_sync:
             builder.keep(resource)
@@ -365,13 +380,15 @@ class MonitorReconciler(Reconciler):
             resource = f"quality_monitor:{item.table_name}"
             found = actual[item.table_name]
             if found is None:
-                builder.change(resource, "create", lambda i=item: self._create(i))
+                builder.change(resource, "create", partial(self._create, item))
             elif found.get("assets_dir", item.assets_dir) != item.assets_dir:
-                builder.fail(f"{resource}: assets_dir is {found['assets_dir']}, desired {item.assets_dir}; not changed")
+                builder.fail(
+                    f"{resource}: assets_dir is {found['assets_dir']}, desired {item.assets_dir}; not changed"
+                )
             elif matches({"output_schema_name": item.output_schema_name, **item.settings}, found):
                 builder.keep(resource)
             else:
-                builder.change(resource, "update", lambda i=item: self._update(i))
+                builder.change(resource, "update", partial(self._update, item))
         return builder.build()
 
     def _create(self, item: DesiredMonitor) -> None:
@@ -427,36 +444,47 @@ class KnowledgeAssistantReconciler(Reconciler):
         if found is None:
             builder.change(resource, "create", lambda: created.update(self._create(item)))
             existing: list[dict] = []
-            name_of: Callable[[], str] = lambda: created["name"]
         else:
             self._diff_description(builder, item, found, resource)
             existing = found["sources"]
-            name_of = lambda: found["name"]
-        if self._diff_sources(builder, item, existing, name_of, resource):
+
+        def name_of() -> str:
+            return created["name"] if found is None else found["name"]
+
+        if self._diff_sources(builder, item, existing, name_of):
             builder.change(resource, "sync", lambda: self._gateway.sync_knowledge_sources(name_of()))
         if found is not None and builder.change_count == start:
             builder.keep(resource)
 
+    def _add_source(self, name_of: Callable[[], str], source: Mapping[str, Any]) -> None:
+        self._gateway.create_knowledge_source(name_of(), source)
+
     def _create(self, item: DesiredKnowledgeAssistant) -> dict:
         return self._gateway.create_knowledge_assistant(item.display_name, item.description)
 
-    def _diff_description(self, builder: DiffBuilder, item: DesiredKnowledgeAssistant, found: dict, resource: str) -> None:
+    def _diff_description(
+        self, builder: DiffBuilder, item: DesiredKnowledgeAssistant, found: dict, resource: str
+    ) -> None:
         if found.get("description") != item.description:
             builder.change(
                 resource, "update", lambda: self._gateway.update_knowledge_assistant(found["name"], item.description)
             )
 
     def _diff_sources(
-        self, builder: DiffBuilder, item: DesiredKnowledgeAssistant, existing: Sequence[dict], name_of: Callable[[], str], resource: str
+        self,
+        builder: DiffBuilder,
+        item: DesiredKnowledgeAssistant,
+        existing: Sequence[dict],
+        name_of: Callable[[], str],
     ) -> bool:
         by_name = {source.get("display_name"): source for source in existing}
         added = False
         for source in item.sources:
-            label = f"{resource}/source:{source['display_name']}"
+            label = f"knowledge_assistant:{item.display_name}/source:{source['display_name']}"
             have = by_name.get(source["display_name"])
             if have is None:
                 added = True
-                builder.change(label, "create_source", lambda s=source: self._gateway.create_knowledge_source(name_of(), s))
+                builder.change(label, "create_source", partial(self._add_source, name_of, source))
             elif not matches(source, have):
                 builder.fail(f"{label}: differs from the desired source and sources cannot be updated; not changed")
         return added

@@ -29,8 +29,22 @@ class ConfigError(ValueError):
 
 
 @dataclass(frozen=True)
+class SharedSettings:
+    """Settings shared by every target of ``conf/environments.yml``."""
+
+    workspace_host: str
+    tenant_id: str
+    framework_version: str
+
+
+@dataclass(frozen=True)
 class Environment:
-    """One deployment target of ``conf/environments.yml`` merged with the shared workspace settings."""
+    """
+    One deployment target of ``conf/environments.yml``.
+
+    ``workspace_host``, ``tenant_id`` and ``framework_version`` come from the shared settings and are exposed as
+    properties.
+    """
 
     target: str
     catalog: str
@@ -38,25 +52,81 @@ class Environment:
     github_environment: str
     requires_approval: bool
     run_as_sp: bool
-    workspace_host: str
-    tenant_id: str
-    framework_version: str
+    shared: SharedSettings
+
+    @property
+    def workspace_host(self) -> str:
+        """Return the workspace URL shared by all targets."""
+        return self.shared.workspace_host
+
+    @property
+    def tenant_id(self) -> str:
+        """Return the Azure tenant id shared by all targets."""
+        return self.shared.tenant_id
+
+    @property
+    def framework_version(self) -> str:
+        """Return the pinned Lakeflow Framework version."""
+        return self.shared.framework_version
+
+
+@dataclass(frozen=True)
+class ProjectInfo:
+    """The ``project`` block of ``repo.yaml``."""
+
+    title: str
+    project_type: str
+    owner_team: str
+
+
+@dataclass(frozen=True)
+class Ontology:
+    """The ontology settings of ``repo.yaml``: the IRI base and the pinned standards."""
+
+    iri_base: str
+    standards: Mapping[str, str] = field(default_factory=dict)
 
 
 @dataclass(frozen=True)
 class RepoConfig:
-    """The registry-owned identity of this repository, from ``metadata/_platform/repo.yaml``."""
+    """
+    The registry-owned identity of this repository, from ``metadata/_platform/repo.yaml``.
+
+    ``title``, ``project_type``, ``owner_team``, ``iri_base`` and ``standards`` are exposed as properties.
+    """
 
     project_id: str
     kind: str
     domain: str
-    title: str
-    project_type: str
-    owner_team: str
+    project: ProjectInfo
     service_principal_application_id: str
-    iri_base: str
+    ontology: Ontology
     tags: Mapping[str, str] = field(default_factory=dict)
-    standards: Mapping[str, str] = field(default_factory=dict)
+
+    @property
+    def title(self) -> str:
+        """Return the project title."""
+        return self.project.title
+
+    @property
+    def project_type(self) -> str:
+        """Return the project type."""
+        return self.project.project_type
+
+    @property
+    def owner_team(self) -> str:
+        """Return the owning team."""
+        return self.project.owner_team
+
+    @property
+    def iri_base(self) -> str:
+        """Return the base IRI for ontology identifiers."""
+        return self.ontology.iri_base
+
+    @property
+    def standards(self) -> Mapping[str, str]:
+        """Return the pinned standard versions."""
+        return self.ontology.standards
 
 
 def _read_mapping(path: str | Path) -> dict:
@@ -101,9 +171,11 @@ def load_environment(target: str, path: str | Path = DEFAULT_ENVIRONMENTS_PATH) 
         github_environment=_require(entry, "github_environment", str, where),
         requires_approval=_require(entry, "requires_approval", bool, where),
         run_as_sp=_require(entry, "run_as_sp", bool, where),
-        workspace_host=_require(workspace, "host", str, f"{path}: workspace"),
-        tenant_id=_require(workspace, "tenant_id", str, f"{path}: workspace"),
-        framework_version=_require(data, "framework_version", str, str(path)),
+        shared=SharedSettings(
+            workspace_host=_require(workspace, "host", str, f"{path}: workspace"),
+            tenant_id=_require(workspace, "tenant_id", str, f"{path}: workspace"),
+            framework_version=_require(data, "framework_version", str, str(path)),
+        ),
     )
 
 
@@ -117,11 +189,15 @@ def load_repo_config(path: str | Path = DEFAULT_REPO_CONFIG_PATH) -> RepoConfig:
         project_id=_require(data, "project_id", str, where),
         kind=_require(data, "kind", str, where),
         domain=_require(data, "domain", str, where),
-        title=_require(project, "title", str, f"{where}: project"),
-        project_type=_require(project, "project_type", str, f"{where}: project"),
-        owner_team=_require(project, "owner_team", str, f"{where}: project"),
+        project=ProjectInfo(
+            title=_require(project, "title", str, f"{where}: project"),
+            project_type=_require(project, "project_type", str, f"{where}: project"),
+            owner_team=_require(project, "owner_team", str, f"{where}: project"),
+        ),
         service_principal_application_id=_require(principal, "application_id", str, f"{where}: service_principal"),
-        iri_base=_require(data, "iri_base", str, where),
+        ontology=Ontology(
+            iri_base=_require(data, "iri_base", str, where),
+            standards=dict(_require(data, "standards", dict, where)),
+        ),
         tags=dict(_require(data, "tags", dict, where)),
-        standards=dict(_require(data, "standards", dict, where)),
     )

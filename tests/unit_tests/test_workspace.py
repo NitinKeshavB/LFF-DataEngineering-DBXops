@@ -1,4 +1,3 @@
-
 """
 Tests for SdkWorkspaceGateway against an autospecced WorkspaceClient.
 
@@ -117,7 +116,10 @@ def test__vector_search_index_create_builds_the_typed_spec(gateway, client):
         "pipeline_type": "TRIGGERED",
         "embedding_source_columns": [{"name": "text", "embedding_model_endpoint_name": "gte"}],
     }
-    gateway.create_vector_search_index("c.s.i", "vs", "id", "DELTA_SYNC", spec)
+    gateway.create_vector_search_index(
+        "c.s.i",
+        {"endpoint_name": "vs", "primary_key": "id", "index_type": "DELTA_SYNC", "delta_sync_index_spec": spec},
+    )
     client.vector_search_indexes.create_index.assert_called_once_with(
         name="c.s.i",
         endpoint_name="vs",
@@ -142,7 +144,7 @@ CONFIG = {
 
 
 def test__serving_get_returns_tags_and_maps_not_found(gateway, client):
-    """get is called by name and the result includes the tags."""
+    """The endpoint is read by name and the result includes the tags."""
     client.serving_endpoints.get.return_value = serving.ServingEndpointDetailed(
         name="ep", tags=[serving.EndpointTag(key="k", value="v")]
     )
@@ -153,7 +155,7 @@ def test__serving_get_returns_tags_and_maps_not_found(gateway, client):
 
 
 def test__serving_create_passes_config_gateway_and_tags(gateway, client):
-    """create receives typed config, AI Gateway settings and EndpointTag objects."""
+    """Create receives typed config, AI Gateway settings and EndpointTag objects."""
     ai_gateway = {"rate_limits": [{"calls": 5, "renewal_period": "minute", "key": "endpoint"}]}
     gateway.create_serving_endpoint("ep", CONFIG, ai_gateway, {"k": "v"})
     client.serving_endpoints.create.assert_called_once_with(
@@ -177,7 +179,10 @@ def test__serving_update_config_splits_the_config_into_the_sdk_arguments(gateway
     gateway.update_serving_endpoint_config("ep", CONFIG)
     parsed = serving.EndpointCoreConfigInput.from_dict(CONFIG)
     client.serving_endpoints.update_config.assert_called_once_with(
-        name="ep", served_entities=parsed.served_entities, traffic_config=parsed.traffic_config, auto_capture_config=None
+        name="ep",
+        served_entities=parsed.served_entities,
+        traffic_config=parsed.traffic_config,
+        auto_capture_config=None,
     )
 
 
@@ -219,7 +224,7 @@ def test__monitor_get_returns_a_dict_and_maps_not_found(gateway, client):
 
 
 def test__monitor_create_types_the_settings(gateway, client):
-    """create receives typed settings plus the plain pass-through options."""
+    """Create receives typed settings plus the plain pass-through options."""
     schedule = {"quartz_cron_expression": "0 0 * * * ?", "timezone_id": "UTC"}
     settings = {"schedule": schedule, "slicing_exprs": ["region"], "warehouse_id": "wh-1"}
     gateway.create_quality_monitor("c.s.t", "c.s", "/Workspace/Shared/m", settings)
@@ -234,7 +239,7 @@ def test__monitor_create_types_the_settings(gateway, client):
 
 
 def test__monitor_update_has_no_assets_dir(gateway, client):
-    """update receives table_name, output_schema_name and the settings only."""
+    """Update receives table_name, output_schema_name and the settings only."""
     gateway.update_quality_monitor("c.s.t", "c.s", {"slicing_exprs": ["region"]})
     client.quality_monitors.update.assert_called_once_with(
         table_name="c.s.t", output_schema_name="c.s", slicing_exprs=["region"]
@@ -364,7 +369,7 @@ def test__run_sql_without_a_warehouse_is_refused(client):
 
 
 def test__uc_tags_are_listed_through_entity_tag_assignments(gateway, client):
-    """list is called with the plural entity type; empty values come back as empty strings."""
+    """Listing uses the plural entity type; empty values come back as empty strings."""
     client.entity_tag_assignments.list.return_value = iter(
         [
             catalog.EntityTagAssignment(entity_name="c.s.t", tag_key="a", entity_type="tables", tag_value="1"),

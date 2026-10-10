@@ -23,14 +23,16 @@ from databricks.sdk.errors import (
     NotFound,
     ResourceAlreadyExists,
 )
-from databricks.sdk.service.catalog import EntityTagAssignment
-from databricks.sdk.service.catalog import MonitorCronSchedule
-from databricks.sdk.service.catalog import MonitorDataClassificationConfig
-from databricks.sdk.service.catalog import MonitorInferenceLog
-from databricks.sdk.service.catalog import MonitorMetric
-from databricks.sdk.service.catalog import MonitorNotifications
-from databricks.sdk.service.catalog import MonitorSnapshot
-from databricks.sdk.service.catalog import MonitorTimeSeries
+from databricks.sdk.service.catalog import (
+    EntityTagAssignment,
+    MonitorCronSchedule,
+    MonitorDataClassificationConfig,
+    MonitorInferenceLog,
+    MonitorMetric,
+    MonitorNotifications,
+    MonitorSnapshot,
+    MonitorTimeSeries,
+)
 from databricks.sdk.service.serving import (
     AiGatewayConfig,
     EndpointCoreConfigInput,
@@ -71,14 +73,8 @@ class GatewayError(RuntimeError):
     """Raised when a workspace operation fails or is given an input the gateway cannot express."""
 
 
-class WorkspaceGateway(Protocol):
-    """
-    Everything the lifecycle library needs from a Databricks workspace.
-
-    Each ``get_*`` returns ``None`` when the object does not exist. Entity types for tags and comments are
-    ``catalog``, ``schema``, ``table``, ``column``, ``volume``, ``registered_model`` and ``serving_endpoint``;
-    a column id is ``catalog.schema.table.column``.
-    """
+class VectorSearchGateway(Protocol):
+    """Vector search endpoints and indexes."""
 
     def get_vector_search_endpoint(self, name: str) -> dict | None:
         """Return the vector search endpoint, or None."""
@@ -89,18 +85,20 @@ class WorkspaceGateway(Protocol):
     def get_vector_search_index(self, name: str) -> dict | None:
         """Return the vector search index, or None."""
 
-    def create_vector_search_index(
-        self,
-        name: str,
-        endpoint_name: str,
-        primary_key: str,
-        index_type: str,
-        delta_sync_index_spec: Mapping[str, Any] | None = None,
-    ) -> None:
-        """Create a vector search index."""
+    def create_vector_search_index(self, name: str, spec: Mapping[str, Any]) -> None:
+        """
+        Create a vector search index.
+
+        ``spec`` holds ``endpoint_name``, ``primary_key``, ``index_type`` and, for Delta Sync indexes,
+        ``delta_sync_index_spec``.
+        """
 
     def sync_vector_search_index(self, name: str) -> None:
         """Trigger a sync of a triggered Delta Sync index."""
+
+
+class ServingGateway(Protocol):
+    """Model serving endpoints and quality monitors."""
 
     def get_serving_endpoint(self, name: str) -> dict | None:
         """Return the serving endpoint with its config, AI Gateway settings and tags, or None."""
@@ -131,6 +129,10 @@ class WorkspaceGateway(Protocol):
     def update_quality_monitor(self, table_name: str, output_schema_name: str, settings: Mapping[str, Any]) -> None:
         """Update a quality monitor."""
 
+
+class KnowledgeAssistantGateway(Protocol):
+    """Knowledge Assistants and their sources."""
+
     def get_knowledge_assistant(self, display_name: str) -> dict | None:
         """Return the knowledge assistant with this display name (its ``name`` is ``knowledge-assistants/<id>``)."""
 
@@ -149,6 +151,10 @@ class WorkspaceGateway(Protocol):
     def sync_knowledge_sources(self, name: str) -> None:
         """Re-sync the knowledge sources of a knowledge assistant."""
 
+
+class CatalogGateway(Protocol):
+    """Unity Catalog comments and tags, and SQL reads."""
+
     def get_table_metadata(self, full_name: str) -> dict | None:
         """Return ``{"comment": str | None, "columns": {name: comment | None}}`` for a table, or None."""
 
@@ -164,6 +170,13 @@ class WorkspaceGateway(Protocol):
     def unset_tag(self, entity_type: str, entity_id: str, key: str) -> None:
         """Remove one tag."""
 
+    def run_sql(self, statement: str) -> list[dict]:
+        """Run a read statement and return its rows as dicts."""
+
+
+class ModelGateway(Protocol):
+    """Registered-model aliases and run metrics."""
+
     def get_model_alias_version(self, model: str, alias: str) -> int | None:
         """Return the version a registered-model alias points at, or None when the alias is not set."""
 
@@ -173,8 +186,22 @@ class WorkspaceGateway(Protocol):
     def get_model_version_metrics(self, model: str, version: int) -> dict[str, float]:
         """Return the latest metrics of the run that produced a model version."""
 
-    def run_sql(self, statement: str) -> list[dict]:
-        """Run a read statement and return its rows as dicts."""
+
+class WorkspaceGateway(
+    VectorSearchGateway,
+    ServingGateway,
+    KnowledgeAssistantGateway,
+    CatalogGateway,
+    ModelGateway,
+    Protocol,
+):
+    """
+    Everything the lifecycle library needs from a Databricks workspace.
+
+    Each ``get_*`` returns ``None`` when the object does not exist. Entity types for tags and comments are
+    ``catalog``, ``schema``, ``table``, ``column``, ``volume``, ``registered_model`` and ``serving_endpoint``;
+    a column id is ``catalog.schema.table.column``.
+    """
 
 
 def _or_none(call: Callable[[], Any]) -> Any:
@@ -209,31 +236,16 @@ def _typed_monitor_settings(settings: Mapping[str, Any]) -> dict[str, Any]:
     return typed
 
 
-class SdkWorkspaceGateway:
-    """
-    ``WorkspaceGateway`` backed by ``databricks.sdk.WorkspaceClient`` (databricks-sdk >= 0.60).
-
-    Verified against the installed SDK by introspection and by unit tests that call each method on an
-    autospecced client (vector search endpoints and indexes, serving create/update_config/put_ai_gateway/patch,
-    quality monitors, table reads, entity tag assignments for catalogs, schemas, tables, columns and volumes,
-    registered-model aliases, model version reads, experiment run reads, SQL statement execution).
-
-    NOT verified against a live workspace, and not in the SDK: Knowledge Assistant operations call
-    ``/api/2.1/knowledge-assistants`` through ``api_client.do``; the paths are inferred from the CLI resource names in
-    the databricks-agent-bricks skill (``knowledge-assistants/{id}``), which gives no REST paths. Registered-model
-    tags call ``/api/2.0/mlflow/unity-catalog/registered-models/{set-tag,delete-tag,get}`` (the REST endpoints
-    behind ``MlflowClient.set_registered_model_tag``); the SDK has no UC model tag API and mlflow is not a dependency.
-    The column entity name for tags (``catalog.schema.table.column``) is also unverified live.
-
-    Comments are written with ``COMMENT ON`` SQL because the SDK cannot set table or column comments; this needs
-    ``warehouse_id``. Vector search endpoints can only be created with the types the installed SDK enumerates.
-    """
+class _SdkBase:
+    """Holds the client every operation group uses."""
 
     def __init__(self, client: WorkspaceClient, warehouse_id: str | None = None):
         self._w = client
         self._warehouse_id = warehouse_id
 
-    # --- vector search -------------------------------------------------------------------------------------------
+
+class _VectorSearchOps(_SdkBase):
+    """Vector search operations."""
 
     def get_vector_search_endpoint(self, name: str) -> dict | None:
         """Return the vector search endpoint, or None."""
@@ -254,31 +266,26 @@ class SdkWorkspaceGateway:
         index = _or_none(lambda: self._w.vector_search_indexes.get_index(index_name=name))
         return None if index is None else index.as_dict()
 
-    def create_vector_search_index(
-        self,
-        name: str,
-        endpoint_name: str,
-        primary_key: str,
-        index_type: str,
-        delta_sync_index_spec: Mapping[str, Any] | None = None,
-    ) -> None:
-        """Create a vector search index."""
-        spec = None if delta_sync_index_spec is None else DeltaSyncVectorIndexSpecRequest.from_dict(
-            dict(delta_sync_index_spec)
-        )
+    def create_vector_search_index(self, name: str, spec: Mapping[str, Any]) -> None:
+        """Create a vector search index; see the protocol for the keys of ``spec``."""
+        delta_sync = spec.get("delta_sync_index_spec")
         self._w.vector_search_indexes.create_index(
             name=name,
-            endpoint_name=endpoint_name,
-            primary_key=primary_key,
-            index_type=VectorIndexType(index_type),
-            delta_sync_index_spec=spec,
+            endpoint_name=spec["endpoint_name"],
+            primary_key=spec["primary_key"],
+            index_type=VectorIndexType(spec["index_type"]),
+            delta_sync_index_spec=(
+                None if delta_sync is None else DeltaSyncVectorIndexSpecRequest.from_dict(dict(delta_sync))
+            ),
         )
 
     def sync_vector_search_index(self, name: str) -> None:
         """Trigger a sync of a triggered Delta Sync index."""
         self._w.vector_search_indexes.sync_index(index_name=name)
 
-    # --- model serving -------------------------------------------------------------------------------------------
+
+class _ServingOps(_SdkBase):
+    """Model serving and quality monitor operations."""
 
     def get_serving_endpoint(self, name: str) -> dict | None:
         """Return the serving endpoint with its config, AI Gateway settings and tags, or None."""
@@ -322,8 +329,6 @@ class SdkWorkspaceGateway:
             usage_tracking_config=parsed.usage_tracking_config,
         )
 
-    # --- quality monitors ----------------------------------------------------------------------------------------
-
     def get_quality_monitor(self, table_name: str) -> dict | None:
         """Return the quality monitor of a table, or None."""
         info = _or_none(lambda: self._w.quality_monitors.get(table_name=table_name))
@@ -346,7 +351,9 @@ class SdkWorkspaceGateway:
             table_name=table_name, output_schema_name=output_schema_name, **_typed_monitor_settings(settings)
         )
 
-    # --- knowledge assistants (REST; not in the SDK) -------------------------------------------------------------
+
+class _KnowledgeAssistantOps(_SdkBase):
+    """Knowledge Assistant operations."""
 
     def get_knowledge_assistant(self, display_name: str) -> dict | None:
         """Return the knowledge assistant with this display name (its ``name`` is ``knowledge-assistants/<id>``)."""
@@ -368,7 +375,10 @@ class SdkWorkspaceGateway:
     def update_knowledge_assistant(self, name: str, description: str) -> None:
         """Update the description of a knowledge assistant."""
         self._w.api_client.do(
-            "PATCH", f"{_KA_REST_PREFIX}/{name}", query={"update_mask": "description"}, body={"description": description}
+            "PATCH",
+            f"{_KA_REST_PREFIX}/{name}",
+            query={"update_mask": "description"},
+            body={"description": description},
         )
 
     def list_knowledge_sources(self, name: str) -> list[dict]:
@@ -384,7 +394,22 @@ class SdkWorkspaceGateway:
         """Re-sync the knowledge sources of a knowledge assistant."""
         self._w.api_client.do("POST", f"{_KA_REST_PREFIX}/{name}/knowledge-sources:sync", body={})
 
-    # --- Unity Catalog comments and tags -------------------------------------------------------------------------
+
+class _CatalogOps(_SdkBase):
+    """Unity Catalog comment, tag and SQL operations."""
+
+    def run_sql(self, statement: str) -> list[dict]:
+        """Run a statement on the configured SQL warehouse and return its rows as dicts."""
+        if not self._warehouse_id:
+            raise GatewayError("a warehouse_id is required to run SQL")
+        response = self._w.statement_execution.execute_statement(
+            statement=statement, warehouse_id=self._warehouse_id, wait_timeout="50s"
+        )
+        state = response.status.state.value if response.status and response.status.state else None
+        if state != "SUCCEEDED":
+            detail = response.status.error.message if response.status and response.status.error else state
+            raise GatewayError(f"SQL statement did not succeed ({state}): {detail}")
+        return _rows(response)
 
     def get_table_metadata(self, full_name: str) -> dict | None:
         """Return ``{"comment": str | None, "columns": {name: comment | None}}`` for a table, or None."""
@@ -408,7 +433,9 @@ class SdkWorkspaceGateway:
             return None if endpoint is None else {tag.key: tag.value or "" for tag in endpoint.tags or []}
         assignments = _or_none(
             lambda: list(
-                self._w.entity_tag_assignments.list(entity_type=self._uc_entity_type(entity_type), entity_name=entity_id)
+                self._w.entity_tag_assignments.list(
+                    entity_type=self._uc_entity_type(entity_type), entity_name=entity_id
+                )
             )
         )
         return None if assignments is None else {item.tag_key: item.tag_value or "" for item in assignments}
@@ -459,7 +486,9 @@ class SdkWorkspaceGateway:
         tags = found.get("registered_model", {}).get("tags", [])
         return {tag["key"]: tag.get("value", "") for tag in tags}
 
-    # --- registered-model aliases and metrics --------------------------------------------------------------------
+
+class _ModelOps(_SdkBase):
+    """Registered-model alias and metric operations."""
 
     def get_model_alias_version(self, model: str, alias: str) -> int | None:
         """Return the version a registered-model alias points at, or None when the alias is not set."""
@@ -479,20 +508,26 @@ class SdkWorkspaceGateway:
         metrics = run.data.metrics if run and run.data and run.data.metrics else []
         return {metric.key: metric.value for metric in metrics}
 
-    # --- SQL -----------------------------------------------------------------------------------------------------
 
-    def run_sql(self, statement: str) -> list[dict]:
-        """Run a statement on the configured SQL warehouse and return its rows as dicts."""
-        if not self._warehouse_id:
-            raise GatewayError("a warehouse_id is required to run SQL")
-        response = self._w.statement_execution.execute_statement(
-            statement=statement, warehouse_id=self._warehouse_id, wait_timeout="50s"
-        )
-        state = response.status.state.value if response.status and response.status.state else None
-        if state != "SUCCEEDED":
-            detail = response.status.error.message if response.status and response.status.error else state
-            raise GatewayError(f"SQL statement did not succeed ({state}): {detail}")
-        return _rows(response)
+class SdkWorkspaceGateway(_VectorSearchOps, _ServingOps, _KnowledgeAssistantOps, _CatalogOps, _ModelOps):
+    """
+    ``WorkspaceGateway`` backed by ``databricks.sdk.WorkspaceClient`` (databricks-sdk >= 0.64).
+
+    Verified against the installed SDK by introspection and by unit tests that call each method on an
+    autospecced client (vector search endpoints and indexes, serving create/update_config/put_ai_gateway/patch,
+    quality monitors, table reads, entity tag assignments for catalogs, schemas, tables, columns and volumes,
+    registered-model aliases, model version reads, experiment run reads, SQL statement execution).
+
+    NOT verified against a live workspace, and not in the SDK: Knowledge Assistant operations call
+    ``/api/2.1/knowledge-assistants`` through ``api_client.do``; the paths are inferred from the CLI resource names in
+    the databricks-agent-bricks skill (``knowledge-assistants/{id}``), which gives no REST paths. Registered-model
+    tags call ``/api/2.0/mlflow/unity-catalog/registered-models/{set-tag,delete-tag,get}`` (the REST endpoints
+    behind ``MlflowClient.set_registered_model_tag``); the SDK has no UC model tag API and mlflow is not a dependency.
+    The column entity name for tags (``catalog.schema.table.column``) is also unverified live.
+
+    Comments are written with ``COMMENT ON`` SQL because the SDK cannot set table or column comments; this needs
+    ``warehouse_id``. Vector search endpoints can only be created with the types the installed SDK enumerates.
+    """
 
 
 def _rows(response: Any) -> list[dict]:

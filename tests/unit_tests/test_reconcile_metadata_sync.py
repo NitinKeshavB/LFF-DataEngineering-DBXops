@@ -36,9 +36,7 @@ def test__a_missing_tag_is_added(fake_gateway):
     _gateway_with_table(fake_gateway)
     desired = MetadataSyncInput(tags=[_tag("data_domain_claims__litigation__claim_litigation", "")])
     result = MetadataSyncReconciler(fake_gateway).reconcile(desired, dry_run=False)
-    assert fake_gateway.writes == [
-        ("set_tag", "table", TABLE, "data_domain_claims__litigation__claim_litigation", "")
-    ]
+    assert fake_gateway.writes == [("set_tag", "table", TABLE, "data_domain_claims__litigation__claim_litigation", "")]
     assert [c.action for c in result.changes] == ["set_tag"]
 
 
@@ -67,7 +65,7 @@ def test__a_deactivated_tag_that_is_already_gone_is_unchanged(fake_gateway):
     result = MetadataSyncReconciler(fake_gateway).reconcile(
         MetadataSyncInput(tags=[_tag("data_product_claims_old", "", active=False)]), dry_run=False
     )
-    assert result.changes == ()
+    assert not result.changes
     assert fake_gateway.writes == []
 
 
@@ -96,7 +94,9 @@ def test__a_foreign_tag_is_not_overwritten_either(fake_gateway):
 def test__existing_tags_absent_from_the_desired_rows_are_left_alone(fake_gateway):
     """Absence of a row is not deactivation: an owned tag with no row stays."""
     _gateway_with_table(fake_gateway, tags={"classification": "internal", "data_domain_x": ""})
-    MetadataSyncReconciler(fake_gateway).reconcile(MetadataSyncInput(tags=[_tag("classification", "internal")]), dry_run=False)
+    MetadataSyncReconciler(fake_gateway).reconcile(
+        MetadataSyncInput(tags=[_tag("classification", "internal")]), dry_run=False
+    )
     assert fake_gateway.writes == []
     assert "data_domain_x" in fake_gateway.tags[("table", TABLE)]
 
@@ -236,6 +236,6 @@ def test__a_second_run_is_a_no_op(fake_gateway):
     reconciler.reconcile(desired, dry_run=False)
     fake_gateway.calls.clear()
     second = reconciler.reconcile(desired, dry_run=False)
-    assert second.changes == ()
-    assert second.errors == ()
+    assert not second.changes
+    assert not second.errors
     assert fake_gateway.writes == []

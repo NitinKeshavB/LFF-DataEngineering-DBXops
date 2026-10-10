@@ -2,6 +2,10 @@
 
 from __future__ import annotations
 
+from dataclasses import (
+    dataclass,
+    field,
+)
 from typing import (
     Any,
     Mapping,
@@ -12,25 +16,12 @@ import pytest
 READ_PREFIXES = ("get_", "list_", "run_sql")
 
 
-class FakeWorkspaceGateway:
-    """
-    Keeps workspace state in dicts and records every call as ``(method, *arguments)``.
+@dataclass
+class _FakeState:
+    """Recorded calls and the tag store shared by every capability of the fake."""
 
-    Tests seed state through the public dict attributes, then assert on ``writes`` (the calls that changed state).
-    """
-
-    def __init__(self):
-        self.calls: list[tuple] = []
-        self.vs_endpoints: dict[str, dict] = {}
-        self.vs_indexes: dict[str, dict] = {}
-        self.serving: dict[str, dict] = {}
-        self.monitors: dict[str, dict] = {}
-        self.assistants: dict[str, dict] = {}
-        self.sources: dict[str, list[dict]] = {}
-        self.tables: dict[str, dict] = {}
-        self.tags: dict[tuple[str, str], dict[str, str]] = {}
-        self.aliases: dict[tuple[str, str], int] = {}
-        self.metrics: dict[tuple[str, int], dict[str, float]] = {}
+    calls: list[tuple] = field(default_factory=list)
+    tags: dict[tuple[str, str], dict[str, str]] = field(default_factory=dict)
 
     @property
     def writes(self) -> list[tuple]:
@@ -40,7 +31,14 @@ class FakeWorkspaceGateway:
     def _record(self, *call: Any) -> None:
         self.calls.append(call)
 
-    # vector search
+
+@dataclass
+class _FakeVectorSearch(_FakeState):
+    """Vector search endpoints and indexes."""
+
+    vs_endpoints: dict[str, dict] = field(default_factory=dict)
+    vs_indexes: dict[str, dict] = field(default_factory=dict)
+
     def get_vector_search_endpoint(self, name: str) -> dict | None:
         """Return the stored endpoint."""
         self._record("get_vector_search_endpoint", name)
@@ -56,24 +54,23 @@ class FakeWorkspaceGateway:
         self._record("get_vector_search_index", name)
         return self.vs_indexes.get(name)
 
-    def create_vector_search_index(
-        self, name: str, endpoint_name: str, primary_key: str, index_type: str, delta_sync_index_spec=None
-    ) -> None:
+    def create_vector_search_index(self, name: str, spec: Mapping) -> None:
         """Store an index, adding a server-populated field like the real API."""
-        self._record("create_vector_search_index", name, endpoint_name, primary_key, index_type, delta_sync_index_spec)
-        self.vs_indexes[name] = {
-            "name": name,
-            "endpoint_name": endpoint_name,
-            "primary_key": primary_key,
-            "index_type": index_type,
-            "delta_sync_index_spec": {**(delta_sync_index_spec or {}), "pipeline_id": "pipeline-1"},
-        }
+        self._record("create_vector_search_index", name, dict(spec))
+        delta_sync = {**spec.get("delta_sync_index_spec", {}), "pipeline_id": "pipeline-1"}
+        self.vs_indexes[name] = {"name": name, **spec, "delta_sync_index_spec": delta_sync}
 
     def sync_vector_search_index(self, name: str) -> None:
         """Record a sync."""
         self._record("sync_vector_search_index", name)
 
-    # serving
+
+@dataclass
+class _FakeServing(_FakeState):
+    """Serving endpoints."""
+
+    serving: dict[str, dict] = field(default_factory=dict)
+
     def get_serving_endpoint(self, name: str) -> dict | None:
         """Return the stored endpoint with its tags in the SDK's list shape."""
         self._record("get_serving_endpoint", name)
@@ -99,7 +96,13 @@ class FakeWorkspaceGateway:
         self._record("update_serving_endpoint_ai_gateway", name, dict(ai_gateway))
         self.serving[name]["ai_gateway"] = dict(ai_gateway)
 
-    # monitors
+
+@dataclass
+class _FakeMonitors(_FakeState):
+    """Quality monitors."""
+
+    monitors: dict[str, dict] = field(default_factory=dict)
+
     def get_quality_monitor(self, table_name: str) -> dict | None:
         """Return the stored monitor."""
         self._record("get_quality_monitor", table_name)
@@ -121,7 +124,14 @@ class FakeWorkspaceGateway:
         self._record("update_quality_monitor", table_name, output_schema_name, dict(settings))
         self.monitors[table_name].update({"output_schema_name": output_schema_name, **settings})
 
-    # knowledge assistants
+
+@dataclass
+class _FakeKnowledgeAssistants(_FakeState):
+    """Knowledge assistants and sources."""
+
+    assistants: dict[str, dict] = field(default_factory=dict)
+    sources: dict[str, list[dict]] = field(default_factory=dict)
+
     def get_knowledge_assistant(self, display_name: str) -> dict | None:
         """Return the stored assistant."""
         self._record("get_knowledge_assistant", display_name)
@@ -160,7 +170,13 @@ class FakeWorkspaceGateway:
         """Record a sync."""
         self._record("sync_knowledge_sources", name)
 
-    # Unity Catalog
+
+@dataclass
+class _FakeCatalog(_FakeState):
+    """Unity Catalog comments and tags."""
+
+    tables: dict[str, dict] = field(default_factory=dict)
+
     def get_table_metadata(self, full_name: str) -> dict | None:
         """Return the stored table metadata."""
         self._record("get_table_metadata", full_name)
@@ -191,7 +207,19 @@ class FakeWorkspaceGateway:
         self._record("unset_tag", entity_type, entity_id, key)
         self.tags[(entity_type, entity_id)].pop(key, None)
 
-    # models
+    def run_sql(self, statement: str) -> list[dict]:
+        """Record the statement and return no rows."""
+        self._record("run_sql", statement)
+        return []
+
+
+@dataclass
+class _FakeModels(_FakeState):
+    """Registered-model aliases and metrics."""
+
+    aliases: dict[tuple[str, str], int] = field(default_factory=dict)
+    metrics: dict[tuple[str, int], dict[str, float]] = field(default_factory=dict)
+
     def get_model_alias_version(self, model: str, alias: str) -> int | None:
         """Return the stored alias target."""
         self._record("get_model_alias_version", model, alias)
@@ -207,10 +235,16 @@ class FakeWorkspaceGateway:
         self._record("get_model_version_metrics", model, version)
         return dict(self.metrics.get((model, version), {}))
 
-    def run_sql(self, statement: str) -> list[dict]:
-        """Record the statement and return no rows."""
-        self._record("run_sql", statement)
-        return []
+
+@dataclass
+class FakeWorkspaceGateway(
+    _FakeVectorSearch, _FakeServing, _FakeMonitors, _FakeKnowledgeAssistants, _FakeCatalog, _FakeModels
+):
+    """
+    Keeps workspace state in dicts and records every call as ``(method, *arguments)``.
+
+    Tests seed state through the public dict attributes, then assert on ``writes`` (the calls that changed state).
+    """
 
 
 @pytest.fixture

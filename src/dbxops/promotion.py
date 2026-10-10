@@ -106,6 +106,7 @@ class MetricThreshold:
     comparator: str = ">="
 
     def __post_init__(self):
+        """Reject an invalid policy definition."""
         if self.comparator not in COMPARATORS:
             raise GateConfigError(f"unknown comparator {self.comparator!r}; use one of {', '.join(COMPARATORS)}")
 
@@ -122,6 +123,7 @@ class EvalPassRate:
     metric: str = DEFAULT_PASS_RATE_METRIC
 
     def __post_init__(self):
+        """Reject an invalid policy definition."""
         if not 0 <= self.threshold <= 1:
             raise GateConfigError(f"a pass-rate threshold must be between 0 and 1, got {self.threshold}")
 
@@ -174,8 +176,7 @@ class PromotionGate:
         policies: Sequence[GatePolicy],
         source_path: str | None = None,
         eval_kind: str = "model",
-        challenger_alias: str = DEFAULT_CHALLENGER_ALIAS,
-        champion_alias: str = DEFAULT_CHAMPION_ALIAS,
+        aliases: tuple[str, str] = (DEFAULT_CHALLENGER_ALIAS, DEFAULT_CHAMPION_ALIAS),
     ):
         if not policies:
             raise GateConfigError("a promotion gate needs at least one policy")
@@ -184,8 +185,7 @@ class PromotionGate:
         self._policies = tuple(policies)
         self.source_path = source_path
         self.eval_kind = eval_kind
-        self.challenger_alias = challenger_alias
-        self.champion_alias = champion_alias
+        self.challenger_alias, self.champion_alias = aliases
 
     @classmethod
     def from_yaml(cls, path: str | Path) -> PromotionGate:
@@ -204,8 +204,10 @@ class PromotionGate:
             [_policy_from_dict(entry, str(path)) for entry in data["policies"]],
             source_path=str(path),
             eval_kind=data.get("eval_kind", "model"),
-            challenger_alias=data.get("challenger_alias", DEFAULT_CHALLENGER_ALIAS),
-            champion_alias=data.get("champion_alias", DEFAULT_CHAMPION_ALIAS),
+            aliases=(
+                data.get("challenger_alias", DEFAULT_CHALLENGER_ALIAS),
+                data.get("champion_alias", DEFAULT_CHAMPION_ALIAS),
+            ),
         )
 
     def evaluate(self, model: str, version: int, metrics: Mapping[str, float]) -> GateReport:
