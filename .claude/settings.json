@@ -11,6 +11,18 @@
       "Bash(make clean)",
       "Bash(make help)",
       "Bash(make serve-coverage-report)",
+      "Bash(make check-placeholders)",
+      "Bash(make onboard-check)",
+      "Bash(make validate-domains)",
+      "Bash(make validate-metadata)",
+      "Bash(make validate-registry)",
+      "Bash(make validate-specs)",
+      "Bash(make contracts)",
+      "Bash(make check-skills)",
+      "Bash(make stage-framework)",
+      "Bash(make export-ontos:*)",
+      "Bash(make bundle-validate:*)",
+      "Bash(databricks bundle validate:*)",
       "Bash(bash run.sh:*)",
       "Bash(python -m pytest:*)",
       "Bash(python -X dev -m pytest:*)",
@@ -44,8 +56,21 @@
       "Bash(pip install:*)",
       "Bash(git push:*)",
       "Bash(git commit:*)",
-      "Bash(gh pr create:*)"
+      "Bash(gh pr create:*)",
+      "Bash(make deploy:*)",
+      "Bash(make sync-skills:*)",
+      "Bash(make upgrade-lakeflow:*)",
+      "Bash(make publish-metadata:*)",
+      "Bash(make publish-dbxops:*)",
+      "Bash(make new-bundle:*)",
+      "Bash(databricks bundle deploy:*)",
+      "Bash(databricks bundle run:*)"
     ],
-    "deny": []
+    "deny": [
+      "Bash(databricks bundle destroy:*)"
+    ]
+  },
+  "enabledPlugins": {
+    "databricks@claude-plugins-official": false
   }
 }

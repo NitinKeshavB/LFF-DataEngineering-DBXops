@@ -168,6 +168,16 @@ function validate-domains {
     python -m dbxops.registry.domains "$THIS_DIR/metadata/_platform/domains.yaml"
 }
 
+# re-download one vendored skill source at its pinned ref (needs network); e.g. ./run.sh sync-skills mlflow-skills
+function sync-skills {
+    python "$THIS_DIR/scripts/vendor_skills.py" sync "${1:?usage: ./run.sh sync-skills <source-id>}"
+}
+
+# verify vendored skills match .claude/skills/VENDORED.json (offline)
+function check-skills {
+    python "$THIS_DIR/scripts/vendor_skills.py" check
+}
+
 # check that a squad repo is ready to deploy
 function onboard-check {
     check-placeholders --strict

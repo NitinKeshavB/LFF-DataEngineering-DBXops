@@ -7,6 +7,9 @@
 build:
 	bash run.sh build
 
+check-skills:
+	bash run.sh check-skills
+
 check-placeholders:
 	bash run.sh check-placeholders $(if $(STRICT),--strict,)
 
@@ -42,6 +45,9 @@ release-test:
 
 serve-coverage-report:
 	bash run.sh serve-coverage-report
+
+sync-skills:
+	bash run.sh sync-skills $(SOURCE)
 
 test-ci:
 	bash run.sh test:ci
