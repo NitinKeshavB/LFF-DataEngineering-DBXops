@@ -5,6 +5,7 @@ import subprocess
 from pathlib import Path
 
 import pytest
+import yaml
 
 from tests.consts import PROJECT_DIR
 
@@ -88,3 +89,22 @@ def test__staging_never_modifies_the_submodule():
         ["git", "-C", str(SUBMODULE), "status", "--porcelain"], capture_output=True, text=True, check=True
     ).stdout
     assert before == ""
+
+
+def test__every_wrapper_target_publishes_where_the_bundles_look_for_the_framework():
+    """The wrapper's root_path for a target is the shared path that every bundle's framework_source_path points at."""
+    wrapper = yaml.safe_load((PROJECT_DIR / "framework/databricks.yml").read_text(encoding="utf-8"))
+    for name, target in wrapper["targets"].items():
+        root = (
+            target["workspace"]["root_path"]
+            .replace("${bundle.name}", "lakeflow_framework")
+            .replace("${bundle.target}", name)
+        )
+        for bundle in (PROJECT_DIR / "bundles").glob("*/databricks.yml"):
+            path = yaml.safe_load(bundle.read_text(encoding="utf-8"))["targets"][name]["variables"][
+                "framework_source_path"
+            ]
+            assert path == root.replace("${var.version}", wrapper["variables"]["version"]["default"]) + "/files/src", (
+                bundle,
+                name,
+            )

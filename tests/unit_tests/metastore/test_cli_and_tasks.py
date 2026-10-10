@@ -19,6 +19,7 @@ from dbxops.metastore.tasks import (
     WorkspaceJobsClient,
     publish_run,
 )
+from tests.consts import PROJECT_DIR
 from tests.fixtures.metadata_repo import (
     ENVIRONMENTS,
     write_platform,
@@ -165,3 +166,10 @@ def test__the_workspace_jobs_client_fetches_a_run_as_a_dict():
 
     client = WorkspaceJobsClient(SimpleNamespace(jobs=SimpleNamespace(get_run=get_run)))
     assert client.get_run("7") == {"run_id": 7} and seen["id"] == 7
+
+
+def test__the_committed_data_dictionary_is_what_the_model_generates(capsys):
+    """context/03_Architecture/Metadata_Dictionary.md equals the generated dictionary (run make metadata-dictionary)."""
+    assert main(["dictionary"]) == 0
+    committed = (PROJECT_DIR / "context/03_Architecture/Metadata_Dictionary.md").read_text(encoding="utf-8")
+    assert capsys.readouterr().out == committed

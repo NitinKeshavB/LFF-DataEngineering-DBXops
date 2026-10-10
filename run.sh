@@ -73,7 +73,7 @@ function test:wheel-locally {
     clean || true
     pip install build
     build
-    pip install ./dist/*.whl pytest pytest-cov
+    pip install "$(ls ./dist/*.whl)[uc,postgres]" pytest pytest-cov faker
     test:ci
     deactivate || true
 }
@@ -176,6 +176,11 @@ function upgrade-lakeflow {
 # report whether a newer framework release exists
 function check-upstream {
     bash "$THIS_DIR/scripts/check_upstream.sh"
+}
+
+# regenerate context/03_Architecture/Metadata_Dictionary.md from the metadata model
+function metadata-dictionary {
+    python -m dbxops.metastore dictionary > "$THIS_DIR/context/03_Architecture/Metadata_Dictionary.md"
 }
 
 # stage the pinned framework plus framework/local into framework/build (or the directory given)

@@ -20,6 +20,7 @@ from typing import (
 import yaml
 
 from dbxops.metastore import collectors
+from dbxops.metastore.dictionary import render_dictionary
 from dbxops.metastore.errors import MetastoreError
 from dbxops.metastore.factory import RepositoryFactory
 from dbxops.metastore.publisher import MetadataPublisher
@@ -62,6 +63,7 @@ def build_parser() -> argparse.ArgumentParser:
         command.add_argument("--target", required=True)
         command.add_argument("--config", default=DEFAULT_CONFIG)
         command.add_argument("--root", default=".", help="repo root holding metadata/ and the bundles")
+    commands.add_parser("dictionary", help="print the data dictionary (markdown) generated from the model")
     registry = commands.choices["publish-registry"]
     registry.add_argument("--registry", required=True, help="registry checkout: projects/, domains.yaml, glossary/")
     registry.add_argument("--git-sha", default=os.environ.get("GITHUB_SHA"))
@@ -163,6 +165,9 @@ def main(
 ) -> int:
     """Run the command line and return the process exit code."""
     args = build_parser().parse_args(argv)
+    if args.command == "dictionary":
+        print(render_dictionary(), end="")
+        return 0
     builder = build or RepositoryFactory.from_config
     try:
         if args.command == "ensure-schema":

@@ -133,6 +133,11 @@ python -m pytest tests/unit_tests/test_thing.py::test_case -v
 | New or changed public symbol | `make test` **and** `make lint` |
 | `pyproject.toml`, dependencies, packaging | `make test-wheel-locally` — builds a wheel in a throwaway venv and tests the **installed** package |
 | A release | `make test-wheel-locally`, a bumped `version.txt`, and explicit user approval (P0 #12) |
+| A dataflow spec, schema or expectation | `make validate-specs` (the framework's own validator), then `make contracts CHECK=1` and `make validate-metadata` |
+| A contract, product, domain path or tag | `make validate-metadata` (0 errors); with a version change, `BASELINE=origin/main make validate-metadata` |
+| `conf/`, a bundle's `databricks.yml` or a resource file | `make sync-substitutions CHECK=1` and `make test` (the bundle tests validate against the CLI's own schema and keep bundles equal to `conf/`) |
+| A workflow or shell script | `make test` (runs `actionlint` and `shellcheck` when installed); nothing in a workflow has been run live |
+| The framework pin | `make upgrade-lakeflow TAG=` (Tier 3, approval), then `make test` |
 
 **For a bug fix, the test comes first.** Write or identify a test that **fails on
 current code**, then fix, then show it passing. A fix with no failing-test-first is
@@ -148,15 +153,25 @@ the expected output, and why it did not run.
 ```
 cookie-cutter-dbx/
   src/dbxops/
-    __init__.py            <- the public API surface (P0 #5)
+    __init__.py            <- the public API surface (P0 #5); pinned by tests/unit_tests/test_public_api.py
+    metadata/              <- specs, contracts, rules, scaffold, Ontos export, substitutions
+    registry/              <- registrations, intake, snapshots, domain taxonomy
+    metastore/             <- the platform_meta database: model, repositories, publisher, collectors, job task
+    config.py workspace.py reconcile.py promotion.py lifecycle.py   <- environment, gateway, reconcilers, gates
   tests/
     conftest.py            <- puts tests/.. on sys.path; registers fixture plugins
     consts.py              <- THIS_DIR, PROJECT_DIR
     unit_tests/            <- mirror the src/ layout here
     fixtures/              <- one module per fixture, registered in conftest.py
+  bundles/                 <- dataops, mlops, aiops example bundles (specs, contracts, products, jobs)
   framework/
     lakeflow_framework/    <- upstream submodule, pinned; READ-ONLY (P0 #13)
+    local/                 <- our overlay, copied onto the staged framework
+    databricks.yml         <- wrapper bundle that deploys the framework
     UPSTREAM.lock          <- repo, tag and commit of the pin
+  scripts/                 <- stage_framework, upgrade_lakeflow, check_upstream, vendor_skills
+  templates/registry-repo/ <- scaffold of the registry repository (registrations, forms, workflows)
+  .github/workflows/       <- ci, cd, deploy-bundle, deploy-framework, lakeflow-upstream, build-test-publish
   conf/
     environments.yml       <- targets dev..prod: catalog, mode, approvals
     metastore.yml          <- platform_meta sinks per target
@@ -247,6 +262,15 @@ in `run.sh` and expose it in the `Makefile`.
 | `make clean` | remove build, coverage and cache artifacts |
 | `make check-placeholders` | list `PLACEHOLDER-<what>` config values; `STRICT=1` fails if any remain |
 | `make onboard-check` | squad readiness check before deploy (currently: strict placeholder check) |
+| `make validate-metadata [BASELINE=ref]` | every metadata rule over the repo (offline) |
+| `make contracts [CHECK=1]` / `make sync-substitutions [CHECK=1]` | generate, or check, contracts and each bundle's substitution and config files |
+| `make validate-specs` / `validate-domains` / `validate-registry [STRICT=1]` | spec, taxonomy and registry checks |
+| `make new-bundle NAME= DOMAIN=` | scaffold a bundle that validates from the first commit |
+| `make export-ontos TARGET=` | write Ontos upload files |
+| `make stage-framework` / `make deploy-framework TARGET= PROFILE=` | stage / deploy the pinned framework (platform team; needs approval) |
+| `make check-upstream` / `make upgrade-lakeflow TAG=` | check for, or move to, a framework release (P0 #13) |
+| `make check-skills` / `make sync-skills SOURCE=` | verify, or refresh, vendored skills against `.claude/skills/VENDORED.json` |
+| `make render-platform` / `make metadata-dictionary` | regenerate `metadata/_platform` (template maintainers) or the data dictionary |
 | `make publish-test` / `make publish-prod` | upload to TestPyPI / PyPI — **P0 #12, irreversible** |
 
 Mark a slow test with `@pytest.mark.slow` so `make test-quick` skips it.

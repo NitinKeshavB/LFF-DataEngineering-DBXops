@@ -25,6 +25,9 @@ deploy-framework:
 validate-specs:
 	bash run.sh validate-specs
 
+metadata-dictionary:
+	bash run.sh metadata-dictionary
+
 upgrade-lakeflow:
 	bash run.sh upgrade-lakeflow $(TAG)
 

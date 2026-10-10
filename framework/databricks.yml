@@ -22,7 +22,7 @@ targets:
     default: true
     workspace:
       host: "https://PLACEHOLDER-workspace-host.azuredatabricks.net"
-      root_path: /Workspace/Users/${workspace.current_user.userName}/.bundle/${bundle.name}/${bundle.target}/${var.version}
+      root_path: /Workspace/Shared/.bundle/${bundle.name}/${bundle.target}/${var.version}
 
   test:
     mode: production

@@ -97,7 +97,7 @@ jobs:
         run: |
           python -m venv /tmp/wheel-test
           /tmp/wheel-test/bin/pip install --upgrade pip
-          /tmp/wheel-test/bin/pip install ./dist/*.whl pytest pytest-cov
+          /tmp/wheel-test/bin/pip install "$(ls ./dist/*.whl)[uc,postgres]" pytest pytest-cov faker
           /tmp/wheel-test/bin/python -m pytest tests/
       - uses: actions/upload-artifact@v4
         with:

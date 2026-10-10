@@ -34,6 +34,30 @@ advisory but still read.
 | Domain Path | The identifier of any taxonomy node: its ancestors' slugs and its own joined with `__`, e.g. `claims__litigation__claim_litigation`. Shows what a table rolls up to. | (avoid) domain id, domain code |
 | Display Path | The human-readable form of a Domain Path, e.g. "Claims > Litigation > Claim Litigation". Never used as a key. | |
 | Restricted | Sensitivity flag on a Data Domain (e.g. health, legal-privilege, PCI data). | |
+| Data Contract | An ODCS v3.1.0 document describing one table: schema, quality rules, servers. Id `dc_<project_id>_<layer>_<table>`. | (avoid) schema file, table spec |
+| Data Product | An ODPS v1.0.0 document grouping the assets a squad offers, with input and output ports. Id `dp_<project_id>_<name>`. | (avoid) dataset |
+| Port | An input or output of a Data Product: a contract (or an asset such as a model or endpoint) it consumes or exposes. | |
+| Dataflow Spec | A `nodespec` JSON file the Lakeflow Framework turns into a pipeline; a template invocation expands to several. | (avoid) pipeline config |
+| Squad | A team that owns a project and its repository; the Ontos *team*. | (avoid) group (that means an AD group) |
+| Project | One squad repository: its registration, bundles and metadata; the Ontos *project*. `kind` is `domain` or `project`. | |
+| Registration | A squad's entry in the registry (`projects/<project_id>.yaml`). Also the audit table `md_registration` (not yet written by provisioning; see `Known_Gaps.md`). | |
+| Registry | The `dbx-platform-registry` repository: registrations, the taxonomy, required tags, the glossary, the onboarding workflows. | |
+| Technical Owner / Data Owner / Executive Owner / Data Steward / Support Contact | The five contact roles of a registration, each an email address. | (avoid) product owner, sponsor |
+| Project Id | The slug that prefixes every schema, product and contract id, and is the `repo_id` of a squad's rows. | (avoid) project name |
+| Layer | `bronze`, `silver`, `gold`, `ml` or `ai`; the suffix of a schema name `<project_id>_<layer>`. | (avoid) tier, zone |
+| Logical Asset Id | Environment-free id of an asset: `<schema>.<table>` for Unity Catalog objects, `<type>/<project_id>/<name>` otherwise. | |
+| Physical Name | An asset's fully qualified name in one target: `<catalog>.<schema>.<table>`. | |
+| Target | One of `dev`, `test`, `uat`, `preprod`, `prod`; one catalog each. | (avoid) environment (that means a GitHub environment) |
+| Platform Snapshot | The registry-generated, hash-protected files in `metadata/_platform/`; read-only in a squad repo. | |
+| Writer | A publisher to `platform_meta`, identified by `repo_id`: the registry (`_platform`) or a squad. | |
+| Record Version | The integer that increases each time a definition's content changes; with the entity id it is the primary key. | (avoid) revision |
+| Semver | The `version` of a contract or product; must increase when content changes. Distinct from Record Version. | |
+| Publish | Writing definitions, deployments, lineage or a run to `platform_meta`. Idempotent. | |
+| Retire | Publishing a new version with `status = retired` that stays current. | (avoid) delete |
+| Owned Tag Key | A Unity Catalog tag key this platform may write and remove: `data_domain_*`, `data_product_*`, `data_contract_*`, `classification`, the required project tags. | |
+| Placeholder | A tracked value written `PLACEHOLDER-<what>` in `conf/`, `metadata/` or `bundles/`; blocks deployment until replaced. | (avoid) TODO |
+| Quarantine | Rows failing a drop expectation, written to `<table>_quarantine` instead of the target. | |
+| Gate | A threshold a model or agent must meet to be promoted to `@champion`. | |
 
 <!-- Example rows from a hypothetical order-management package — delete these and
      write your own:
