@@ -21,6 +21,10 @@ from dbxops.metadata.rules import (
     Options,
     validate,
 )
+from dbxops.metadata.scaffold import (
+    ScaffoldError,
+    scaffold_bundle,
+)
 from dbxops.metadata.specs import SpecError
 from dbxops.metadata.substitutions import (
     plan_substitutions,
@@ -64,6 +68,19 @@ def _substitutions(ctx: RepoContext, check: bool) -> int:
     return 1 if (check and changed) else 0
 
 
+def _new_bundle(root: Path, name: str, data_domain: str) -> int:
+    try:
+        files = scaffold_bundle(root, name, data_domain)
+    except ScaffoldError as error:
+        print(f"error: {error}")
+        return 1
+    print(
+        f"created bundles/{name} ({len(files)} files). Next: fill the PLACEHOLDER text in its contract and product, "
+        "point the example spec at your real source, then `make validate-metadata`."
+    )
+    return 0
+
+
 def main(argv: list[str] | None = None) -> int:
     """Run the CLI and return a process exit code."""
     parser = argparse.ArgumentParser(prog="python -m dbxops.metadata")
@@ -79,6 +96,13 @@ def main(argv: list[str] | None = None) -> int:
     )
     subs_cmd = commands.add_parser("substitutions", help="write each bundle's <target>_substitutions.json from conf/")
     subs_cmd.add_argument("--check", action="store_true", help="report what would change; exit 1 if anything would")
+    new_cmd = commands.add_parser("new-bundle", help="scaffold bundles/<name> with a runnable example")
+    new_cmd.add_argument("--name", required=True)
+    new_cmd.add_argument(
+        "--data-domain",
+        required=True,
+        help="data-domain path of the example table, e.g. claims__litigation__claim_litigation",
+    )
     export_cmd = commands.add_parser("export-ontos", help="write Ontos upload files for one target")
     export_cmd.add_argument("--target", required=True)
     export_cmd.add_argument("--out", type=Path, help="output directory (default: build/ontos/<target>)")
@@ -88,6 +112,8 @@ def main(argv: list[str] | None = None) -> int:
         return _validate(ctx, args.baseline)
     if args.command == "contracts":
         return _contracts(ctx, args.check)
+    if args.command == "new-bundle":
+        return _new_bundle(args.root.resolve(), args.name, args.data_domain)
     if args.command == "substitutions":
         return _substitutions(ctx, args.check)
     out = args.out or ctx.root / "build" / "ontos" / args.target

@@ -9,6 +9,7 @@ one product that exposes the contract `make contracts` generates for it.
 from __future__ import annotations
 
 import json
+import shutil
 from pathlib import Path
 from typing import Any
 
@@ -166,3 +167,11 @@ def contract_file(repo_root: Path) -> Path:
 def product_file(repo_root: Path) -> Path:
     """Return the path of the `orders` product in `repo_root`."""
     return repo_root / "bundles/dataops/src/products/orders.odps.yaml"
+
+
+@pytest.fixture
+def real_conf_root(tmp_path: Path) -> Path:
+    """Return a temp repo holding a copy of this repo's real conf/ and metadata/_platform, with no bundles."""
+    shutil.copytree(PROJECT_DIR / "conf", tmp_path / "conf")
+    shutil.copytree(PROJECT_DIR / "metadata/_platform", tmp_path / "metadata/_platform")
+    return tmp_path

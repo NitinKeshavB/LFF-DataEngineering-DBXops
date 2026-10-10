@@ -203,6 +203,11 @@ function contracts {
     python -m dbxops.metadata --root "$THIS_DIR" contracts "$@"
 }
 
+# scaffold bundles/<name> with a runnable example: ./run.sh new-bundle <name> <data-domain-path>
+function new-bundle {
+    python -m dbxops.metadata --root "$THIS_DIR" new-bundle --name "${1:?usage: ./run.sh new-bundle <name> <data-domain-path>}" --data-domain "${2:?a data-domain path is required, e.g. claims__litigation__claim_litigation}"
+}
+
 # write each bundle's <target>_substitutions.json from conf/environments.yml (pass --check to only report)
 function sync-substitutions {
     python -m dbxops.metadata --root "$THIS_DIR" substitutions "$@"

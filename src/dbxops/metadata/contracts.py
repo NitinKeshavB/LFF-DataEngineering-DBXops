@@ -39,6 +39,7 @@ from dbxops.metadata.specs import (
     load_properties,
     schema_name,
 )
+from dbxops.registry.domains import DomainError
 
 API_VERSION = "v3.1.0"
 ASSET_ID = "dbx.asset_id"
@@ -150,7 +151,7 @@ def scaffold(ctx: RepoContext, info: SpecInfo, target: SpecTarget) -> dict[str, 
         if key not in tags:
             raise SpecError(f"{info.spec.path}: spec 'tags' must define '{key}' to scaffold a contract")
     schema = schema_name(target.database, info.tokens)
-    return {
+    contract = {
         "apiVersion": API_VERSION,
         "kind": "DataContract",
         "id": contract_id(ctx.project_id, layer_of(schema, ctx.project_id), target.table),
@@ -165,6 +166,13 @@ def scaffold(ctx: RepoContext, info: SpecInfo, target: SpecTarget) -> dict[str, 
             "limitations": "PLACEHOLDER-limitations",
         },
     }
+    try:
+        node = ctx.taxonomy.resolve(tags["data_domain"], level="data_domain")
+    except DomainError:
+        node = None  # an unknown domain is reported by the domain rule, not here
+    if node is not None and node.details.sensitivity == "restricted":
+        contract["customProperties"] = _custom(classification="restricted")
+    return contract
 
 
 def _merge_properties(generated: list[dict], existing: list[dict]) -> list[dict]:

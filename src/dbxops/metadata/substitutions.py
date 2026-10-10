@@ -50,7 +50,8 @@ class SubstitutionPlan:
 def plan_substitutions(ctx: RepoContext) -> list[SubstitutionPlan]:
     """Return a plan for every `<target>_substitutions.json` of every bundle under `bundles/`."""
     plans = []
-    for configs in sorted((ctx.root / "bundles").glob("*/src/pipeline_configs")):
+    for src in sorted((ctx.root / "bundles").glob("*/src")):
+        configs = src / "pipeline_configs"
         for target, cfg in ctx.environments.get("targets", {}).items():
             path = configs / f"{target}_substitutions.json"
             text = _dump(render_substitutions(ctx.project_id, cfg["catalog"]))
@@ -59,7 +60,7 @@ def plan_substitutions(ctx: RepoContext) -> list[SubstitutionPlan]:
             source = ctx.root / "conf" / name
             if source.is_file():
                 text = source.read_text(encoding="utf-8")
-                path = configs.parent / "config" / name
+                path = src / "config" / name
                 plans.append(SubstitutionPlan(path, text, path.is_file() and path.read_text(encoding="utf-8") == text))
     return plans
 

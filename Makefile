@@ -25,6 +25,9 @@ deploy-framework:
 validate-specs:
 	bash run.sh validate-specs
 
+new-bundle:
+	bash run.sh new-bundle $(NAME) $(DOMAIN)
+
 sync-substitutions:
 	bash run.sh sync-substitutions $(if $(CHECK),--check,)
 

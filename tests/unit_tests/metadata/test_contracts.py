@@ -150,3 +150,21 @@ def test__small_helpers():
     assert slug("order_key NOT null!") == "order_key_not_null"
     assert contract_id("p", "silver", "t") == "dc_p_silver_t"
     assert (layer_of("p_silver", "p"), layer_of("other", "p")) == ("silver", "other")
+
+
+def test__a_contract_scaffolded_in_a_restricted_domain_is_classified_restricted(repo_root: Path):
+    """New contracts in a Restricted data domain are created already classified, so the restricted rule passes."""
+    spec = json.loads(json.dumps(SPEC))
+    spec["data_flow_id"] = "claims_lit"
+    spec["tags"]["data_domain"] = "claims__litigation__claim_litigation"
+    spec["nodes"][1]["config"].update(table="litigation", schema_path="orders_schema.json")
+    spec["nodes"][1]["config"]["data_quality"] = {"enabled": False}
+    write_json(repo_root / "bundles/dataops/src/dataflows/silver/dataflowspec/lit_main.json", spec)
+    created = [p for p in write_contracts(RepoContext.load(repo_root)) if p.path.name == "litigation.odcs.yaml"]
+    assert get_custom(load(created[0].path), "classification") == "restricted"
+    assert (
+        get_custom(
+            load(repo_root / "bundles/dataops/src/dataflows/silver/contracts/orders.odcs.yaml"), "classification"
+        )
+        is None
+    )
