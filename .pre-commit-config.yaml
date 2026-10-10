@@ -1,5 +1,16 @@
 # See https://pre-commit.com for more information
 # See https://pre-commit.com/hooks.html for more hooks
+
+# Vendored third-party files must stay byte-identical to upstream (checksums in
+# .claude/skills/VENDORED.json), so no hook may rewrite or reject them.
+exclude: |
+  (?x)^(
+      framework/lakeflow_framework/|
+      THIRD_PARTY/|
+      \.claude/commands/databricks-(doctor|setup)\.md$|
+      \.claude/skills/(databricks-[a-z-]+|agent-evaluation|instrumenting-with-mlflow-tracing|dataflowspec-builder)/
+  )
+
 repos:
   - repo: https://github.com/pre-commit/pre-commit-hooks
     rev: v4.4.0
