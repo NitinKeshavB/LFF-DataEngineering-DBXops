@@ -10,7 +10,7 @@ import sys
 
 RAW_PROJECT_NAME = "{{ cookiecutter.project_name }}"
 # "Finance Data-Hub" and "finance-data-hub" both become finance_data_hub
-PROJECT_ID = re.sub(r"[\s_-]+", "_", RAW_PROJECT_NAME.strip().lower())
+PROJECT_ID = re.sub(r"[\s_-]+", "_", RAW_PROJECT_NAME.strip().lower()).strip("_")
 REPO_NAME = "{{ cookiecutter.repo_name }}"
 SQUAD_TITLE = "{{ cookiecutter.squad_title }}"
 DOMAIN = "{{ cookiecutter.domain }}"

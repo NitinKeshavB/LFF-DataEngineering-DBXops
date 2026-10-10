@@ -23,7 +23,7 @@ import subprocess
 import sys
 from pathlib import Path
 
-PROJECT_ID = re.sub(r"[\s_-]+", "_", "{{ cookiecutter.project_name }}".strip().lower())
+PROJECT_ID = re.sub(r"[\s_-]+", "_", "{{ cookiecutter.project_name }}".strip().lower()).strip("_")
 REPO_NAME = "{{ cookiecutter.repo_name }}"
 SQUAD_TITLE = "{{ cookiecutter.squad_title }}"
 KIND = "{{ cookiecutter.kind }}"

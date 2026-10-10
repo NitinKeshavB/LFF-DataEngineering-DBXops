@@ -183,7 +183,8 @@ def test__a_hyphenated_project_name_and_a_repo_name_without_the_registry_prefix_
 
 
 @pytest.mark.parametrize(
-    "project_name", ["Finance Data-Hub", "finance data hub", "finance-data-hub", "  Finance__Data  Hub "]
+    "project_name",
+    ["Finance Data-Hub", "finance data hub", "finance-data-hub", "  Finance__Data  Hub ", "finance-data-hub_"],
 )
 def test__the_default_repo_name_is_normalised_like_the_project_name(render: Render, project_name: str):
     """Without a repo_name, any spelling of the squad name gives dbx-finance-data-hub and id finance_data_hub."""
@@ -191,3 +192,16 @@ def test__the_default_repo_name_is_normalised_like_the_project_name(render: Rend
     assert project.name == "dbx-finance-data-hub"
     repo = yaml.safe_load((project / "metadata/_platform/repo.yaml").read_text(encoding="utf-8").split("\n", 1)[1])
     assert repo["project_id"] == "finance_data_hub"
+
+
+@pytest.mark.parametrize("project_name", ["finance-", "_finance_", "finance data-"])
+def test__leading_and_trailing_separators_are_dropped_so_directory_id_and_registration_agree(
+    render: Render, project_name: str
+):
+    """A stray separator must not survive: the directory, the squad id and the registration share one slug."""
+    project = render(project_name=project_name, squad_title="Finance")
+    slug = project.name.removeprefix("dbx-")
+    repo = yaml.safe_load((project / "metadata/_platform/repo.yaml").read_text(encoding="utf-8").split("\n", 1)[1])
+    assert repo["project_id"] == slug.replace("-", "_")
+    assert not slug.endswith("-") and not slug.startswith("-")
+    assert (project / f"templates/registry-repo/projects/{repo['project_id']}.yaml").is_file()
