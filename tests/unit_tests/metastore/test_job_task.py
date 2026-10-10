@@ -1,11 +1,7 @@
-"""Tests for the DataOps job task that records a run in the metadata database."""
+"""Tests for the `dbxops-publish-run` job task that records a run in the metadata database."""
 
-import importlib.util
-
-import pytest
-
+from dbxops.metastore import job_task
 from dbxops.metastore.event_log import SparkPipelineEventLog
-from tests.consts import PROJECT_DIR
 from tests.unit_tests.metastore.test_event_log import (
     FLOW_ROW,
     PIPELINE,
@@ -13,17 +9,6 @@ from tests.unit_tests.metastore.test_event_log import (
     FakeSpark,
 )
 from tests.unit_tests.metastore.test_sqlalchemy_repository import rows
-
-SCRIPT = PROJECT_DIR / "bundles/dataops/src/jobs/publish_run_metadata.py"
-
-
-@pytest.fixture(scope="module")
-def task():
-    """Import the job script as a module."""
-    spec = importlib.util.spec_from_file_location("publish_run_metadata", SCRIPT)
-    module = importlib.util.module_from_spec(spec)
-    spec.loader.exec_module(module)
-    return module
 
 
 class FakeJobs:
@@ -49,11 +34,11 @@ class FakeJobs:
         }
 
 
-def test__the_task_records_the_run_its_updates_and_row_counts(task, repo, sqlite_engine, capsys):
+def test__the_task_records_the_run_its_updates_and_row_counts(repo, sqlite_engine, capsys):
     """Run, pipeline update and dataset metrics land in the database; the live run is recorded as SUCCESS."""
     readers = (FakeJobs(), SparkPipelineEventLog(FakeSpark([UPDATE_ROW], [FLOW_ROW])))
     argv = ["--run-id", "42", "--target", "dev", "--repo-id", "example_claims", "--config", "unused.yml"]
-    assert task.main(argv, build=lambda config, target: repo, readers=readers) == 0
+    assert job_task.main(argv, build=lambda config, target: repo, readers=readers) == 0
     assert "run 42:" in capsys.readouterr().out
     run = rows(sqlite_engine, "SELECT status, job_asset_id FROM md_run")
     assert run == [{"status": "SUCCESS", "job_asset_id": "uc_job/example_claims/9"}]
@@ -61,11 +46,11 @@ def test__the_task_records_the_run_its_updates_and_row_counts(task, repo, sqlite
     assert metrics == [{"asset_id": "example_claims_silver.fact_premium", "rows_written": 98, "rows_dropped": 2}]
 
 
-def test__rerunning_the_task_writes_nothing_twice(task, repo, sqlite_engine):
+def test__rerunning_the_task_writes_nothing_twice(repo, sqlite_engine):
     """A retried task is idempotent: one run row, one update row."""
     readers = (FakeJobs(), SparkPipelineEventLog(FakeSpark([UPDATE_ROW], [FLOW_ROW])))
     argv = ["--run-id", "42", "--target", "dev", "--repo-id", "example_claims", "--config", "unused.yml"]
     for _ in range(2):
-        assert task.main(argv, build=lambda config, target: repo, readers=readers) == 0
+        assert job_task.main(argv, build=lambda config, target: repo, readers=readers) == 0
     assert rows(sqlite_engine, "SELECT count(*) AS n FROM md_run")[0]["n"] == 1
     assert rows(sqlite_engine, "SELECT count(*) AS n FROM md_pipeline_update")[0]["n"] == 1

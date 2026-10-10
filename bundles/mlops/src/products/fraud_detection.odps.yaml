@@ -29,11 +29,11 @@ outputPorts:
     value: example_claims_ml.claims_fraud_features
 - name: claims_fraud_scores
   version: 1.0.0
-  description: Written by the scoring job task, not by a dataflow spec, so it has no contract.
   type: uc_table
   customProperties:
   - property: dbx.assetId
     value: example_claims_ml.claims_fraud_scores
+  contractId: dc_example_claims_ml_claims_fraud_scores
 - name: claims_fraud_model
   version: 1.0.0
   type: uc_model

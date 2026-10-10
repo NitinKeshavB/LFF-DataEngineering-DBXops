@@ -24,6 +24,7 @@ from dbxops.findings import Finding
 from dbxops.hashing import content_hash
 from dbxops.metadata.contracts import (
     ASSET_ID,
+    PRODUCER,
     get_custom,
     plan_contracts,
 )
@@ -191,41 +192,50 @@ def _contracts_by_asset(ctx: RepoContext) -> dict[str, list[Doc]]:
     return found
 
 
-def rule_spec_coverage(ctx: RepoContext, _: Options) -> list[Finding]:
-    """Check that every spec target has exactly one contract, every contract has a target, and schemas follow the naming rule."""
-    findings = []
-    by_asset = _contracts_by_asset(ctx)
+def _target_findings(ctx: RepoContext, by_asset: dict[str, list[Doc]]) -> tuple[list[Finding], set[str]]:
+    """Check each spec target's schema name and contract count; also return the set of target asset ids."""
+    findings: list[Finding] = []
     targets: set[str] = set()
-    layers = "|".join(LAYERS)
+    layer_pattern = f"{re.escape(ctx.project_id)}_({'|'.join(LAYERS)})"
     for info in ctx.specs:
+        where = str(info.spec.path)
         for target in info.spec.targets:
             try:
                 schema = schema_name(target.database, info.tokens)
             except SpecError as error:
-                findings.append(Finding("spec-coverage", str(info.spec.path), str(error)))
+                findings.append(Finding("spec-coverage", where, str(error)))
                 continue
             asset = f"{schema}.{target.table}"
             targets.add(asset)
-            if not re.fullmatch(f"{re.escape(ctx.project_id)}_({layers})", schema):
-                findings.append(
-                    Finding(
-                        "spec-coverage",
-                        str(info.spec.path),
-                        f"schema {schema!r} must be <project_id>_<layer>, layer in {LAYERS}",
-                    )
-                )
+            if not re.fullmatch(layer_pattern, schema):
+                message = f"schema {schema!r} must be <project_id>_<layer>, layer in {LAYERS}"
+                findings.append(Finding("spec-coverage", where, message))
             count = len(by_asset.get(asset, []))
             if count != 1:
-                findings.append(
-                    Finding(
-                        "spec-coverage",
-                        str(info.spec.path),
-                        f"{asset} has {count} contracts; expected exactly 1 (run: make contracts)",
-                    )
-                )
-    for asset, docs in by_asset.items():
-        if asset not in targets:
-            findings.append(Finding("spec-coverage", str(docs[0].path), f"contract for {asset} has no spec target"))
+                message = f"{asset} has {count} contracts; expected exactly 1 (run: make contracts)"
+                findings.append(Finding("spec-coverage", where, message))
+    return findings, targets
+
+
+def _job_written_assets(ctx: RepoContext) -> set[str]:
+    return {
+        str(get_custom(obj, ASSET_ID))
+        for doc in ctx.contracts
+        for obj in doc.data.get("schema", [])
+        if get_custom(obj, PRODUCER) == "job"
+    }
+
+
+def rule_spec_coverage(ctx: RepoContext, _: Options) -> list[Finding]:
+    """Check that every spec target has exactly one contract, every contract has a target, and schemas follow the naming rule."""
+    by_asset = _contracts_by_asset(ctx)
+    findings, targets = _target_findings(ctx, by_asset)
+    allowed = targets | _job_written_assets(ctx)
+    findings += [
+        Finding("spec-coverage", str(docs[0].path), f"contract for {asset} has no spec target")
+        for asset, docs in by_asset.items()
+        if asset not in allowed
+    ]
     return findings
 
 

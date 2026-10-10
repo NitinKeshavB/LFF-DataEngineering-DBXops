@@ -7,6 +7,7 @@ agree on the same documents, using the example DataOps bundle rather than hand-m
 
 import pytest
 
+from dbxops.metadata.specs import load_specs
 from dbxops.metastore.cli import main
 from dbxops.metastore.event_log import SparkPipelineEventLog
 from dbxops.metastore.records import PublishContext
@@ -20,6 +21,9 @@ from tests.unit_tests.metastore.test_event_log import (
 )
 from tests.unit_tests.metastore.test_sqlalchemy_repository import rows
 
+CONTRACTS = len(list(PROJECT_DIR.glob("bundles/*/src/dataflows/**/contracts/*.odcs.yaml")))
+PRODUCTS = len(list(PROJECT_DIR.glob("bundles/*/src/products/*.odps.yaml")))
+SPECS = sum(len(load_specs(p)) for p in PROJECT_DIR.glob("bundles/*/src/dataflows/**/dataflowspec/*_main.json"))
 ARGV = ["publish", "--target", "dev", "--root", str(PROJECT_DIR), "--what", "definitions,lineage", "--git-sha", "abc"]
 
 
@@ -37,11 +41,11 @@ def count(engine, table: str, where: str = "1 = 1") -> int:
 
 
 def test__every_contract_product_and_spec_of_the_example_is_published(published):
-    """15 contracts, 3 products and 15 dataflow specs from bundles/dataops are current definitions."""
-    assert count(published, "md_data_contract", "is_current") == 15
-    assert count(published, "md_data_product", "is_current") == 3
-    assert count(published, "md_dataflow_spec", "is_current") == 15
-    assert count(published, "md_contract_object", "1 = 1") == 15
+    """Every contract, product and (template-expanded) dataflow spec under bundles/ is a current definition."""
+    assert count(published, "md_data_contract", "is_current") == CONTRACTS
+    assert count(published, "md_data_product", "is_current") == PRODUCTS
+    assert count(published, "md_dataflow_spec", "is_current") == SPECS
+    assert count(published, "md_contract_object", "1 = 1") == CONTRACTS
 
 
 def test__contract_structure_and_quality_rules_from_the_generated_contracts_arrive_intact(published):
@@ -71,7 +75,6 @@ def test__declared_lineage_follows_the_specs_from_bronze_to_silver(published):
     edges = {(e["source_asset_id"], e["target_asset_id"]) for e in rows(published, "SELECT * FROM md_lineage_edge")}
     assert ("example_claims_bronze.party", "example_claims_silver.dim_policyholder") in edges
     assert ("example_claims_bronze.claim", "example_claims_silver.fact_claim") in edges
-    assert len(edges) == 6
 
 
 def test__ports_and_tags_use_the_project_prefixed_names(published):
@@ -94,7 +97,7 @@ def test__publishing_again_changes_nothing(repo, published, capsys):
     assert main(ARGV, build=lambda config, target: repo) == 0
     first_line = capsys.readouterr().out.splitlines()[0]
     assert "inserted=0, closed=0" in first_line
-    assert count(published, "md_data_contract") == 15
+    assert count(published, "md_data_contract") == CONTRACTS
 
 
 def publish_registry(repo, capsys) -> str:

@@ -3,6 +3,9 @@ Generate and refresh ODCS data contracts from dataflow specs.
 
 Each table a spec writes has exactly one contract at `<layer dir>/contracts/<table>.odcs.yaml`.
 
+A table written by a job instead of a pipeline spec carries `dbx.producer: job` on its schema object: its
+schema is then entirely human-owned and the spec-coverage and drift rules skip it.
+
 Machine-owned, regenerated from the specs: `servers[]`, the schema object's `name`, `physicalName`,
 `logicalType` and `customProperties` (`dbx.asset_id`, `dbx.spec_id`), each property's physical fields
 (`name`, `logicalType`, `physicalType`, `required`) and the quality rules that come from expectations
@@ -41,6 +44,7 @@ API_VERSION = "v3.1.0"
 ASSET_ID = "dbx.asset_id"
 SPEC_ID = "dbx.spec_id"
 ORIGIN = "dbx.origin"
+PRODUCER = "dbx.producer"  # on a schema object: "job" marks a table a job writes, with a hand-authored schema
 ACTION = "dbx.action"
 CONSTRAINT = "dbx.constraint"
 QUARANTINE_ASSET_ID = "dbx.quarantine_asset_id"

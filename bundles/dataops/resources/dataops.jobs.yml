@@ -44,12 +44,11 @@ resources:
         pipeline_task:
           pipeline_id: ${resources.pipelines.dataops_gold.id}
       - task_key: publish_run_metadata
-        depends_on:
-        - task_key: gold
         run_if: ALL_DONE
         environment_key: platform
-        spark_python_task:
-          python_file: ../src/jobs/publish_run_metadata.py
+        python_wheel_task:
+          package_name: cookie-cutter-dbx
+          entry_point: dbxops-publish-run
           parameters:
           - --run-id
           - '{{job.run_id}}'
@@ -59,3 +58,5 @@ resources:
           - ${var.project_id}
           - --config
           - ${workspace.file_path}/src/config/metastore.yml
+        depends_on:
+        - task_key: gold

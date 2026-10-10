@@ -8,6 +8,7 @@ bundle configuration against the CLI's own JSON schema, and that the names used 
 import re
 import subprocess
 import sys
+import tomllib
 from pathlib import Path
 
 import pytest
@@ -122,3 +123,25 @@ def test__every_spec_passes_the_frameworks_own_validator():
     )
     assert result.returncode == 0, result.stdout[-2000:] + result.stderr[-500:]
     assert "Failed: 0" in re.sub(r"\x1b\[[0-9;]*m", "", result.stdout)
+
+
+@pytest.mark.parametrize("bundle", BUNDLES)
+def test__wheel_tasks_name_an_installed_package_and_a_real_entry_point(bundle: Path):
+    """Every python_wheel_task uses this package's distribution name and a console script it declares."""
+    project = tomllib.loads((PROJECT_DIR / "pyproject.toml").read_text(encoding="utf-8"))["project"]
+    for job in load_bundle(bundle)["resources"]["jobs"].values():
+        for task in job["tasks"]:
+            wheel = task.get("python_wheel_task")
+            if wheel:
+                assert wheel["package_name"] == project["name"]
+                assert wheel["entry_point"] in project["scripts"]
+                assert task["environment_key"] in {e["environment_key"] for e in job["environments"]}
+
+
+@pytest.mark.parametrize("bundle", BUNDLES)
+def test__every_job_records_its_run_after_everything_else_even_on_failure(bundle: Path):
+    """Each job ends with a publish_run_metadata task that runs whatever happened before it."""
+    for job in load_bundle(bundle)["resources"]["jobs"].values():
+        publish = next(t for t in job["tasks"] if t["task_key"] == "publish_run_metadata")
+        assert publish["run_if"] == "ALL_DONE"
+        assert not any(publish["task_key"] in [d["task_key"] for d in t.get("depends_on", [])] for t in job["tasks"])

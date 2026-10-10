@@ -293,3 +293,19 @@ def test__git_baseline_reads_a_file_as_it_was_at_a_ref(tmp_path: Path):
     baseline = GitBaseline(tmp_path, "HEAD")
     assert baseline("a.yaml") == {"version": "1.0.0"}
     assert baseline("missing.yaml") is None
+
+
+def test__a_contract_for_a_table_a_job_writes_is_not_an_orphan(repo_root: Path, contract_file: Path):
+    """A hand-authored contract marked `dbx.producer: job` has no spec target and that is allowed; unmarked, it is not."""
+    doc = yaml.safe_load(contract_file.read_text(encoding="utf-8"))
+    scores = copy.deepcopy(doc)
+    scores["id"] = f"dc_{PROJECT_ID}_silver_scores"
+    scores["schema"][0]["customProperties"] = [{"property": "dbx.asset_id", "value": f"{PROJECT_ID}_silver.scores"}]
+    path = contract_file.parent / "scores.odcs.yaml"
+    write_yaml(path, scores)
+    assert any(
+        "contract for example_claims_silver.scores has no spec target" in m for m in errors(repo_root, "spec-coverage")
+    )
+    scores["schema"][0]["customProperties"].append({"property": "dbx.producer", "value": "job"})
+    write_yaml(path, scores)
+    assert not any("scores" in m for m in errors(repo_root, "spec-coverage"))

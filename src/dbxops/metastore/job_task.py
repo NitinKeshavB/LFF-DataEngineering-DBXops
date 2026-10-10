@@ -1,14 +1,15 @@
 """
-Job task: record this run in the metadata database (platform_meta).
+Job task: record this run in the metadata database (platform_meta). Installed as the `dbxops-publish-run` command.
 
 Runs last (`run_if: ALL_DONE`, so it also records failed runs). It reads the run from the Jobs API and each
 pipeline's event log, then writes the run, its pipeline updates, per-dataset row counts and per-rule quality
 results (pinned to the contract rule versions that are current), and clears any orphan rows from a crashed publish.
 
-    publish_run_metadata.py --run-id {{job.run_id}} --target <target> --repo-id <project_id> --config <metastore.yml>
+    dbxops-publish-run --run-id {{job.run_id}} --target <target> --repo-id <project_id> --config <metastore.yml>
 
-The task needs the dbxops wheel (variable `dbxops_wheel_path`) in its serverless environment. It is idempotent: a
-retried task writes nothing twice.
+Bundles run it as a `python_wheel_task` (package `cookie-cutter-dbx`, entry point `dbxops-publish-run`), with the
+dbxops wheel (variable `dbxops_wheel_path`) in the task's serverless environment. It is idempotent: a retried task
+writes nothing twice.
 """
 
 from __future__ import annotations

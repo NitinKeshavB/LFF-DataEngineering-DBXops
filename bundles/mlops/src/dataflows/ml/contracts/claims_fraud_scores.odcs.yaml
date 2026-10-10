@@ -1,0 +1,72 @@
+apiVersion: v3.1.0
+kind: DataContract
+id: dc_example_claims_ml_claims_fraud_scores
+name: claims_fraud_scores
+version: 1.0.0
+status: active
+domain: claims__fraud_investigations__fraud_investigation
+dataProduct: dp_example_claims_fraud_detection
+description:
+  purpose: Fraud suspicion score per claim from the champion model, rewritten on each scoring run.
+  usage: Triage and investigation prioritisation; join on claim_id.
+  limitations: Scores come from a model trained on a synthetic label; not for real decisions. Overwritten on each run.
+customProperties:
+- property: classification
+  value: restricted
+servers:
+- server: dev
+  type: databricks
+  environment: dev
+  catalog: <PLACEHOLDER-dev-catalog>
+  schema: example_claims_ml
+- server: test
+  type: databricks
+  environment: test
+  catalog: <PLACEHOLDER-test-catalog>
+  schema: example_claims_ml
+- server: uat
+  type: databricks
+  environment: uat
+  catalog: <PLACEHOLDER-uat-catalog>
+  schema: example_claims_ml
+- server: preprod
+  type: databricks
+  environment: preprod
+  catalog: <PLACEHOLDER-preprod-catalog>
+  schema: example_claims_ml
+- server: prod
+  type: databricks
+  environment: prod
+  catalog: <PLACEHOLDER-prod-catalog>
+  schema: example_claims_ml
+schema:
+- name: claims_fraud_scores
+  physicalName: <PLACEHOLDER-prod-catalog>.example_claims_ml.claims_fraud_scores
+  logicalType: object
+  properties:
+  - name: claim_id
+    logicalType: string
+    physicalType: string
+    required: true
+    primaryKey: true
+    description: Claim scored.
+  - name: fraud_score
+    logicalType: number
+    physicalType: double
+    required: false
+    description: Probability of the suspected-fraud class from the champion model.
+  - name: model_version
+    logicalType: string
+    physicalType: string
+    required: false
+    description: Version of the champion model that produced the score.
+  - name: scored_at
+    logicalType: timestamp
+    physicalType: timestamp
+    required: false
+    description: When the scoring job wrote the row.
+  customProperties:
+  - property: dbx.asset_id
+    value: example_claims_ml.claims_fraud_scores
+  - property: dbx.producer
+    value: job

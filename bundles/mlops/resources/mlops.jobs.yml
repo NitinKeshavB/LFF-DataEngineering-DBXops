@@ -18,6 +18,12 @@ resources:
           - scikit-learn
           - pandas
           - databricks-feature-engineering>=0.16.0
+      - environment_key: platform
+        spec:
+          client: '4'
+          dependencies:
+          - databricks-sql-connector
+          - ${var.dbxops_wheel_path}
       tasks:
       - task_key: features
         pipeline_task:
@@ -86,3 +92,20 @@ resources:
           - ${var.project_id}
           - --target
           - ${bundle.target}
+      - task_key: publish_run_metadata
+        run_if: ALL_DONE
+        environment_key: platform
+        python_wheel_task:
+          package_name: cookie-cutter-dbx
+          entry_point: dbxops-publish-run
+          parameters:
+          - --run-id
+          - '{{job.run_id}}'
+          - --target
+          - ${bundle.target}
+          - --repo-id
+          - ${var.project_id}
+          - --config
+          - ${workspace.file_path}/src/config/metastore.yml
+        depends_on:
+        - task_key: serve
