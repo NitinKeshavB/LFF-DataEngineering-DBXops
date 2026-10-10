@@ -1,0 +1,71 @@
+# Turns an onboarding or change request (a GitHub issue form) into a pull request that adds or updates
+# projects/<project_id>.yaml. The issue body is untrusted input: it is written to a file through an environment variable and
+# parsed by `dbxops.registry intake`, which validates every field. This job can open pull requests; it cannot create repositories.
+name: Registry intake
+
+on:
+  issues:
+    types: [opened, edited, labeled]
+
+permissions:
+  contents: write
+  pull-requests: write
+  issues: write
+
+concurrency:
+  group: intake-${{ github.event.issue.number }}
+  cancel-in-progress: true
+
+jobs:
+  intake:
+    if: contains(github.event.issue.labels.*.name, 'onboard-project') || contains(github.event.issue.labels.*.name, 'change-project')
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install dbxops
+        env:
+          DBXOPS_VERSION: ${{ vars.DBXOPS_VERSION }}
+        run: python -m pip install "cookie-cutter-dbx==${DBXOPS_VERSION}"
+      - name: Parse and validate the request
+        id: intake
+        env:
+          ISSUE_BODY: ${{ github.event.issue.body }}
+          ISSUE_LABELS: ${{ join(github.event.issue.labels.*.name, ',') }}
+        run: |
+          printf '%s' "$ISSUE_BODY" > "$RUNNER_TEMP/body.md"
+          mode=onboard
+          case ",$ISSUE_LABELS," in *,change-project,*) mode=change ;; esac
+          if python -m dbxops.registry intake . --body "$RUNNER_TEMP/body.md" --mode "$mode" > "$RUNNER_TEMP/result.txt"; then
+            echo "ok=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "ok=false" >> "$GITHUB_OUTPUT"
+          fi
+      - name: Explain what is wrong on the issue
+        if: steps.intake.outputs.ok == 'false'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          ISSUE: ${{ github.event.issue.number }}
+        run: gh issue comment "$ISSUE" --body-file "$RUNNER_TEMP/result.txt"
+      - name: Open the registration pull request
+        if: steps.intake.outputs.ok == 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          ISSUE: ${{ github.event.issue.number }}
+        run: |
+          branch="registry/issue-${ISSUE}"
+          git config user.name "registry-intake"
+          git config user.email "registry-intake@users.noreply.github.com"
+          git checkout -b "$branch"
+          git add projects
+          git commit -m "Register project from issue #${ISSUE}"
+          git push --force origin "$branch"
+          if gh pr view "$branch" > /dev/null 2>&1; then
+            echo "pull request for $branch already exists; it was updated by the push"
+          else
+            gh pr create --head "$branch" --base main \
+              --title "Register project from issue #${ISSUE}" \
+              --body "Created from issue #${ISSUE}. Merging this approves the request and starts provisioning. Closes #${ISSUE}."
+          fi

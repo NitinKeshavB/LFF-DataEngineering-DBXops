@@ -70,30 +70,48 @@ def _schema_findings(doc: dict[str, Any], where: str) -> list[Finding]:
     ]
 
 
-def _content_findings(doc: dict[str, Any], ctx: RegistryContext, where: str) -> list[Finding]:
-    findings = []
+def _domain_findings(doc: dict[str, Any], ctx: RegistryContext, where: str) -> list[Finding]:
+    domain = doc.get("domain")
+    if not (isinstance(domain, str) and domain):
+        return []
     try:
-        ctx.taxonomy.resolve(doc["domain"])
+        ctx.taxonomy.resolve(domain)
     except DomainError as error:
-        findings.append(Finding("registration", where, str(error)))
-    missing = [key for key in ctx.required_tags if key not in doc["tags"]]
-    if missing:
-        findings.append(Finding("registration", where, f"missing required tag(s): {', '.join(missing)}"))
-    for role, group in doc["groups"].items():
-        expected = group_name(doc["project_id"], role)
-        if group != expected and not _is_placeholder(group):
-            findings.append(Finding("registration", where, f"groups/{role}: expected {expected!r}, got {group!r}"))
-    return findings
+        return [Finding("registration", where, str(error))]
+    return []
+
+
+def _tag_findings(doc: dict[str, Any], ctx: RegistryContext, where: str) -> list[Finding]:
+    tags = doc.get("tags") if isinstance(doc.get("tags"), dict) else {}
+    missing = [key for key in ctx.required_tags if key not in tags]
+    return [Finding("registration", where, f"missing required tag(s): {', '.join(missing)}")] if missing else []
+
+
+def _group_findings(doc: dict[str, Any], where: str) -> list[Finding]:
+    project_id, groups = doc.get("project_id"), doc.get("groups")
+    if not (isinstance(project_id, str) and project_id and isinstance(groups, dict)):
+        return []
+    wrong = {
+        role: group
+        for role, group in groups.items()
+        if role in GROUP_ROLES and group != group_name(project_id, role) and not _is_placeholder(group)
+    }
+    return [
+        Finding("registration", where, f"groups/{role}: expected {group_name(project_id, role)!r}, got {group!r}")
+        for role, group in wrong.items()
+    ]
+
+
+def _content_findings(doc: dict[str, Any], ctx: RegistryContext, where: str) -> list[Finding]:
+    """Check domain, required tags and AD group names; tolerant of malformed input so every problem is reported."""
+    return _domain_findings(doc, ctx, where) + _tag_findings(doc, ctx, where) + _group_findings(doc, where)
 
 
 def validate_registration(
     doc: dict[str, Any], ctx: RegistryContext, where: str, strict: bool = False
 ) -> list[Finding]:
-    """Validate one registration against the schema and the platform reference data."""
-    findings = _schema_findings(doc, where)
-    if findings:
-        return findings
-    findings = _content_findings(doc, ctx, where)
+    """Validate one registration against the schema and the platform reference data; report every problem."""
+    findings = _schema_findings(doc, where) + _content_findings(doc, ctx, where)
     if strict:
         findings += [
             Finding("registration", where, f"{path}: placeholder value {value!r}")

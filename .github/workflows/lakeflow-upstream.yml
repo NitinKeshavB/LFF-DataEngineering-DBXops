@@ -1,0 +1,50 @@
+# Weekly: if the Lakeflow Framework has a newer release, move the pin on a branch and open a pull request with the
+# evidence (every spec validated with the new framework's own validator). Nothing is merged or deployed automatically.
+name: Lakeflow upstream
+
+on:
+  schedule:
+    - cron: "0 22 * * 0"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: true
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+          cache-dependency-path: pyproject.toml
+      - run: make install
+      - name: Is there a newer release?
+        id: upstream
+        run: |
+          result="$(bash scripts/check_upstream.sh)"
+          echo "$result"
+          echo "latest=$(echo "$result" | sed -n 's/.*latest=\([^ ]*\).*/\1/p')" >> "$GITHUB_OUTPUT"
+          echo "update=$(echo "$result" | sed -n 's/.*update=\([^ ]*\).*/\1/p')" >> "$GITHUB_OUTPUT"
+      - name: Upgrade the pin and open a pull request
+        if: steps.upstream.outputs.update == 'yes'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          LATEST: ${{ steps.upstream.outputs.latest }}
+        run: |
+          branch="chore/lakeflow-$LATEST"
+          git config user.name "lakeflow-upstream"
+          git config user.email "lakeflow-upstream@users.noreply.github.com"
+          git checkout -b "$branch"
+          bash scripts/upgrade_lakeflow.sh "$LATEST"
+          make test-quick
+          git add -A
+          git commit -m "Upgrade Lakeflow Framework to $LATEST"
+          git push --force origin "$branch"
+          gh pr create --base main --head "$branch" --title "Upgrade Lakeflow Framework to $LATEST" \
+            --body "Automated upgrade of the framework pin. Every dataflow spec passed the new framework's validator, and the quick tests passed. Review the release notes before merging; the framework is deployed separately by the platform team."

@@ -25,6 +25,12 @@ deploy-framework:
 validate-specs:
 	bash run.sh validate-specs
 
+upgrade-lakeflow:
+	bash run.sh upgrade-lakeflow $(TAG)
+
+check-upstream:
+	bash run.sh check-upstream
+
 new-bundle:
 	bash run.sh new-bundle $(NAME) $(DOMAIN)
 

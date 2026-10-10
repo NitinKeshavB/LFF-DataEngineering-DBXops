@@ -168,23 +168,39 @@ function validate-domains {
     python -m dbxops.registry.domains "$THIS_DIR/metadata/_platform/domains.yaml"
 }
 
+# move the framework pin to a release tag and update everything that mentions it: ./run.sh upgrade-lakeflow <tag>
+function upgrade-lakeflow {
+    bash "$THIS_DIR/scripts/upgrade_lakeflow.sh" "${1:?usage: ./run.sh upgrade-lakeflow <tag>}"
+}
+
+# report whether a newer framework release exists
+function check-upstream {
+    bash "$THIS_DIR/scripts/check_upstream.sh"
+}
+
 # stage the pinned framework plus framework/local into framework/build (or the directory given)
 function stage-framework {
     bash "$THIS_DIR/scripts/stage_framework.sh" "$@"
 }
 
-# deploy the staged framework bundle (platform team only; needs approval): ./run.sh deploy-framework <target> <profile>
+# deploy the staged framework bundle (platform team only; needs approval): ./run.sh deploy-framework <target> [profile]
 function deploy-framework {
-    local target="${1:?usage: ./run.sh deploy-framework <target> <databricks-profile>}"
-    local profile="${2:?a Databricks CLI profile is required and is never auto-selected}"
+    local target="${1:?usage: ./run.sh deploy-framework <target> [databricks-profile]}"
+    local profile_args=()
+    if [ -n "${2:-}" ]; then
+        profile_args=(--profile "$2")
+    elif [ -z "${DATABRICKS_AUTH_TYPE:-}" ]; then
+        echo "error: pass a Databricks CLI profile (never auto-selected) or configure CI authentication (DATABRICKS_AUTH_TYPE)" >&2
+        return 1
+    fi
     check-placeholders --strict
     stage-framework
     local version
     version="$(sed -n 's/^framework_version: //p' "$THIS_DIR/conf/environments.yml")"
     (
         cd "$THIS_DIR/framework/build"
-        databricks bundle validate -t "$target" --profile "$profile" --var="version=$version"
-        databricks bundle deploy -t "$target" --profile "$profile" --var="version=$version"
+        databricks bundle validate -t "$target" "${profile_args[@]}" --var="version=$version"
+        databricks bundle deploy -t "$target" "${profile_args[@]}" --var="version=$version"
     )
 }
 

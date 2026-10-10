@@ -1,0 +1,34 @@
+# Deploy the pinned Lakeflow Framework to a target's shared path. Platform team only: run by hand, and the GitHub
+# environment for the target requires approval. Squad repositories only reference this deployment.
+name: Deploy framework
+
+on:
+  workflow_dispatch:
+    inputs:
+      target:
+        description: Target to deploy to
+        required: true
+        type: choice
+        options: [dev, test, uat, preprod, prod]
+
+permissions:
+  id-token: write
+  contents: read
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    environment: ${{ inputs.target }}
+    env:
+      DATABRICKS_AUTH_TYPE: github-oidc
+      DATABRICKS_CLIENT_ID: ${{ vars.DEPLOY_SP_CLIENT_ID }}
+      TARGET: ${{ inputs.target }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: true
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - uses: databricks/setup-cli@v1.20.0
+      - run: make deploy-framework TARGET="$TARGET"

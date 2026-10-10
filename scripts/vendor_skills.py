@@ -124,6 +124,7 @@ def sync(source_id: str, root: Path = ROOT) -> None:
     lock = load_lock(root)
     source = lock["sources"][source_id]
     if source["kind"] == "local":
+        source["ref"] = _upstream_commit(root) or source["ref"]
         sync_from_root(lock, source_id, root / source["path"], root)
         return
     with tempfile.TemporaryDirectory() as tmp:

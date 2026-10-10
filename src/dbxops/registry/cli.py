@@ -6,6 +6,10 @@ import argparse
 from pathlib import Path
 
 from dbxops.findings import has_errors
+from dbxops.registry.intake import (
+    IntakeError,
+    intake,
+)
 from dbxops.registry.registration import validate_registry
 from dbxops.registry.snapshots import render_registry_project
 
@@ -21,7 +25,19 @@ def main(argv: list[str] | None = None) -> int:
     render_cmd.add_argument("root", type=Path, help="registry checkout")
     render_cmd.add_argument("project_id")
     render_cmd.add_argument("out", type=Path, help="directory to write the four snapshot files into")
+    intake_cmd = commands.add_parser("intake", help="turn an issue-form body (a file) into projects/<id>.yaml")
+    intake_cmd.add_argument("registry", type=Path)
+    intake_cmd.add_argument("--body", type=Path, required=True, help="file holding the issue body")
+    intake_cmd.add_argument("--mode", choices=["onboard", "change"], default="onboard")
     args = parser.parse_args(argv)
+    if args.command == "intake":
+        try:
+            path = intake(args.body.read_text(encoding="utf-8"), args.registry, args.mode)
+        except IntakeError as error:
+            print(f"The request cannot be accepted yet:\n{error}")
+            return 1
+        print(f"wrote {path}")
+        return 0
     if args.command == "validate":
         findings = validate_registry(args.root, args.strict)
         print("\n".join(str(f) for f in findings) if findings else f"{args.root}: registry is valid")

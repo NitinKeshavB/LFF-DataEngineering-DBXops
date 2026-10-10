@@ -139,3 +139,23 @@ def test__main_check_fails_on_a_broken_tree(repo: Path, source_root: Path, capsy
     shutil.rmtree(repo / ".claude/skills/demo-skill/references")
     assert vendor_skills.main(["check"], root=repo) == 1
     assert "missing" in capsys.readouterr().out
+
+
+def test__syncing_a_local_source_moves_its_ref_to_the_submodule_commit(repo: Path, source_root: Path):
+    """After `sync` of a local source, the lock records the commit in framework/UPSTREAM.lock, so check passes."""
+    lock = vendor_skills.load_lock(repo)
+    lock["sources"]["demo"].update({"kind": "local", "path": "src_dir", "ref": "old", "files": {}})
+    vendor_skills.save_lock(lock, repo)
+    shutil.copytree(source_root, repo / "src_dir")
+    (repo / "src_dir/skills").rename(repo / "src_dir/skills_unused")
+    shutil.copytree(repo / "src_dir/skills_unused/demo-skill", repo / "src_dir/.", dirs_exist_ok=True)
+    (repo / "framework").mkdir()
+    (repo / "framework/UPSTREAM.lock").write_text("tag=v2\ncommit=new\n", encoding="utf-8")
+    lock = vendor_skills.load_lock(repo)
+    lock["sources"]["demo"]["skills"] = {"demo-skill": "."}
+    lock["sources"]["demo"].pop("commands", None)
+    lock["sources"]["demo"]["notice_files"] = []
+    vendor_skills.save_lock(lock, repo)
+    vendor_skills.sync("demo", repo)
+    assert vendor_skills.load_lock(repo)["sources"]["demo"]["ref"] == "new"
+    assert vendor_skills.check(repo) == []
