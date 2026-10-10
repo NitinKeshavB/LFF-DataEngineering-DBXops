@@ -1,0 +1,9 @@
+# The repository root is the cookiecutter, not a Python package: this file only configures the template's own tests.
+# The package that squads get lives in "{{cookiecutter.repo_name}}/pyproject.toml".
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+markers = [
+    "slow: generates a project and runs its own checks; needs network access (git, pip). Run with `make test-e2e`.",
+]
+addopts = "-m 'not slow'"
