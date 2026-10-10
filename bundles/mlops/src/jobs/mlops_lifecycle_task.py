@@ -5,8 +5,8 @@ The lifecycle CLI needs a model version and, for reconcile, conf/environments.ym
 script resolves the version from a model alias and takes the target's catalog as an argument, then uses
 dbxops.lifecycle for the work. The dbxops wheel must be installed in the job environment.
 
-    lifecycle_task.py promote --model <catalog.schema.model> --gate <gate.yml>
-    lifecycle_task.py reconcile --model <catalog.schema.model> --config <endpoint.yml> --catalog <catalog> \
+    mlops_lifecycle_task.py promote --model <catalog.schema.model> --gate <gate.yml>
+    mlops_lifecycle_task.py reconcile --model <catalog.schema.model> --config <endpoint.yml> --catalog <catalog> \
         --project-id <project_id> --target <target> [--dry-run]
 
 ``promote`` promotes the version that holds @challenger. ``reconcile`` serves the version that holds @champion: the
@@ -88,7 +88,7 @@ def run_reconcile(args: argparse.Namespace, gateway_factory: lifecycle.GatewayFa
 
 def build_parser() -> argparse.ArgumentParser:
     """Return the command line parser."""
-    parser = argparse.ArgumentParser(prog="lifecycle_task.py", description=__doc__.split("\n")[1])
+    parser = argparse.ArgumentParser(prog="mlops_lifecycle_task.py", description=__doc__.split("\n")[1])
     commands = parser.add_subparsers(dest="command", required=True)
     promote = commands.add_parser("promote", help="promote the challenger version through the gate")
     promote.add_argument("--model", required=True, help="full UC model name, catalog.schema.model")

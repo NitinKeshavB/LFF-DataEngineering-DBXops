@@ -1,4 +1,4 @@
-"""Tests for the MLOps bundle's lifecycle job task (bundles/mlops/src/jobs/lifecycle_task.py) and its gate and serving configs."""
+"""Tests for the MLOps bundle's lifecycle job task (bundles/mlops/src/jobs/mlops_lifecycle_task.py) and its gate and serving configs."""
 
 import json
 import re
@@ -15,7 +15,7 @@ from tests.bundles.job_script import loaded_script
 from tests.consts import PROJECT_DIR
 
 BUNDLE = PROJECT_DIR / "bundles/mlops"
-SCRIPT = BUNDLE / "src/jobs/lifecycle_task.py"
+SCRIPT = BUNDLE / "src/jobs/mlops_lifecycle_task.py"
 GATE = BUNDLE / "src/gates/claims_fraud_model.gate.yml"
 ENDPOINT = BUNDLE / "src/serving/claims_fraud_endpoint.yml"
 MODEL = "cat.example_claims_ml.claims_fraud_model"

@@ -1,8 +1,8 @@
 # The AIOps run: documents -> parse (ai_bronze) -> chunks (ai_silver) -> vector index -> agent (register, evaluate, gate,
 # deploy) -> serving settings, and optionally the Knowledge Assistant.
 #
-# There is deliberately no publish_run_metadata task yet: the metadata library it would call is still being finished,
-# and this file does not invent an API for it. Add it as the last task (run_if: ALL_DONE) once it exists.
+# The last task, publish_run_metadata, records the run in the metadata database whatever happened before it
+# (run_if: ALL_DONE); it is the `dbxops-publish-run` entry point of the dbxops wheel.
 #
 # Environments: `docs` has plutoprint (job-only), `lifecycle` has the dbxops wheel (dbxops_wheel_path, set by CI) and
 # `agent` has the libraries of register_agent.AGENT_PIP_REQUIREMENTS (a test keeps the two lists equal). None of these
@@ -30,6 +30,12 @@ resources:
         spec:
           client: '4'
           dependencies:
+          - ${var.dbxops_wheel_path}
+      - environment_key: platform
+        spec:
+          client: '4'
+          dependencies:
+          - databricks-sql-connector
           - ${var.dbxops_wheel_path}
       - environment_key: agent
         spec:
@@ -221,3 +227,21 @@ resources:
           - target=${bundle.target}
           - --var
           - logical_env=${var.logical_env}
+      - task_key: publish_run_metadata
+        run_if: ALL_DONE
+        depends_on:
+        - task_key: reconcile_serving
+        - task_key: reconcile_knowledge_assistant
+        environment_key: platform
+        python_wheel_task:
+          package_name: cookie-cutter-dbx
+          entry_point: dbxops-publish-run
+          parameters:
+          - --run-id
+          - '{{job.run_id}}'
+          - --target
+          - ${bundle.target}
+          - --repo-id
+          - ${var.project_id}
+          - --config
+          - ${workspace.file_path}/src/config/metastore.yml

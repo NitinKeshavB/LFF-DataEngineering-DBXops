@@ -155,9 +155,12 @@ def test__the_job_runs_the_stages_in_dependency_order(tasks):
     assert actual["generate_docs"] == set() and actual["create_functions"] == set()
 
 
-def test__publish_run_metadata_is_left_out_until_its_library_exists(tasks):
-    """The metastore library is unfinished, so no task invents a call to it."""
-    assert "publish_run_metadata" not in tasks
+def test__the_job_ends_by_recording_its_run(tasks):
+    """publish_run_metadata is the last task: it runs after serving and the optional assistant, whatever their outcome."""
+    publish = tasks["publish_run_metadata"]
+    assert publish["run_if"] == "ALL_DONE"
+    assert {d["task_key"] for d in publish["depends_on"]} == {"reconcile_serving", "reconcile_knowledge_assistant"}
+    assert publish["python_wheel_task"]["entry_point"] == "dbxops-publish-run"
 
 
 def test__the_knowledge_assistant_runs_only_when_agent_bricks_is_enabled(tasks):
@@ -169,10 +172,14 @@ def test__the_knowledge_assistant_runs_only_when_agent_bricks_is_enabled(tasks):
     ]
 
 
-def test__no_task_other_than_the_agent_chain_depends_on_the_knowledge_assistant(tasks):
-    """The optional KA branch is a leaf, so the default run never waits for it."""
-    for key, task in tasks.items():
-        assert "reconcile_knowledge_assistant" not in {d["task_key"] for d in task.get("depends_on", [])}, key
+def test__only_the_run_recorder_depends_on_the_knowledge_assistant(tasks):
+    """The optional KA branch is a leaf apart from the final recorder (run_if ALL_DONE), so a skipped KA never blocks it."""
+    dependants = {
+        key
+        for key, task in tasks.items()
+        if "reconcile_knowledge_assistant" in {d["task_key"] for d in task.get("depends_on", [])}
+    }
+    assert dependants == {"publish_run_metadata"}
 
 
 def test__job_environments_carry_the_job_only_libraries_and_the_wheel(environments):

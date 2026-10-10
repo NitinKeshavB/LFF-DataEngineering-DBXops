@@ -41,7 +41,7 @@ def test__serving_is_reconciled_only_when_the_condition_task_is_true(doc, tasks)
 
 
 def test__the_dbxops_wheel_is_installed_from_a_variable_with_an_empty_default(doc):
-    """CI sets dbxops_wheel_path; the job environment lists it first so lifecycle_task.py can import dbxops."""
+    """CI sets dbxops_wheel_path; the job environment lists it first so mlops_lifecycle_task.py can import dbxops."""
     assert doc["variables"]["dbxops_wheel_path"]["default"] == ""
     environment = doc["resources"]["jobs"]["mlops_run"]["environments"][0]
     assert environment["spec"]["dependencies"][0] == "${var.dbxops_wheel_path}"

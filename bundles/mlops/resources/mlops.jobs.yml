@@ -46,7 +46,7 @@ resources:
         - task_key: train
         environment_key: default
         spark_python_task:
-          python_file: ../src/jobs/lifecycle_task.py
+          python_file: ../src/jobs/mlops_lifecycle_task.py
           parameters:
           - promote
           - --model
@@ -79,7 +79,7 @@ resources:
           outcome: 'true'
         environment_key: default
         spark_python_task:
-          python_file: ../src/jobs/lifecycle_task.py
+          python_file: ../src/jobs/mlops_lifecycle_task.py
           parameters:
           - reconcile
           - --model

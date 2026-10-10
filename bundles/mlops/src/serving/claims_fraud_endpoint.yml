@@ -1,4 +1,4 @@
-# Desired state of the claims fraud serving endpoint, applied by src/jobs/lifecycle_task.py reconcile (uat, preprod, prod).
+# Desired state of the claims fraud serving endpoint, applied by src/jobs/mlops_lifecycle_task.py reconcile (uat, preprod, prod).
 # Tokens, replaced in every string value: {catalog}, {project_id} and {target} come from the job; {champion_version}
 # is the model version that holds the champion alias. The endpoint name carries the target because all targets share
 # one workspace.
