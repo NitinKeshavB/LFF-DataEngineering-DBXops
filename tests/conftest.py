@@ -19,4 +19,5 @@ pytest_plugins = [
     # e.g. "tests/fixtures/example_fixture.py" should be registered as:
     "tests.fixtures.example_fixture",
     "tests.fixtures.domain_taxonomy",
+    "tests.fixtures.workspace",
 ]
