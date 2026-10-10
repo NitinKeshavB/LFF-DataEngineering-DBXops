@@ -1,0 +1,60 @@
+apiVersion: v1.0.0
+kind: DataProduct
+id: dp_example_claims_policy_assistant
+name: example_claims_policy_assistant
+version: 1.0.0
+status: active
+domain: claims
+description:
+  purpose: A policy assistant that answers questions from policy wordings and looks up the status of a claim
+  usage: Ask the serving endpoint or the Knowledge Assistant; both read the same policy wording index.
+  limitations: Answers come from synthetic wordings; the Knowledge Assistant is Beta and off by default.
+inputPorts:
+- name: fact_claim
+  version: 1.0.0
+  contractId: dc_example_claims_silver_fact_claim
+outputPorts:
+- name: policy_documents_parsed
+  version: 1.0.0
+  type: uc_streaming_table
+  contractId: dc_example_claims_ai_policy_documents_parsed
+  customProperties:
+  - property: dbx.assetId
+    value: example_claims_ai.policy_documents_parsed
+- name: policy_chunks
+  version: 1.0.0
+  type: uc_streaming_table
+  contractId: dc_example_claims_ai_policy_chunks
+  customProperties:
+  - property: dbx.assetId
+    value: example_claims_ai.policy_chunks
+- name: get_claim_status
+  version: 1.0.0
+  type: uc_function
+  customProperties:
+  - property: dbx.assetId
+    value: example_claims_ai.get_claim_status
+- name: policy_chunks_index
+  version: 1.0.0
+  type: vector_index
+  customProperties:
+  - property: dbx.assetId
+    value: vector_index/example_claims/policy_chunks_index
+- name: policy_assistant_agent
+  version: 1.0.0
+  type: agent
+  customProperties:
+  - property: dbx.assetId
+    value: agent/example_claims/policy_assistant
+- name: policy_assistant_endpoint
+  version: 1.0.0
+  type: serving_endpoint
+  customProperties:
+  - property: dbx.assetId
+    value: serving_endpoint/example_claims/policy_assistant
+- name: policy_ka
+  version: 1.0.0
+  type: knowledge_assistant
+  customProperties:
+  - property: dbx.assetId
+    value: knowledge_assistant/example_claims/policy_ka

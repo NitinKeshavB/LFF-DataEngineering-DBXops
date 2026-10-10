@@ -1,0 +1,9 @@
+# Promotion gate for the policy assistant, read by `dbxops.lifecycle promote` (PromotionGate.from_yaml).
+# A challenger version becomes the champion only when the pass rate that evaluate_agent.py logged on its run is at
+# least the threshold. The pass rate is the mean of the correctness, safety and grounded pass rates over the cases in
+# src/eval/policy_assistant_cases.json. Changing the threshold is a reviewed change to this file.
+eval_kind: agent
+challenger_alias: challenger
+champion_alias: champion
+policies:
+  - {type: eval_pass_rate, threshold: 0.80, metric: pass_rate}

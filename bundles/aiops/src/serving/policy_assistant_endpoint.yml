@@ -1,0 +1,28 @@
+# Desired state of the policy assistant's serving endpoint, applied by `lifecycle_task.py reconcile`
+# (dbxops.lifecycle, ServingEndpointReconciler) after `deploy_agent.py` has created or updated the endpoint with
+# `databricks.agents.deploy`. Tokens: {project_id}, {target}, {logical_env}, {cost_center} and {region} are filled by
+# the wrapper, {catalog} by the lifecycle library.
+#
+# What this file owns: the AI Gateway rate limits and the endpoint tags. The served entity is named only by its model,
+# so the version that agents.deploy serves is not pinned here and a new version never causes a config update.
+#
+# Not verified against a live workspace: the reconciler requires the endpoint's served_entities list to have the same
+# length as the one below. If agents.deploy creates more than one served entity, the reconciler would replace the
+# deployed config with this one entity; check `reconcile --dry-run` output after the first deploy before relying on it.
+#
+# No inference table is configured: it would create a table that no ODCS contract describes.
+serving_endpoints:
+  - name: "{project_id}_{target}_policy_assistant{logical_env}"
+    served_entities:
+      - entity_name: "{catalog}.{project_id}_ai{logical_env}.policy_assistant"
+    rate_limits:
+      - calls: 60
+        renewal_period: minute
+        key: user
+      - calls: 600
+        renewal_period: minute
+        key: endpoint
+    tags:
+      data_product: dp_{project_id}_policy_assistant
+      cost_center: "{cost_center}"
+      region: "{region}"

@@ -1,0 +1,60 @@
+{
+  "description": "Evaluation cases for the policy assistant. A doc_ case has facts that appear in the synthetic wordings written by src/jobs/generate_policy_docs.py (a test checks it); a claim_ case needs the UC function over the claims data.",
+  "cases": [
+    {
+      "id": "doc_motor_standard_excess",
+      "inputs": {"question": "What is the standard excess on the Motor Comprehensive policy?"},
+      "expectations": {"expected_facts": ["$800"]}
+    },
+    {
+      "id": "doc_motor_young_driver_excess",
+      "inputs": {"question": "How much additional excess applies to a driver under 25 on the Motor Comprehensive policy?"},
+      "expectations": {"expected_facts": ["$1,200"]}
+    },
+    {
+      "id": "doc_motor_windscreen_excess",
+      "inputs": {"question": "What excess applies to a windscreen claim on the Motor Comprehensive policy?"},
+      "expectations": {"expected_facts": ["$100"]}
+    },
+    {
+      "id": "doc_home_storm_excess",
+      "inputs": {"question": "What is the excess for storm or flood damage under the Home Building and Contents policy, and how long is the waiting period?"},
+      "expectations": {"expected_facts": ["$2,000", "72 hours"]}
+    },
+    {
+      "id": "doc_home_valuables_limit",
+      "inputs": {"question": "How much does the Home Building and Contents policy pay for one portable valuable that is not on the schedule?"},
+      "expectations": {"expected_facts": ["$2,500"]}
+    },
+    {
+      "id": "doc_home_lodgement_time",
+      "inputs": {"question": "How long do I have to lodge a claim under the Home Building and Contents policy?"},
+      "expectations": {"expected_facts": ["60 days"]}
+    },
+    {
+      "id": "doc_travel_trip_cancellation",
+      "inputs": {"question": "What is the trip cancellation limit on the Travel policy?"},
+      "expectations": {"expected_facts": ["$10,000"]}
+    },
+    {
+      "id": "doc_travel_luggage_item_limit",
+      "inputs": {"question": "What is the most the Travel policy pays for any one item of luggage?"},
+      "expectations": {"expected_facts": ["$750"]}
+    },
+    {
+      "id": "doc_landlord_loss_of_rent",
+      "inputs": {"question": "For how long does the Landlord policy pay loss of rent when the property cannot be lived in?"},
+      "expectations": {"expected_facts": ["26 weeks"]}
+    },
+    {
+      "id": "doc_caravan_contents_limit",
+      "inputs": {"question": "How much are the contents of a caravan covered for under the Caravan and Trailer policy?"},
+      "expectations": {"expected_facts": ["$3,000"]}
+    },
+    {
+      "id": "claim_status_lookup",
+      "inputs": {"question": "What is the status of claim CLM0000001?"},
+      "expectations": {"expected_facts": ["The answer states the status of claim CLM0000001, taken from the claims data"]}
+    }
+  ]
+}

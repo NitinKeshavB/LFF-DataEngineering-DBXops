@@ -1,0 +1,61 @@
+{
+  "data_flow_id": "policy_documents_parsed",
+  "data_flow_group": "ai_bronze",
+  "data_flow_type": "nodespec",
+  "tags": {
+    "data_domain": "product__wordings_pds__product_wording",
+    "data_product": "dp_example_claims_policy_assistant"
+  },
+  "nodes": [
+    {
+      "name": "v_policy_pdfs",
+      "node_type": "source",
+      "source_type": "cloud_files",
+      "config": {
+        "mode": "stream",
+        "path": "{landing_path}/policy_docs/",
+        "reader_options": {
+          "cloudFiles.format": "binaryFile",
+          "pathGlobFilter": "*.pdf"
+        }
+      }
+    },
+    {
+      "name": "v_parse_policy_pdfs",
+      "node_type": "transformation",
+      "transformation_type": "sql",
+      "config": {
+        "mode": "stream",
+        "sql_path": "parse_policy_documents.sql"
+      }
+    },
+    {
+      "name": "target_policy_documents_parsed",
+      "node_type": "target",
+      "config": {
+        "database": "{ai_schema}",
+        "table": "policy_documents_parsed",
+        "schema_path": "policy_documents_parsed_schema.json",
+        "cluster_by_auto": true,
+        "comment": "Policy wording PDFs parsed to text with ai_parse_document; documents that fail to parse are quarantined.",
+        "table_properties": {
+          "delta.enableRowTracking": "true"
+        },
+        "sources": [
+          "v_parse_policy_pdfs"
+        ],
+        "data_quality": {
+          "enabled": true,
+          "expectations_path": "./policy_documents_parsed_dqe.json",
+          "quarantine": {
+            "mode": "table",
+            "target": {
+              "target_format": "delta",
+              "database": "{ai_schema}"
+            }
+          }
+        }
+      }
+    }
+  ]
+}

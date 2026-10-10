@@ -1,0 +1,14 @@
+{
+  "expect_or_drop": [
+    {
+      "name": "document parsed without errors",
+      "constraint": "parse_error IS NULL",
+      "tag": "Completeness"
+    },
+    {
+      "name": "document has text",
+      "constraint": "parsed_text IS NOT NULL AND length(trim(parsed_text)) > 0",
+      "tag": "Completeness"
+    }
+  ]
+}
