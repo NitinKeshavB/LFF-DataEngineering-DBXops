@@ -85,8 +85,8 @@ The generated `README.md` continues from there ("Start building"): fill in the p
 
 | Prompt | Meaning | Default |
 |---|---|---|
-| `project_name` | the squad's slug: prefixes every schema, contract and product id; `^[a-z][a-z0-9_]{2,39}$` | `example_claims` |
-| `repo_name` | the directory and the Python distribution name; `^dbx-[a-z0-9-]{3,60}$` | `dbx-<project_name>` with `-` for `_` |
+| `project_name` | the squad's slug: prefixes every schema, contract and product id. Lowercased, with spaces and `-` turned into `_` (`finance-data-hub` becomes `finance_data_hub`); 3-40 characters | `example_claims` |
+| `repo_name` | the directory and the Python distribution name: lowercase letters, digits and `-`. The registry registration it ships with is named `dbx-<project_name>` regardless | `dbx-<project_name>` with `-` for `_` |
 | `squad_title` | the squad's display name | `Example Claims Squad` |
 | `kind` | `project` (consumes domain data products) or `domain` (builds them; may only hold data in its own domain) | `project` |
 | `domain` | the squad's place in the domain taxonomy, any level: `claims`, `claims__litigation`, `claims__litigation__claim_litigation` | `claims` |

@@ -23,7 +23,7 @@ import subprocess
 import sys
 from pathlib import Path
 
-PROJECT_ID = "{{ cookiecutter.project_name }}"
+PROJECT_ID = re.sub(r"[\s_-]+", "_", "{{ cookiecutter.project_name }}".strip().lower())
 REPO_NAME = "{{ cookiecutter.repo_name }}"
 SQUAD_TITLE = "{{ cookiecutter.squad_title }}"
 KIND = "{{ cookiecutter.kind }}"
@@ -52,7 +52,7 @@ def identity_replacements() -> list[tuple[str, str]]:
     """Return the `(example value, answer)` pairs, longest first so a short token never splits a longer one."""
     bare = PROJECT_ID.replace("_", "")
     return [
-        ("dbx-example-claims", REPO_NAME),
+        ("dbx-example-claims", "dbx-" + PROJECT_ID.replace("_", "-")),
         ("Example Claims Squad", SQUAD_TITLE),
         ("example_claims", PROJECT_ID),
         ("example-claims", PROJECT_ID.replace("_", "-")),

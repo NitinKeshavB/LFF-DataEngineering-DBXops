@@ -140,9 +140,9 @@ def test__a_framework_that_cannot_be_added_is_reported_and_the_project_is_still_
 @pytest.mark.parametrize(
     "answers",
     [
-        {"project_name": "Claims-Fraud"},
+        {"project_name": "claims.fraud!"},
         {"project_name": "ab"},
-        {"repo_name": "claims-fraud"},
+        {"repo_name": "claims_fraud"},
         {"squad_title": 'Bad "title"'},
         {"domain": "Claims"},
     ],
@@ -168,3 +168,15 @@ def test__a_domain_repository_never_gets_the_examples_even_when_asked_for_them(r
     project = render(**ANSWERS, kind="domain", include_examples="yes")
     assert [path.name for path in (project / "bundles").iterdir()] == [".gitkeep"]
     assert "example bundles were not included" in capfd.readouterr().out
+
+
+def test__a_hyphenated_project_name_and_a_repo_name_without_the_registry_prefix_are_accepted(render: Render):
+    """Names are normalised or free-form: the repository is aal-finance-dev, the squad id finance_data_hub."""
+    project = render(project_name="Finance Data-Hub", repo_name="aal-finance-dev", squad_title="Finance Data Hub")
+    assert project.name == "aal-finance-dev"
+    repo = yaml.safe_load((project / "metadata/_platform/repo.yaml").read_text(encoding="utf-8").split("\n", 1)[1])
+    assert repo["project_id"] == "finance_data_hub"
+    assert 'name = "aal-finance-dev"' in (project / "pyproject.toml").read_text(encoding="utf-8")
+    registration = project / "templates/registry-repo/projects/finance_data_hub.yaml"
+    assert yaml.safe_load(registration.read_text(encoding="utf-8"))["repo"] == {"name": "dbx-finance-data-hub"}
+    assert not [p for p in text_files(project) if EXAMPLE_IDENTITY.search(p.read_text("utf-8"))]
