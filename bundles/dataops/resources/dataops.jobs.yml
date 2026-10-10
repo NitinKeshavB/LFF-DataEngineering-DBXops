@@ -9,14 +9,20 @@ resources:
       queue:
         enabled: true
       environments:
-      - environment_key: default
+      - environment_key: generate
         spec:
           client: '4'
           dependencies:
           - faker
+      - environment_key: platform
+        spec:
+          client: '4'
+          dependencies:
+          - databricks-sql-connector
+          - ${var.dbxops_wheel_path}
       tasks:
       - task_key: generate_data
-        environment_key: default
+        environment_key: generate
         spark_python_task:
           python_file: ../src/jobs/generate_data.py
           parameters:
@@ -37,3 +43,19 @@ resources:
         - task_key: silver
         pipeline_task:
           pipeline_id: ${resources.pipelines.dataops_gold.id}
+      - task_key: publish_run_metadata
+        depends_on:
+        - task_key: gold
+        run_if: ALL_DONE
+        environment_key: platform
+        spark_python_task:
+          python_file: ../src/jobs/publish_run_metadata.py
+          parameters:
+          - --run-id
+          - '{{job.run_id}}'
+          - --target
+          - ${bundle.target}
+          - --repo-id
+          - ${var.project_id}
+          - --config
+          - ${workspace.file_path}/src/config/metastore.yml

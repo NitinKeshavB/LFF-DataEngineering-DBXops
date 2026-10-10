@@ -1,0 +1,43 @@
+# Single source of truth for deployment targets (master plan §G).
+# Every value containing PLACEHOLDER is reported by `make check-placeholders`
+# and blocks workspace setup and deploys (`--strict`).
+
+workspace:
+  host: "https://<PLACEHOLDER-workspace-host>.azuredatabricks.net"
+  tenant_id: "<PLACEHOLDER-azure-tenant-id>"
+
+framework_version: v0.24.1
+
+# run_as_sp: when true, bundles run as the project service principal
+# declared in metadata/_platform/repo.yaml; when false, as the deploying user.
+targets:
+  dev:
+    catalog: "<PLACEHOLDER-dev-catalog>"
+    mode: development
+    github_environment: dev
+    requires_approval: false
+    run_as_sp: false
+  test:
+    catalog: "<PLACEHOLDER-test-catalog>"
+    mode: production
+    github_environment: test
+    requires_approval: false
+    run_as_sp: true
+  uat:
+    catalog: "<PLACEHOLDER-uat-catalog>"
+    mode: production
+    github_environment: uat
+    requires_approval: true
+    run_as_sp: true
+  preprod:
+    catalog: "<PLACEHOLDER-preprod-catalog>"
+    mode: production
+    github_environment: preprod
+    requires_approval: true
+    run_as_sp: true
+  prod:
+    catalog: "<PLACEHOLDER-prod-catalog>"
+    mode: production
+    github_environment: prod
+    requires_approval: true
+    run_as_sp: true

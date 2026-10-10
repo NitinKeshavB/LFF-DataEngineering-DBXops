@@ -1,6 +1,9 @@
 """
 Generate each bundle's per-target substitution files from `conf/environments.yml` and the platform snapshot.
 
+It also copies `conf/environments.yml` and `conf/metastore.yml` verbatim into `<bundle>/src/config/`, because a job
+running in the workspace cannot see the repository's `conf/` directory (the metadata publishing task reads them).
+
 A dataflow spec refers to schemas through tokens (`{silver_schema}`); the framework replaces them from
 `<bundle>/src/pipeline_configs/<target>_substitutions.json`. Those files are generated, never hand-edited,
 so a spec can only ever address `<project_id>_<layer>` schemas in the target's catalog. `{logical_env}`
@@ -21,6 +24,7 @@ from dbxops.metadata.repo import (
 
 LOGICAL_ENV = "{logical_env}"
 LANDING_VOLUME = "landing"
+BUNDLE_CONFIG_COPIES = ("environments.yml", "metastore.yml")
 
 
 def render_substitutions(project_id: str, catalog: str) -> dict[str, Any]:
@@ -51,6 +55,12 @@ def plan_substitutions(ctx: RepoContext) -> list[SubstitutionPlan]:
             path = configs / f"{target}_substitutions.json"
             text = _dump(render_substitutions(ctx.project_id, cfg["catalog"]))
             plans.append(SubstitutionPlan(path, text, path.is_file() and path.read_text(encoding="utf-8") == text))
+        for name in BUNDLE_CONFIG_COPIES:
+            source = ctx.root / "conf" / name
+            if source.is_file():
+                text = source.read_text(encoding="utf-8")
+                path = configs.parent / "config" / name
+                plans.append(SubstitutionPlan(path, text, path.is_file() and path.read_text(encoding="utf-8") == text))
     return plans
 
 
@@ -58,5 +68,6 @@ def write_substitutions(ctx: RepoContext) -> list[SubstitutionPlan]:
     """Write every missing or outdated substitution file; return the plans that changed."""
     changed = [plan for plan in plan_substitutions(ctx) if not plan.current]
     for plan in changed:
+        plan.path.parent.mkdir(parents=True, exist_ok=True)
         plan.path.write_text(plan.text, encoding="utf-8")
     return changed

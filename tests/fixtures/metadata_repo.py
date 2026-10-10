@@ -137,6 +137,7 @@ def build_repo(root: Path, kind: str = "project", domain: str = "claims") -> Pat
     """Create a complete valid repo (contracts generated, product written) under `root` and return it."""
     write_platform(root, kind, domain)
     write_yaml(root / "conf/environments.yml", ENVIRONMENTS)
+    write_yaml(root / "conf/metastore.yml", {"targets": {"dev": {"sinks": []}}})
     bundle = root / "bundles/dataops/src"
     (bundle / "pipeline_configs").mkdir(parents=True)
     write_substitutions(RepoContext.load(root))

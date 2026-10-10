@@ -26,7 +26,12 @@ def test__tokens_address_project_layer_schemas_in_the_target_catalog():
 def test__a_generated_repo_has_current_substitution_files(repo_root: Path):
     """The fixture repo has one file per target, and none needs rewriting."""
     plans = plan_substitutions(RepoContext.load(repo_root))
-    assert sorted(p.path.name for p in plans) == ["dev_substitutions.json", "prod_substitutions.json"]
+    assert sorted(p.path.name for p in plans) == [
+        "dev_substitutions.json",
+        "environments.yml",
+        "metastore.yml",
+        "prod_substitutions.json",
+    ]
     assert all(p.current for p in plans)
 
 
@@ -50,3 +55,14 @@ def test__cli_substitutions_check_and_write(repo_root: Path, capsys):
     assert main(["--root", str(repo_root), "substitutions"]) == 0
     assert main(["--root", str(repo_root), "substitutions", "--check"]) == 0
     assert "up to date" in capsys.readouterr().out
+
+
+def test__the_bundle_gets_verbatim_copies_of_the_conf_files_its_jobs_read(repo_root: Path):
+    """conf/environments.yml and conf/metastore.yml are copied to <bundle>/src/config/ and kept in step."""
+    copy = repo_root / "bundles/dataops/src/config/metastore.yml"
+    assert copy.read_text() == (repo_root / "conf/metastore.yml").read_text()
+    (repo_root / "conf/metastore.yml").write_text("targets: {}\n", encoding="utf-8")
+    findings = [f for f in validate(RepoContext.load(repo_root)) if f.rule == "substitutions"]
+    assert [f.path for f in findings] == ["bundles/dataops/src/config/metastore.yml"]
+    write_substitutions(RepoContext.load(repo_root))
+    assert copy.read_text() == "targets: {}\n"

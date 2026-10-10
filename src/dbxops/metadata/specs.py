@@ -60,9 +60,14 @@ class DataflowSpec:
     spec_id: str
     flow_group: str
     layer_dir: Path
-    tags: dict[str, Any]
     targets: tuple[SpecTarget, ...]
     sources: dict[str, SpecSource] = field(default_factory=dict)
+    raw: dict[str, Any] = field(default_factory=dict)
+
+    @property
+    def tags(self) -> dict[str, Any]:
+        """Return the spec's `tags` mapping (domain and product tags live here)."""
+        return self.raw.get("tags", {})
 
 
 def find_specs(root: Path) -> list[Path]:
@@ -182,9 +187,9 @@ def _spec_from_doc(path: Path, doc: dict[str, Any]) -> DataflowSpec:
         spec_id=doc["data_flow_id"],
         flow_group=doc["data_flow_group"],
         layer_dir=layer_dir,
-        tags=doc.get("tags", {}),
         targets=targets,
         sources=sources,
+        raw=doc,
     )
 
 

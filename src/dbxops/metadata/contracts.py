@@ -68,6 +68,11 @@ def _custom(**props: Any) -> list[dict[str, Any]]:
     ]
 
 
+def expectation_rule_id(table: str, expectation_name: str) -> str:
+    """Return the quality-rule id a contract gives an SDP expectation: `<table>_<slug of the expectation name>`."""
+    return f"{table}_{slug(expectation_name)}"
+
+
 def contract_id(project_id: str, layer: str, table: str) -> str:
     """Return the contract id `dc_<project_id>_<layer>_<table>`."""
     return f"dc_{project_id}_{layer}_{table}"
@@ -92,7 +97,7 @@ def quality_rule(expectation: Expectation, schema: str, target: SpecTarget) -> d
     if quarantine_id:
         props.append({"property": QUARANTINE_ASSET_ID, "value": quarantine_id})
     return {
-        "id": f"{target.table}_{slug(expectation.name)}",
+        "id": expectation_rule_id(target.table, expectation.name),
         "name": expectation.name,
         "type": "sql",
         "dimension": _dimension(expectation.tag),
