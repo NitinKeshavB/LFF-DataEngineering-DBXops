@@ -1,102 +1,131 @@
-# cookie-cutter-dbx
+# cookiecutter-dbxops
 
-A template for a **metadata-driven Databricks platform**: DataOps, MLOps and AIOps built from declarative dataflow specs, with every table,
-product, model and endpoint described in [Ontos](https://github.com/databrickslabs/ontos)-ready metadata and published to one shared
-database. Squads are onboarded through a registry and each get a repository made from this one.
+A [cookiecutter](https://cookiecutter.readthedocs.io/) template for a **metadata-driven Databricks platform**: DataOps, MLOps and AIOps built
+from declarative [Lakeflow Framework](https://github.com/databricks-solutions/lakeflow_framework) dataflow specs, with every table, product,
+model and endpoint described in [Ontos](https://github.com/databrickslabs/ontos)-ready metadata and published to one shared database.
 
-> **Status.** Everything is verified offline (tests, the Databricks CLI's own bundle schema, the Lakeflow Framework's own validator,
-> `actionlint`, `shellcheck`). **Nothing has run against a real workspace, database, GitHub organisation or Ontos instance.**
-> Read [`context/06_Operations/Known_Gaps.md`](context/06_Operations/Known_Gaps.md) before relying on it, and
-> [`Prerequisites_Runbook.md`](context/06_Operations/Prerequisites_Runbook.md) for what must exist first.
+Run it once and you get a repository of your own, with the whole platform already in it: the `dbxops` library, example DataOps, MLOps and
+AIOps bundles, the metadata tooling, CI/CD workflows, the squad-registry scaffold and a [Claude Code](https://claude.com/claude-code)
+harness. Then you start building.
+
+> **Status.** The generated project is verified offline: its tests, the Databricks CLI's own bundle schema, the Lakeflow Framework's own
+> validator, `actionlint` and `shellcheck` all pass. **Nothing has run against a real workspace, database, GitHub organisation or Ontos
+> instance.** The honest list of gaps ships with every project, in `context/06_Operations/Known_Gaps.md`.
+
+## Quick start
+
+You need Python 3.11+ and `git`. `make`, and the [Databricks CLI](https://docs.databricks.com/dev-tools/cli/) for the bundle-schema tests, are used
+by the generated project.
+
+```bash
+# install cookiecutter into an isolated virtual environment
+python -m venv ./venv/
+source ./venv/bin/activate
+pip install --upgrade pip
+pip install cookiecutter
+
+# generate your repository, answering the prompts
+cookiecutter https://github.com/NitinKeshavB/cookiecutter-dbxops.git
+```
+
+Then, in the new directory:
+
+```bash
+git add -A && git commit -m "Initial commit from cookiecutter-dbxops"
+make install              # editable install with every extra (use a virtual environment)
+make validate-metadata    # contracts, products, domains, specs, snapshots: 0 errors
+make test                 # about 600 tests
+make check-placeholders   # everything you still have to fill in
+```
+
+The generated `README.md` continues from there ("Start building"): fill in the placeholders, add your first bundle, register the squad.
+
+### Prompts
+
+| Prompt | Meaning | Default |
+|---|---|---|
+| `project_id` | the squad's slug: prefixes every schema, contract and product id; `^[a-z][a-z0-9_]{2,39}$` | `example_claims` |
+| `repo_name` | the directory and the Python distribution name; `^dbx-[a-z0-9-]{3,60}$` | `dbx-<project_id>` with `-` for `_` |
+| `squad_title` | the squad's display name | `Example Claims Squad` |
+| `kind` | `project` (consumes domain data products) or `domain` (builds them; may only hold data in its own domain) | `project` |
+| `domain` | the squad's place in the domain taxonomy, any level: `claims`, `claims__litigation`, `claims__litigation__claim_litigation` | `claims` |
+| `include_examples` | `yes` keeps the three example bundles; `no` removes them and the tests written for them | `yes` |
+
+Answers are checked before anything is written, against the same rules the registry applies, so a project made here can later be registered
+without renaming anything. `domain` must exist in the taxonomy shipped with the template (16 business domains, 62 sub-domains, 82 data
+domains); a typo gets a "did you mean". A `domain` repository needs `include_examples=no`, because the examples span several business domains.
+
+Non-interactive:
+
+```bash
+cookiecutter --no-input https://github.com/NitinKeshavB/cookiecutter-dbxops.git \
+    project_id=claims_fraud squad_title="Claims Fraud Squad" kind=domain domain=claims__litigation include_examples=no
+```
 
 ## What you get
 
-| | |
-|---|---|
-| **Pipelines** | dataflow specs run by the [Lakeflow Framework](https://github.com/databricks-solutions/lakeflow_framework), pinned as a read-only submodule (v0.24.1) with an overlay of our own |
-| **Example bundles** | `bundles/dataops` (synthetic insurance data to bronze, silver, gold), `bundles/mlops` (features, training, gate, scoring, serving), `bundles/aiops` (document parsing, vector index, agent, evaluation) |
-| **Metadata** | an ODCS v3.1.0 contract per table (generated from the specs and kept in step), ODPS v1.0.0 products, a three-level domain taxonomy, a SKOS glossary, an Ontos export |
-| **Metadata database** | `platform_meta`: versioned definitions, deployments, runs, row counts, quality results and lineage; PostgreSQL, Lakebase and Unity Catalog backends |
-| **Onboarding** | a registry repository scaffold: issue form, validation, a pull request as the approval, then a provisioned repository with environments and rulesets |
-| **CI/CD** | GitHub Actions for checks, per-target deployment with environment approvals, and a weekly framework-upgrade check |
-| **The library** | `dbxops` (public API in `src/dbxops/__init__.py`) and the `dbxops-publish-run` job command |
-
-## Concepts in one minute
-
-- A table's **data domain** is a path through the taxonomy: `claims__litigation__claim_litigation` is Business Domain *Claims* >
-  Sub-domain *Litigation* > Data Domain *Claim Litigation*, so a table always shows what it rolls up to.
-- Names carry the project: schemas `<project_id>_<layer>` (`bronze`, `silver`, `gold`, `ml`, `ai`), contracts `dc_<project_id>_<layer>_<table>`,
-  products `dp_<project_id>_<name>`.
-- Specs are the source of truth for a table's columns and quality rules; `make contracts` regenerates those parts of the contract and keeps the
-  human-written parts (descriptions, classification, semantic links).
-- Anything not known yet is written `PLACEHOLDER-<what>`; deployment refuses to run while any remain.
-- Git is the truth; `platform_meta` is a versioned read model of it. See [`context/03_Architecture/`](context/03_Architecture/).
-
-## Develop
-
-Requirements: `make`, Python 3.11+, `git`, and for the offline bundle checks the [Databricks CLI](https://docs.databricks.com/dev-tools/cli/) (tests skip what is not installed).
-
-```bash
-git clone --recurse-submodules <this repo>
-make install              # editable install with every extra
-make test                 # pytest + coverage (the integration marker needs DBXOPS_TEST_PG_URL)
-make lint                 # pre-commit: black, isort, flake8, pylint, mypy, autoflake
-make validate-metadata    # contracts, products, domains, specs, snapshots, semver
+```
+dbx-claims-fraud/
+├── src/dbxops/              # the library: metadata, registry, metastore (platform_meta), config, lifecycle
+├── bundles/                 # dataops, mlops, aiops example bundles (or empty); add yours with `make new-bundle`
+├── metadata/_platform/      # your squad's registration snapshot: repo, team, domain taxonomy, glossary (read-only)
+├── conf/                    # environments (dev..prod) and the metadata database sinks
+├── framework/               # the Lakeflow Framework (pinned submodule, read-only) + our overlay and wrapper bundle
+├── templates/registry-repo/ # scaffold of the platform team's registry repository
+├── .github/workflows/       # ci, cd, deploy-bundle, deploy-framework, lakeflow-upstream, build-test-publish
+├── .claude/                 # settings, commands, skills (project + vendored Databricks, MLflow, framework skills)
+├── context/                 # the spec layer: architecture, conventions, operations runbooks, glossary
+├── tests/  scripts/  CLAUDE.md  Makefile  run.sh  pyproject.toml  version.txt
+└── .git/  .gitmodules       # initialised for you; the framework submodule is added at the pinned commit
 ```
 
-Everyday tasks (`make help` lists the rest; all are documented in [`CLAUDE.md`](CLAUDE.md) §9):
+## How generation works
 
-| Task | Command |
-|---|---|
-| Add a bundle | `make new-bundle NAME=<n> DOMAIN=<data-domain-path>` |
-| Regenerate contracts / per-target config | `make contracts`, `make sync-substitutions` (add `CHECK=1` to only report) |
-| What still needs filling in | `make check-placeholders`, `make onboard-check` |
-| Ontos files | `make export-ontos TARGET=dev` |
-| Move the framework pin | `make check-upstream`, `make upgrade-lakeflow TAG=v0.25.0` |
+1. **Prompts** (`cookiecutter.json`), then `hooks/pre_gen_project.py` rejects malformed answers.
+2. **Copy.** The template under `{{cookiecutter.repo_name}}/` is copied *verbatim* (`_copy_without_render: ["*"]`). It is a complete, working
+   repository, not a Jinja template: workflows, skills and job files are full of `${{ ... }}`, and keeping the tree free of placeholders means
+   its own tests run in place. The example squad `example_claims` is the stand-in identity.
+3. **`hooks/post_gen_project.py`** then makes it yours:
+   - checks `domain` against the taxonomy (with the project's own `dbxops.registry.domains`);
+   - removes the example bundles if asked;
+   - replaces the example identity (id, repo name, GitHub team, AD group token, title) in every text file, and the distribution name
+     `cookie-cutter-dbx` with `repo_name` (except in the registry scaffold, which installs the *published* library);
+   - rewrites the four `metadata/_platform` snapshots for your answers and recomputes their hash headers (a test proves the result is
+     byte-identical to what the registry itself would render);
+   - runs `git init` and `scripts/add_framework.sh`, which adds the Lakeflow Framework as a submodule at the commit in `framework/UPSTREAM.lock`.
+     If that fails (no network), the hook says so and how to retry; the project is still created.
 
-## Onboarding a squad
+The import name stays `dbxops` in every generated project, on purpose: it is the platform's library, shared tooling and docs refer to it, and
+renaming it would touch about 600 files for no benefit to a squad.
 
-Squads register through the **registry** (scaffolded in [`templates/registry-repo`](templates/registry-repo/)): an issue form captures the squad,
-its owners (technical, data, executive, steward, support), AD groups, data domain, service principal and tags; a pull request is the approval;
-provisioning creates the repository. Details: [`Project_Onboarding.md`](context/06_Operations/Project_Onboarding.md).
+## Developing the template
 
-## Environments and deployment
+The repository root is the cookiecutter; everything a squad receives is under `{{cookiecutter.repo_name}}/`. Work there as in any repository
+(its `Makefile`, `CLAUDE.md` and tests apply when you `cd` into it, with the framework checked out).
 
-Five targets (`dev`, `test`, `uat`, `preprod`, `prod`), one catalog each, defined in `conf/environments.yml`. A merge to `main` deploys dev then test; a version
-tag promotes through uat, preprod and prod behind GitHub environment reviewers. The platform team deploys the framework itself once per target.
-Details: [`Environments_And_Deploy.md`](context/06_Operations/Environments_And_Deploy.md), [`Upgrading_Lakeflow.md`](context/06_Operations/Upgrading_Lakeflow.md).
+```bash
+make install     # cookiecutter, pytest, PyYAML
+make test        # fast: renders projects and inspects them (a few seconds, no network)
+make test-e2e    # slow: renders, installs and runs the generated project's own validation and tests (network, about 4 minutes per variant)
+make try         # render the defaults into ./out/
+```
 
-## Continuous integration and releases
+`DBXOPS_TEST_FRAMEWORK_URL=<local clone of the framework>` makes `make test-e2e` independent of GitHub.
 
-`.github/workflows/ci.yml` runs on pull requests and pushes to `main` (job `checks`): the framework pin, lint, tests, metadata, contract and
-substitution drift, specs, vendored skills, the registry scaffold and framework staging.
-`.github/workflows/build-test-publish.yml` tests the package across Python 3.11 to 3.13, builds a wheel and tests the installed wheel; releases are tag-driven
-(a tag matching `version.txt`): TestPyPI first, then PyPI. Add `TEST_PYPI_TOKEN` and `PROD_PYPI_TOKEN` under *Settings > Secrets and variables > Actions*; to
-require approval for a production release, create a GitHub Environment named `pypi` with a required reviewer.
+Rules of thumb:
 
-## AI agent harness
+- **Keep the template tree free of `{{`-style placeholders of your own.** All customisation is hook code on a short list of known tokens
+  (`identity_replacements` in `hooks/post_gen_project.py`). Adding a prompt means: `cookiecutter.json`, the hook, a test in `tests/`.
+- **A test in the template must not hard-code the example squad's values** (`claims`, `example_claims`) unless the hook rewrites them, and must not
+  use an id a real squad might choose (the registry tests use `intake_probe`).
+- Hooks are rendered by Jinja before they run, so avoid `{{`, `{%` and `{#` in them other than the prompts.
+- The framework submodule is **not** in this repository. To move the pin for new projects, generate a project, run `make upgrade-lakeflow TAG=<tag>`
+  there, and copy back the files it changed (`git status` lists them).
 
-This project ships a [Claude Code](https://claude.com/claude-code) harness: rules, commands and skills that make an agent investigate before it acts,
-cite `file:line` for claims, keep changes surgical, and prove a change by running something.
+## Known limitations
 
-| Path | Purpose |
-|---|---|
-| `CLAUDE.md` | the operational doctrine, read first |
-| `.claude/commands/` | slash commands |
-| `.claude/skills/` | the project's skills, plus vendored Databricks, MLflow and framework skills locked in `VENDORED.json` |
-| `context/` | the spec layer: overview, glossary (binding), architecture, spec reference, operations |
-| `LOCAL-MEMORY/` | where analyses, plans and lessons are written |
-
-| Command | Use it for |
-|---|---|
-| `/qa` | run lint and tests and triage failures |
-| `/explain <target>` · `/bug-why <error>` · `/bug-fix <analysis>` | understand, diagnose, fix (failing test first) |
-| `/howto-implement <feature>` · `/implement <plan>` | plan before code, then a surgical change |
-| `/verify [target]` | adversarially check a change, plan or diagnosis |
-| `/new-bundle <name> <domain>` · `/upgrade-lakeflow [tag]` · `/onboard-check` | platform tasks |
-| `/databricks-doctor` · `/databricks-setup` | vendored Databricks health check and CLI auth setup |
-
-Project skills: `metadata-ontology`, `dataops-design`, `mlops-design`, `aiops-design`. The global Databricks plugin is disabled for this project
-(`.claude/settings.json`); its skills are vendored so they are versioned with the code. Never run with an auto-selected Databricks profile.
-
-Adapted from the Claude Code Agent Harness by Viacheslav Tronko (MIT); see `HARNESS-ATTRIBUTION.md`. Third-party licences: `THIRD_PARTY/`.
+- Needs network on first generation (the framework submodule), unless you point `DBXOPS_FRAMEWORK_URL` at a mirror.
+- Each generated repository carries its own copy of `dbxops`. Fixes to the library reach squads by regenerating or merging from the template;
+  there is no automatic update channel yet.
+- With `include_examples=no`, the `cd.yml` workflow has no bundle to deploy until you add one (an empty matrix fails); `make new-bundle` fixes that.
+- The generated `metadata/_platform/` is a stand-in with placeholder owner emails. The registry owns the real one.

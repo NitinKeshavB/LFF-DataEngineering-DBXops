@@ -1,26 +1,28 @@
-"""
-Register pytest plugins, fixtures, and hooks to be used during test execution.
+"""Fixtures: render the template into a temporary directory."""
 
-Docs: https://stackoverflow.com/questions/34466027/in-pytest-what-is-the-use-of-conftest-py-files
-"""
-
-import sys
 from pathlib import Path
+from typing import Callable
 
-THIS_DIR = Path(__file__).parent
-TESTS_DIR_PARENT = (THIS_DIR / "..").resolve()
+import pytest
+from cookiecutter.main import cookiecutter
 
-# add the parent directory of tests/ to PYTHONPATH
-# so that we can use "from tests.<module> import ..." in our tests and fixtures
-sys.path.insert(0, str(TESTS_DIR_PARENT))
+from tests.consts import TEMPLATE_DIR
 
-# module import paths to python files containing fixtures
-pytest_plugins = [
-    # e.g. "tests/fixtures/example_fixture.py" should be registered as:
-    "tests.fixtures.example_fixture",
-    "tests.fixtures.domain_taxonomy",
-    "tests.fixtures.metadata_repo",
-    "tests.fixtures.workspace",
-    "tests.fixtures.bundle_schema",
-    "tests.fixtures.metastore",
-]
+
+@pytest.fixture
+def render(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> Callable[..., Path]:
+    """
+    Return a function that renders the template with the given answers and returns the new project's path.
+
+    The Lakeflow Framework submodule is added over the network, which the fast tests neither need nor want, so the
+    repository URL points at nothing: the hook then reports the failed step and carries on, as it does offline.
+    """
+    monkeypatch.setenv("DBXOPS_FRAMEWORK_URL", str(tmp_path / "no-such-repository"))
+
+    def _render(**answers: str) -> Path:
+        out = tmp_path / "out"
+        cookiecutter(str(TEMPLATE_DIR), no_input=True, extra_context=answers, output_dir=str(out))
+        (project,) = list(out.iterdir())
+        return project
+
+    return _render

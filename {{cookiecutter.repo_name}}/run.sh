@@ -52,7 +52,7 @@ function run-tests {
     rm -rf "$THIS_DIR/test-reports" || mkdir "$THIS_DIR/test-reports"
 
     # execute the tests, calculate coverage, and generate coverage reports in the test-reports dir
-    python -m pytest ${@:-"$THIS_DIR/tests/"} \
+    python -m pytest "${@:-$THIS_DIR/tests/}" \
         --cov "${COVERAGE_DIR:-$THIS_DIR/src}" \
         --cov-report html \
         --cov-report term \

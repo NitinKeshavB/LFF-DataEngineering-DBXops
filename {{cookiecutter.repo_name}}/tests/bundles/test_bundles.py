@@ -112,7 +112,10 @@ def test__the_repository_metadata_is_valid():
     assert not has_errors(findings), [str(f) for f in findings if f.severity == "error"]
 
 
-@pytest.mark.skipif(not UPSTREAM_VALIDATOR.exists(), reason="framework submodule not checked out")
+@pytest.mark.skipif(
+    not BUNDLES or not UPSTREAM_VALIDATOR.exists(),
+    reason="no bundle yet (run make new-bundle), or the framework submodule is not checked out",
+)
 def test__every_spec_passes_the_frameworks_own_validator():
     """The pinned framework's validate_dataflows.py accepts every dataflow spec under bundles/ (make validate-specs)."""
     result = subprocess.run(

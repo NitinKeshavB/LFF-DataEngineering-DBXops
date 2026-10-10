@@ -10,9 +10,9 @@ that metadata is published to one shared database, `platform_meta`.
 
 | Repository | Owned by | Holds | Writes to `platform_meta` |
 |---|---|---|---|
-| **This template** (`cookie-cutter-dbx`) | platform team | the framework pin, `dbxops` library, example bundles, CI/CD, the registry scaffold | its own example project |
+| **The template** ([cookiecutter-dbxops](https://github.com/NitinKeshavB/cookiecutter-dbxops)) | platform team | everything a new repository starts with: the framework pin, `dbxops` library, example bundles, CI/CD, the registry scaffold | nothing |
 | **`dbx-platform-registry`** (made from `templates/registry-repo/`) | platform team | one registration per squad, the domain taxonomy, required tags, the glossary, the onboarding workflows | organisation records: projects, squads, domains, glossary (`repo_id = _platform`) |
-| **A squad repository** (made from the template by the registry) | a squad | its bundles, contracts, products | only its own records (`repo_id = <project_id>`) |
+| **A squad repository** (generated from the template; this repository) | a squad | its bundles, contracts, products | only its own records (`repo_id = <project_id>`) |
 
 A squad repository carries a read-only snapshot of its registration (`metadata/_platform/`), so it can validate offline.
 

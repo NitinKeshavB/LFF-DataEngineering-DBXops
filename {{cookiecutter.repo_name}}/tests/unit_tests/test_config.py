@@ -3,6 +3,7 @@
 import dataclasses
 
 import pytest
+import yaml
 
 from dbxops.config import (
     ConfigError,
@@ -98,8 +99,9 @@ def test__invalid_yaml_is_a_config_error(tmp_path):
 def test__repo_config_loads_the_real_registry_file():
     """The machine-owned repo.yaml loads into the typed config."""
     repo = load_repo_config(REPO_YAML)
-    assert (repo.project_id, repo.kind, repo.domain) == ("example_claims", "project", "claims")
-    assert repo.owner_team == "example_claims_squad"
+    snapshot = yaml.safe_load(REPO_YAML.read_text(encoding="utf-8"))
+    assert (repo.project_id, repo.kind, repo.domain) == (snapshot["project_id"], snapshot["kind"], snapshot["domain"])
+    assert repo.owner_team == f"{repo.project_id}_squad"
     assert repo.project_type == "TEAM"
     assert set(repo.tags) == {"cost_center", "region"}
     assert repo.standards["odcs"] == "v3.1.0"

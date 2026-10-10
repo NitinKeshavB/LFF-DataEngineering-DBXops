@@ -1,0 +1,9 @@
+{
+  "project_id": "example_claims",
+  "repo_name": "dbx-{{ cookiecutter.project_id | replace('_', '-') }}",
+  "squad_title": "Example Claims Squad",
+  "kind": ["project", "domain"],
+  "domain": "claims",
+  "include_examples": ["yes", "no"],
+  "_copy_without_render": ["*"]
+}

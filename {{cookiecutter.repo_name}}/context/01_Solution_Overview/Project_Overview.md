@@ -7,11 +7,10 @@ operations in `../06_Operations/`, and what is **not** yet verified in `../06_Op
 
 ## Domain
 
-`cookie-cutter-dbx` is the **template repository for a metadata-driven Databricks platform** (an insurance client's DataOps,
-MLOps and AIOps). Pipelines are dataflow specs run by the pinned Lakeflow Framework; every table, product, model and endpoint is
+`cookie-cutter-dbx` is a **repository for a metadata-driven Databricks platform** (an insurance client's DataOps,
+MLOps and AIOps), generated from the cookiecutter-dbxops template. Pipelines are dataflow specs run by the pinned Lakeflow Framework; every table, product, model and endpoint is
 described in Ontos-ready metadata (ODCS contracts, ODPS products, a SKOS glossary, a domain taxonomy) which is published to one
-shared database, `platform_meta`. Squads are onboarded through a registry repository and receive a repository made from this
-template. It also ships the installable Python library `dbxops` that does the validating, generating, publishing and lifecycle work.
+shared database, `platform_meta`. Squads are onboarded through a registry repository, and each squad generates its repository from the template. It also ships the installable Python library `dbxops` that does the validating, generating, publishing and lifecycle work.
 
 **Users:** the platform team (maintains this template, the registry and the framework deployment) and squads (build bundles in
 their own repositories made from it).

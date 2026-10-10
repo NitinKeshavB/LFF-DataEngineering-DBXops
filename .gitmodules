@@ -1,3 +1,0 @@
-[submodule "framework/lakeflow_framework"]
-	path = framework/lakeflow_framework
-	url = https://github.com/databricks-solutions/lakeflow_framework

@@ -22,18 +22,18 @@ from tests.consts import PROJECT_DIR
 
 SCAFFOLD = PROJECT_DIR / "templates/registry-repo"
 ANSWERS = {
-    "Project id": "claims_fraud",
+    "Project id": "intake_probe",
     "Repository kind": "project",
-    "Squad name": "claims_fraud_squad",
+    "Squad name": "intake_probe_squad",
     "Squad title": "Claims Fraud Squad",
-    "GitHub team": "claims-fraud",
+    "GitHub team": "intake-probe",
     "Data domain": "claims__fraud_investigations__fraud_investigation",
     "Technical owner email": "tech@example.com",
     "Data owner email": "data@example.com",
     "Executive owner email": "exec@example.com",
     "Data steward email": "steward@example.com",
     "Support email": "support@example.com",
-    "Support channel": "https://teams.example.com/claims-fraud",
+    "Support channel": "https://teams.example.com/intake-probe",
     "Service principal application id": "",
     "Tags": "cost_center: 12345\nregion: au-east",
     "Repository name": "",
@@ -75,13 +75,13 @@ def test__a_valid_request_becomes_a_registration_with_derived_groups_and_default
     """AD groups follow the naming rule, the repo name defaults, and a missing service principal is a placeholder."""
     path = intake(render(ANSWERS), registry)
     doc = yaml.safe_load(path.read_text(encoding="utf-8"))
-    assert path == registry / "projects/claims_fraud.yaml"
+    assert path == registry / "projects/intake_probe.yaml"
     assert doc["groups"] == {
-        "developers": "AAD-DBX-CLAIMSFRAUD-DEV",
-        "readers": "AAD-DBX-CLAIMSFRAUD-READ",
-        "admins": "AAD-DBX-CLAIMSFRAUD-ADMIN",
+        "developers": "AAD-DBX-INTAKEPROBE-DEV",
+        "readers": "AAD-DBX-INTAKEPROBE-READ",
+        "admins": "AAD-DBX-INTAKEPROBE-ADMIN",
     }
-    assert doc["repo"] == {"name": "dbx-claims-fraud"}
+    assert doc["repo"] == {"name": "dbx-intake-probe"}
     assert doc["service_principal"]["application_id"] == "PLACEHOLDER-project-sp-application-id"
     assert doc["tags"] == {"cost_center": "12345", "region": "au-east"}
     assert validate_registry(registry) == []
@@ -100,8 +100,8 @@ def test__problems_are_all_listed_together_and_nothing_is_written(registry: Path
         intake(render(answers), registry)
     message = str(error.value)
     assert "Squad name: required" in message
-    assert not (registry / "projects/claims_fraud.yaml").exists()
-    answers["Squad name"] = "claims_fraud_squad"
+    assert not (registry / "projects/intake_probe.yaml").exists()
+    answers["Squad name"] = "intake_probe_squad"
     with pytest.raises(IntakeError) as error:
         intake(render(answers), registry)
     assert "contacts/data_owner" in str(error.value)
