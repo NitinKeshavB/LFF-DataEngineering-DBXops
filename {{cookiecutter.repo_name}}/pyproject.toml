@@ -21,6 +21,7 @@ dynamic = ["version"]
 dbxops-publish-run = "dbxops.metastore.job_task:main"
 dbxops-lifecycle = "dbxops.lifecycle:main"
 dbxops-land = "dbxops.connectors.cli:main"
+dbxops-land-sftp = "dbxops.connectors.sftp_autoloader:main"
 
 # docs: https://setuptools.pypa.io/en/latest/userguide/pyproject_config.html#dynamic-metadata
 [tool.setuptools.dynamic]

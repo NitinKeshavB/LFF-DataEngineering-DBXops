@@ -47,11 +47,42 @@ CONNECTOR_EXTRA_DEPENDENCIES: dict[str, list[str]] = {
     "zip": [],
     "sftp": ["paramiko>=3"],
 }
-CONNECTOR_KINDS = tuple(CONNECTOR_PLACEHOLDER_CONFIG)
+MODES = ("custom", "lakeflow")
+# custom: a dbxops.connectors job task, built and tested in this package.
+CUSTOM_CONNECTOR_KINDS = tuple(CONNECTOR_PLACEHOLDER_CONFIG)
+# lakeflow: a managed Lakeflow Connect pipeline (or, for sftp, Auto Loader reading the server directly) instead
+# of a hand-rolled connector. sqlserver and postgresql need the two-pipeline gateway pattern; sharepoint is a
+# single ingestion pipeline on the preview runtime; sftp has no managed ingestion_definition, so it is Auto
+# Loader's cloudFiles reading an sftp:// path straight into Delta (GA on DBR 17.3+).
+LAKEFLOW_CONNECTOR_KINDS = ("sftp", "sqlserver", "postgresql", "sharepoint")
+CONNECTOR_KINDS = tuple(dict.fromkeys(CUSTOM_CONNECTOR_KINDS + LAKEFLOW_CONNECTOR_KINDS))
 
 
 class ScaffoldError(ValueError):
     """Raised when a bundle cannot be scaffolded (bad name, domain, or the bundle already exists)."""
+
+
+def _parse_connector(connector: str | None) -> tuple[str | None, str | None]:
+    """
+    Split a ``<kind>`` or ``<kind>:<mode>`` connector argument into its kind and resolved mode.
+
+    Kept as one string (rather than two `scaffold_bundle` parameters) to stay under the 5-argument limit;
+    `--connector`/`--mode` are still separate CLI flags, joined before the call.
+    """
+    if connector is None:
+        return None, None
+    kind, _, explicit_mode = connector.partition(":")
+    if kind not in CONNECTOR_KINDS:
+        raise ScaffoldError(f"connector {kind!r} must be one of {', '.join(CONNECTOR_KINDS)}")
+    custom_ok, lakeflow_ok = kind in CUSTOM_CONNECTOR_KINDS, kind in LAKEFLOW_CONNECTOR_KINDS
+    mode = explicit_mode or ("custom" if custom_ok else "lakeflow")
+    if mode not in MODES:
+        raise ScaffoldError(f"mode {mode!r} must be one of {', '.join(MODES)}")
+    if mode == "custom" and not custom_ok:
+        raise ScaffoldError(f"connector {kind!r} has no custom implementation; use 'lakeflow'")
+    if mode == "lakeflow" and not lakeflow_ok:
+        raise ScaffoldError(f"connector {kind!r} has no Lakeflow Connect pattern yet; use 'custom'")
+    return kind, mode
 
 
 def _variables(tag_keys: list[str], workload: str = "de") -> dict[str, Any]:
@@ -207,27 +238,25 @@ def _land_task(name: str, connector: str) -> dict[str, Any]:
     }
 
 
-def _job(ctx: RepoContext, name: str, connector: str | None = None) -> dict[str, Any]:
+def _job(
+    ctx: RepoContext,
+    name: str,
+    extra_tasks: list[dict[str, Any]] | None = None,
+    extra_environments: list | None = None,
+) -> dict[str, Any]:
+    extra_tasks = extra_tasks or []
     environments = [
         {
             "environment_key": "platform",
             "spec": {"client": "4", "dependencies": ["databricks-sql-connector", "${var.dbxops_wheel_path}"]},
-        }
+        },
+        *(extra_environments or []),
     ]
-    tasks = [{"task_key": "silver", "pipeline_task": {"pipeline_id": f"${{resources.pipelines.{name}_silver.id}}"}}]
-    publish_depends_on = [{"task_key": "silver"}]
-    if connector is not None:
-        environments.append(
-            {
-                "environment_key": "land",
-                "spec": {
-                    "client": "4",
-                    "dependencies": ["${var.dbxops_wheel_path}", *CONNECTOR_EXTRA_DEPENDENCIES[connector]],
-                },
-            }
-        )
-        tasks.insert(0, _land_task(name, connector))
-        publish_depends_on.append({"task_key": f"land_{name}"})
+    tasks = [
+        *extra_tasks,
+        {"task_key": "silver", "pipeline_task": {"pipeline_id": f"${{resources.pipelines.{name}_silver.id}}"}},
+    ]
+    publish_depends_on = [{"task_key": "silver"}, *[{"task_key": t["task_key"]} for t in extra_tasks]]
     return {
         "resources": {
             "jobs": {
@@ -281,6 +310,213 @@ def _job(ctx: RepoContext, name: str, connector: str | None = None) -> dict[str,
             }
         }
     }
+
+
+def _custom_connector_wiring(name: str, connector: str) -> tuple[list[dict[str, Any]], list[dict], dict[str, str]]:
+    task = _land_task(name, connector)
+    environment = {
+        "environment_key": "land",
+        "spec": {
+            "client": "4",
+            "dependencies": ["${var.dbxops_wheel_path}", *CONNECTOR_EXTRA_DEPENDENCIES[connector]],
+        },
+    }
+    files = {f"src/config/land_{name}.yml": _dump(CONNECTOR_PLACEHOLDER_CONFIG[connector])}
+    return [task], [environment], files
+
+
+def _sftp_lakeflow_wiring(name: str) -> tuple[list[dict[str, Any]], list[dict], dict[str, str]]:
+    task = {
+        "task_key": f"land_{name}",
+        "environment_key": "land_sftp",
+        "python_wheel_task": {
+            "package_name": "cookie-cutter-dbx",
+            "entry_point": "dbxops-land-sftp",
+            "parameters": [
+                "--config",
+                f"${{workspace.file_path}}/src/config/land_{name}_sftp.yml",
+                "--catalog",
+                "${var.catalog}",
+                "--schema",
+                "${var.project_id}_bronze${var.logical_env}",
+                "--table",
+                f"{name}_sftp_raw",
+                "--checkpoint",
+                f"/Volumes/${{var.catalog}}/${{var.project_id}}_bronze${{var.logical_env}}/landing/_checkpoints/land_{name}_sftp",  # noqa: E501
+            ],
+        },
+    }
+    environment = {
+        "environment_key": "land_sftp",
+        "spec": {"client": "4", "dependencies": ["${var.dbxops_wheel_path}"]},
+    }
+    config = {
+        "connection": "PLACEHOLDER-sftp-connection-name",
+        "source_path": "PLACEHOLDER-sftp-source-path",
+        "format": "csv",
+    }
+    note = (
+        "# One-time setup: SFTP connection (Lakeflow mode)\n\n"
+        "Verified against https://docs.databricks.com/aws/en/ingestion/sftp -- run once, before the first job run\n"
+        "(SQL editor in Catalog Explorer, or any client that can run a CREATE CONNECTION statement):\n\n"
+        "```sql\n"
+        "CREATE CONNECTION PLACEHOLDER-sftp-connection-name\n"
+        "TYPE sftp\n"
+        "OPTIONS (\n"
+        "  host 'PLACEHOLDER-sftp-host',\n"
+        "  user secret('PLACEHOLDER-scope', 'PLACEHOLDER-username-key'),\n"
+        "  pem_private_key secret('PLACEHOLDER-scope', 'PLACEHOLDER-private-key-key'),\n"
+        "  port '22',\n"
+        "  key_fingerprint 'PLACEHOLDER-key-fingerprint'\n"
+        ")\n"
+        "```\n\n"
+        f"Then put that exact connection name into `src/config/land_{name}_sftp.yml`'s `connection` field.\n"
+    )
+    files = {
+        f"src/config/land_{name}_sftp.yml": _dump(config),
+        f"src/config/land_{name}_connection.md": note,
+    }
+    return [task], [environment], files
+
+
+def _db_cdc_lakeflow_wiring(
+    ctx: RepoContext, name: str, connector: str
+) -> tuple[list[dict[str, Any]], list[dict], dict[str, str]]:
+    gateway_key, ingestion_key = f"{name}_gateway", f"{name}_ingestion"
+    pipelines = {
+        "resources": {
+            "pipelines": {
+                gateway_key: {
+                    "name": f"[${{var.project_id}}] {name} ingestion gateway (${{bundle.target}}${{var.logical_env}})",
+                    "tags": _tag_refs(ctx),
+                    "gateway_definition": {
+                        "connection_name": f"PLACEHOLDER-{connector}-connection-name",
+                        "gateway_storage_catalog": "${var.catalog}",
+                        "gateway_storage_schema": "${var.project_id}_bronze${var.logical_env}",
+                        "gateway_storage_name": f"{name}_gateway_storage",
+                    },
+                },
+                ingestion_key: {
+                    "name": f"[${{var.project_id}}] {name} ingestion (${{bundle.target}}${{var.logical_env}})",
+                    "tags": _tag_refs(ctx),
+                    "ingestion_definition": {
+                        "ingestion_gateway_id": f"${{resources.pipelines.{gateway_key}.id}}",
+                        "objects": [
+                            {
+                                "table": {
+                                    "source_catalog": "PLACEHOLDER-source-catalog",
+                                    "source_schema": "PLACEHOLDER-source-schema",
+                                    "source_table": "PLACEHOLDER-source-table",
+                                    "destination_catalog": "${var.catalog}",
+                                    "destination_schema": "${var.project_id}_bronze${var.logical_env}",
+                                }
+                            }
+                        ],
+                    },
+                },
+            }
+        }
+    }
+    tasks: list[dict[str, Any]] = [
+        {"task_key": gateway_key, "pipeline_task": {"pipeline_id": f"${{resources.pipelines.{gateway_key}.id}}"}},
+        {
+            "task_key": ingestion_key,
+            "depends_on": [{"task_key": gateway_key}],
+            "pipeline_task": {"pipeline_id": f"${{resources.pipelines.{ingestion_key}.id}}"},
+        },
+    ]
+    note = (
+        f"# One-time setup: {connector} connection (Lakeflow mode)\n\n"
+        "Verified shape (field names): https://docs.databricks.com/api/workspace/connections/create -- the "
+        "credential placement below is a starting point; confirm it against that reference or "
+        "`databricks connections create --help` before running, since it is not fully documented for this "
+        "connector type.\n\n"
+        "```bash\n"
+        "databricks connections create --json '{\n"
+        f'  "name": "PLACEHOLDER-{connector}-connection-name",\n'
+        f'  "connection_type": "{connector.upper()}",\n'
+        '  "properties": {\n'
+        '    "host": "PLACEHOLDER-db-host",\n'
+        '    "port": "PLACEHOLDER-db-port"\n'
+        "  }\n"
+        "}'\n"
+        "```\n\n"
+        f"Then put that exact connection name into `resources/{name}.lakeflow.yml`'s `gateway_definition."
+        "connection_name`, and the real source_catalog/source_schema/source_table into the ingestion pipeline's "
+        "`objects` list.\n"
+    )
+    files = {f"resources/{name}.lakeflow.yml": _dump(pipelines), f"src/config/land_{name}_connection.md": note}
+    return tasks, [], files
+
+
+def _sharepoint_lakeflow_wiring(
+    ctx: RepoContext, name: str
+) -> tuple[list[dict[str, Any]], list[dict], dict[str, str]]:
+    ingestion_key = f"{name}_ingestion"
+    pipelines = {
+        "resources": {
+            "pipelines": {
+                ingestion_key: {
+                    "name": f"[${{var.project_id}}] {name} ingestion (${{bundle.target}}${{var.logical_env}})",
+                    "catalog": "${var.catalog}",
+                    "schema": "${var.project_id}_bronze${var.logical_env}",
+                    "channel": "PREVIEW",
+                    "tags": _tag_refs(ctx),
+                    "ingestion_definition": {
+                        "connection_name": "PLACEHOLDER-sharepoint-connection-name",
+                        "objects": [
+                            {
+                                "table": {
+                                    "destination_catalog": "${var.catalog}",
+                                    "destination_schema": "${var.project_id}_bronze${var.logical_env}",
+                                    "destination_table": f"{name}_sharepoint_files",
+                                    "connector_options": {
+                                        "sharepoint_options": {
+                                            "entity_type": "FILE",
+                                            "url": "PLACEHOLDER-sharepoint-site-url",
+                                            "file_ingestion_options": {
+                                                "format": "BINARYFILE",
+                                                "schema_evolution_mode": "NONE",
+                                            },
+                                        }
+                                    },
+                                }
+                            }
+                        ],
+                    },
+                }
+            }
+        }
+    }
+    tasks: list[dict[str, Any]] = [
+        {"task_key": ingestion_key, "pipeline_task": {"pipeline_id": f"${{resources.pipelines.{ingestion_key}.id}}"}}
+    ]
+    note = (
+        "# One-time setup: SharePoint connection (Lakeflow mode, Preview)\n\n"
+        "SharePoint only supports OAuth (U2M, M2M or manual refresh token) -- no API key, no CLI/DAB bootstrap for "
+        "U2M. Create the connection once in Catalog Explorer: External Data > Connections > Create connection > "
+        "SharePoint > sign in. Then put its exact name into "
+        f"`resources/{name}.lakeflow.yml`'s `ingestion_definition.connection_name`, and the real site URL into "
+        "`connector_options.sharepoint_options.url`.\n\n"
+        "This pipeline runs on `channel: PREVIEW` and its SharePoint connector options are Preview-stage; "
+        "re-check https://docs.databricks.com/aws/en/ingestion/lakeflow-connect/sharepoint-reference before relying "
+        "on it in production.\n"
+    )
+    files = {f"resources/{name}.lakeflow.yml": _dump(pipelines), f"src/config/land_{name}_connection.md": note}
+    return tasks, [], files
+
+
+def _connector_wiring(
+    ctx: RepoContext, name: str, connector: str, mode: str
+) -> tuple[list[dict[str, Any]], list[dict], dict[str, str]]:
+    """Return the job's extra tasks, extra environments, and the extra files to write, for one connector+mode."""
+    if mode == "custom":
+        return _custom_connector_wiring(name, connector)
+    if connector == "sftp":
+        return _sftp_lakeflow_wiring(name)
+    if connector in ("sqlserver", "postgresql"):
+        return _db_cdc_lakeflow_wiring(ctx, name, connector)
+    return _sharepoint_lakeflow_wiring(ctx, name)
 
 
 def _spec(name: str, data_domain: str, product_id: str) -> dict[str, Any]:
@@ -358,14 +594,10 @@ def _dump(document: dict[str, Any]) -> str:
     return yaml.safe_dump(document, sort_keys=False, allow_unicode=True, width=140)
 
 
-def _check_scaffold_args(
-    ctx: RepoContext, bundle: Path, data_domain: str, workload: str, connector: str | None
-) -> None:
-    """Raise `ScaffoldError` for an invalid name, domain, workload or connector, or when the bundle already exists."""
+def _check_scaffold_args(ctx: RepoContext, bundle: Path, data_domain: str, workload: str) -> None:
+    """Raise `ScaffoldError` for an invalid name, domain or workload, or when the bundle already exists."""
     if workload not in WORKLOADS:
         raise ScaffoldError(f"workload {workload!r} must be one of {', '.join(WORKLOADS)}")
-    if connector is not None and connector not in CONNECTOR_KINDS:
-        raise ScaffoldError(f"connector {connector!r} must be one of {', '.join(CONNECTOR_KINDS)}")
     if not NAME_PATTERN.match(bundle.name):
         raise ScaffoldError(f"bundle name {bundle.name!r} must match {NAME_PATTERN.pattern}")
     if bundle.exists():
@@ -384,31 +616,45 @@ def scaffold_bundle(
 
     `data_domain` must be a data-domain path of the taxonomy (it is what the example table's contract rolls up
     to). `workload` is `de`, `ml`, `ai` or `platform` and is declared once as the bundle's `workload` variable.
-    `connector` is one of `CONNECTOR_KINDS` (`sftp`, `xlsx`, `zip`); when given, the job also lands a source with
-    that connector into the bronze landing Volume, from a config file carrying `PLACEHOLDER-<what>` text for what
-    only a person can fill in. Raises `ScaffoldError` for an invalid name, domain, workload or connector, or when
-    the bundle already exists.
+    `connector` is `<kind>` or `<kind>:<mode>`, where `kind` is one of `CONNECTOR_KINDS` and `mode` is `custom`
+    (a dbxops.connectors job task; offered for `sftp`, `xlsx`, `zip`) or `lakeflow` (a managed Lakeflow Connect
+    pipeline, or for `sftp` Auto Loader reading the server directly; offered for `sftp`, `sqlserver`,
+    `postgresql`, `sharepoint`) -- when the `:mode` suffix is omitted it defaults to whichever one the kind
+    supports. When given, the job also lands that source, from files carrying `PLACEHOLDER-<what>` text for
+    what only a person can fill in. Raises `ScaffoldError` for an invalid name, domain, workload, connector
+    kind or mode, or when the bundle already exists.
     """
     ctx = RepoContext.load(root)
     bundle = root / "bundles" / name
-    _check_scaffold_args(ctx, bundle, data_domain, workload, connector)
+    kind, mode = _parse_connector(connector)
+    _check_scaffold_args(ctx, bundle, data_domain, workload)
+    extra_tasks, extra_environments, extra_files = (
+        _connector_wiring(ctx, name, kind, mode) if kind is not None else ([], [], {})
+    )
     product = _product(ctx, name)
     layer = bundle / "src/dataflows/silver"
     files = {
         bundle / "databricks.yml": _dump(_bundle_config(ctx, name, workload)),
         bundle / f"resources/{name}.pipelines.yml": _dump(_pipeline(ctx, name)),
-        bundle / f"resources/{name}.jobs.yml": _dump(_job(ctx, name, connector)),
+        bundle / f"resources/{name}.jobs.yml": _dump(_job(ctx, name, extra_tasks, extra_environments)),
         layer
         / f"dataflowspec/{EXAMPLE_TABLE}_main.json": json.dumps(_spec(name, data_domain, product["id"]), indent=2)
         + "\n",
         layer / f"schemas/{EXAMPLE_TABLE}_schema.json": json.dumps(EXAMPLE_SCHEMA, indent=2) + "\n",
         bundle / f"src/products/{name}.odps.yaml": _dump(product),
+        **{bundle / relative: text for relative, text in extra_files.items()},
     }
-    if connector is not None:
-        files[bundle / f"src/config/land_{name}.yml"] = _dump(CONNECTOR_PLACEHOLDER_CONFIG[connector])
+    _write_files(files)
+    return [*files, *_generated_files(root)]
+
+
+def _write_files(files: dict[Path, str]) -> None:
     for path, text in files.items():
         path.parent.mkdir(parents=True, exist_ok=True)
         path.write_text(text, encoding="utf-8")
+
+
+def _generated_files(root: Path) -> list[Path]:
     generated = [plan.path for plan in write_substitutions(RepoContext.load(root))]
     generated += [plan.path for plan in write_contracts(RepoContext.load(root))]
-    return [*files, *generated]
+    return generated

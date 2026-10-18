@@ -16,6 +16,12 @@ configuration, the Lakeflow Framework's own validator for specs, `actionlint` an
   `FeatureLookup` may require.
 - GitHub provisioning (repository from template, environments, ruleset) and the `github-oidc` deploy authentication.
 - Ontos accepting the exported shapes unchanged.
+- **Lakeflow Connect scaffolding** (`make new-bundle ... CONNECTOR=sqlserver|postgresql|sharepoint MODE=lakeflow`, or `CONNECTOR=sftp:lakeflow`). The
+  `gateway_definition`/`ingestion_definition` pipeline YAML and the SFTP Auto Loader script are verified against the Databricks CLI's own bundle schema
+  (`cli_bundle_validator`) and the current public docs, but no gateway, ingestion pipeline, or UC `CONNECTION` from this path has ever run against a real
+  workspace. The `databricks connections create --json` body in each `src/config/land_<name>_connection.md` note is a best-effort starting point, not a
+  verified shape for sqlserver/postgresql credentials -- confirm the field names against `databricks connections create --help` or the connector reference
+  before running it. SharePoint's connector is Preview-stage and may change before GA.
 
 ## Not built
 

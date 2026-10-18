@@ -44,6 +44,11 @@ resources:
           - ${var.dbxops_wheel_path}
           - openpyxl>=3.1
           - pyarrow>=14
+      - environment_key: land_sftp
+        spec:
+          client: '4'
+          dependencies:
+          - ${var.dbxops_wheel_path}
       - environment_key: platform
         spec:
           client: '4'
@@ -106,6 +111,22 @@ resources:
           - /Volumes/${var.catalog}/${var.project_id}_bronze${var.logical_env}/landing/_broker_extracts
           - --state
           - /Volumes/${var.catalog}/${var.project_id}_bronze${var.logical_env}/landing/_state/land_broker_extracts.json
+      - task_key: land_partner_feed
+        environment_key: land_sftp
+        python_wheel_task:
+          package_name: cookie-cutter-dbx
+          entry_point: dbxops-land-sftp
+          parameters:
+          - --config
+          - ${workspace.file_path}/src/config/land_partner_feed_sftp.yml
+          - --catalog
+          - ${var.catalog}
+          - --schema
+          - ${var.project_id}_bronze${var.logical_env}
+          - --table
+          - partner_feed_sftp_raw
+          - --checkpoint
+          - /Volumes/${var.catalog}/${var.project_id}_bronze${var.logical_env}/landing/_checkpoints/land_partner_feed
       - task_key: publish_run_metadata
         run_if: ALL_DONE
         environment_key: platform
@@ -125,3 +146,4 @@ resources:
         - task_key: gold
         - task_key: apply_table_tags
         - task_key: land_broker_extracts
+        - task_key: land_partner_feed

@@ -246,11 +246,14 @@ function contracts {
     python -m dbxops.metadata --root "$THIS_DIR" contracts "$@"
 }
 
-# scaffold bundles/<name> with a runnable example: ./run.sh new-bundle <name> <data-domain-path> [workload] [connector]
+# scaffold bundles/<name> with a runnable example: ./run.sh new-bundle <name> <data-domain-path> [workload] [connector] [mode]
 function new-bundle {
-    local args=(--root "$THIS_DIR" new-bundle --name "${1:?usage: ./run.sh new-bundle <name> <data-domain-path> [workload] [connector]}" --data-domain "${2:?a data-domain path is required, e.g. claims__litigation__claim_litigation}" --workload "${3:-de}")
+    local args=(--root "$THIS_DIR" new-bundle --name "${1:?usage: ./run.sh new-bundle <name> <data-domain-path> [workload] [connector] [mode]}" --data-domain "${2:?a data-domain path is required, e.g. claims__litigation__claim_litigation}" --workload "${3:-de}")
     if [ -n "${4:-}" ]; then
         args+=(--connector "$4")
+    fi
+    if [ -n "${5:-}" ]; then
+        args+=(--mode "$5")
     fi
     python -m dbxops.metadata "${args[@]}"
 }
