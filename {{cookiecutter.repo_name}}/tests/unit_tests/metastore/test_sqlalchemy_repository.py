@@ -545,7 +545,7 @@ def test__purge_removes_only_runtime_facts_past_retention(repo, sqlite_engine, c
 def test__ensure_schema_is_idempotent_and_refuses_a_newer_schema(repo, sqlite_engine):
     """Running ensure_schema again keeps one version row; a newer stored version is refused."""
     repo.ensure_schema()
-    assert rows(sqlite_engine, "SELECT version FROM md_schema_version") == [{"version": 1}]
+    assert rows(sqlite_engine, "SELECT version FROM md_schema_version") == [{"version": 2}]
     with sqlite_engine.begin() as conn:
         conn.exec_driver_sql("INSERT INTO md_schema_version (version, applied_at) VALUES (99, 't')")
     with pytest.raises(SchemaError, match="newer"):

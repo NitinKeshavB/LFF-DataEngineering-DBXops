@@ -136,7 +136,7 @@ def test__ensure_schema_command(sqlite_engine, capsys):
     """ensure-schema builds the repository for the target and creates the schema."""
     assert main(["ensure-schema", "--target", "dev"], build=lambda c, t: SqlAlchemyRepository(sqlite_engine)) == 0
     assert "schema ready" in capsys.readouterr().out
-    assert rows(sqlite_engine, "SELECT version FROM md_schema_version") == [{"version": 1}]
+    assert rows(sqlite_engine, "SELECT version FROM md_schema_version") == [{"version": 2}]
 
 
 def test__the_subprocess_bundle_runner_parses_json_and_reports_failures(tmp_path, monkeypatch):

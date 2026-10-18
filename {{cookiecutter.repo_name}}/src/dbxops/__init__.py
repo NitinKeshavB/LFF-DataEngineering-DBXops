@@ -8,6 +8,8 @@ Public API (a contract for installed users; changes follow semantic versioning):
 * metadata database: `MetadataRepository`, `RepositoryFactory`, `MetadataPublisher`, `PublishContext`
 * workspace and lifecycle: `WorkspaceGateway`, `SdkWorkspaceGateway`, `Reconciler` and its five subclasses,
   `PromotionGate`, `ModelPromoter` and the gate policies
+* landing connectors: `Connector`, `ConnectorEnv`, `ConnectorError`, `LandingState`, `LandingTarget`, `LandResult`,
+  `JsonFileState`, and the `JdbcConnector`, `SftpConnector`, `XlsxConnector`, `ZipConnector` implementations
 """
 
 from dbxops.config import (
@@ -16,6 +18,19 @@ from dbxops.config import (
     RepoConfig,
     load_environment,
     load_repo_config,
+)
+from dbxops.connectors import (
+    Connector,
+    ConnectorEnv,
+    ConnectorError,
+    JdbcConnector,
+    JsonFileState,
+    LandingState,
+    LandingTarget,
+    LandResult,
+    SftpConnector,
+    XlsxConnector,
+    ZipConnector,
 )
 from dbxops.findings import Finding
 from dbxops.metadata import validate_metadata
@@ -56,6 +71,9 @@ from dbxops.workspace import (
 __all__ = [
     "Change",
     "ConfigError",
+    "Connector",
+    "ConnectorEnv",
+    "ConnectorError",
     "Environment",
     "EvalPassRate",
     "Finding",
@@ -63,7 +81,12 @@ __all__ = [
     "GateConfigError",
     "GateDecision",
     "GateReport",
+    "JdbcConnector",
+    "JsonFileState",
     "KnowledgeAssistantReconciler",
+    "LandResult",
+    "LandingState",
+    "LandingTarget",
     "MetadataPublisher",
     "MetadataRepository",
     "MetadataSyncReconciler",
@@ -80,8 +103,11 @@ __all__ = [
     "RepositoryFactory",
     "SdkWorkspaceGateway",
     "ServingEndpointReconciler",
+    "SftpConnector",
     "VectorSearchIndexReconciler",
     "WorkspaceGateway",
+    "XlsxConnector",
+    "ZipConnector",
     "load_environment",
     "load_repo_config",
     "validate_metadata",

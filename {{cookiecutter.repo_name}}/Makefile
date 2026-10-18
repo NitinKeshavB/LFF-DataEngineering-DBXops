@@ -28,6 +28,12 @@ validate-specs:
 metadata-dictionary:
 	bash run.sh metadata-dictionary
 
+upstream-check:
+	bash run.sh upstream-check
+
+perf-lint:
+	bash run.sh perf-lint
+
 tags-plan:
 	bash run.sh tags-plan
 
@@ -41,7 +47,7 @@ check-upstream:
 	bash run.sh check-upstream
 
 new-bundle:
-	bash run.sh new-bundle $(NAME) $(DOMAIN)
+	bash run.sh new-bundle $(NAME) $(DOMAIN) $(WORKLOAD) $(CONNECTOR) $(MODE)
 
 sync-substitutions:
 	bash run.sh sync-substitutions $(if $(CHECK),--check,)

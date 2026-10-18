@@ -36,6 +36,18 @@ variables:
   workload:
     description: Workload class of this bundle (de, ml, ai or platform); applied as a tag to every job and pipeline
     default: de
+  teams_destination_id:
+    description: Workspace notification destination (Microsoft Teams) that receives job alerts; create it under Settings > Notifications
+    default: PLACEHOLDER-teams-destination-id
+  email_destination_id:
+    description: Workspace notification destination (email) that receives job alerts
+    default: PLACEHOLDER-email-destination-id
+  alert_email:
+    description: Address for the job's own email notifications (usually the technical owner or a team list)
+    default: PLACEHOLDER-alert-email
+  duration_warning_seconds:
+    description: A run longer than this raises the duration warning; set it from the flow's SLA
+    default: 3600
   dbxops_wheel_path:
     description: Path of the dbxops wheel on a UC volume, set by CI (/Volumes/<catalog>/platform/wheels/<version>/...whl)
     default: ""

@@ -12,6 +12,22 @@ resources:
         git_repo: ${bundle.git.origin_url}
         git_ref: ${bundle.git.branch}
         git_sha: ${bundle.git.commit}
+      email_notifications:
+        on_failure:
+        - ${var.alert_email}
+        on_duration_warning_threshold_exceeded:
+        - ${var.alert_email}
+      webhook_notifications:
+        on_failure:
+        - id: ${var.teams_destination_id}
+        - id: ${var.email_destination_id}
+        on_duration_warning_threshold_exceeded:
+        - id: ${var.teams_destination_id}
+      health:
+        rules:
+        - metric: RUN_DURATION_SECONDS
+          op: GREATER_THAN
+          value: ${var.duration_warning_seconds}
       performance_target: ${var.performance_target}
       queue:
         enabled: true
@@ -21,6 +37,18 @@ resources:
           client: '4'
           dependencies:
           - faker
+      - environment_key: land
+        spec:
+          client: '4'
+          dependencies:
+          - ${var.dbxops_wheel_path}
+          - openpyxl>=3.1
+          - pyarrow>=14
+      - environment_key: land_sftp
+        spec:
+          client: '4'
+          dependencies:
+          - ${var.dbxops_wheel_path}
       - environment_key: platform
         spec:
           client: '4'
@@ -69,6 +97,36 @@ resources:
           - logical_env=${var.logical_env}
           - --dry-run
           - ${var.table_tags_dry_run}
+      - task_key: land_broker_extracts
+        environment_key: land
+        python_wheel_task:
+          package_name: cookie-cutter-dbx
+          entry_point: dbxops-land
+          parameters:
+          - --connector
+          - xlsx
+          - --config
+          - ${workspace.file_path}/src/config/land_broker_extracts.yml
+          - --output
+          - /Volumes/${var.catalog}/${var.project_id}_bronze${var.logical_env}/landing/_broker_extracts
+          - --state
+          - /Volumes/${var.catalog}/${var.project_id}_bronze${var.logical_env}/landing/_state/land_broker_extracts.json
+      - task_key: land_partner_feed
+        environment_key: land_sftp
+        python_wheel_task:
+          package_name: cookie-cutter-dbx
+          entry_point: dbxops-land-sftp
+          parameters:
+          - --config
+          - ${workspace.file_path}/src/config/land_partner_feed_sftp.yml
+          - --catalog
+          - ${var.catalog}
+          - --schema
+          - ${var.project_id}_bronze${var.logical_env}
+          - --table
+          - partner_feed_sftp_raw
+          - --checkpoint
+          - /Volumes/${var.catalog}/${var.project_id}_bronze${var.logical_env}/landing/_checkpoints/land_partner_feed
       - task_key: publish_run_metadata
         run_if: ALL_DONE
         environment_key: platform
@@ -87,3 +145,5 @@ resources:
         depends_on:
         - task_key: gold
         - task_key: apply_table_tags
+        - task_key: land_broker_extracts
+        - task_key: land_partner_feed

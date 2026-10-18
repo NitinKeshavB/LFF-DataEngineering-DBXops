@@ -1,0 +1,54 @@
+# Weekly: if the master template has moved since this repository was generated (or last updated), apply the change with
+# `cruft update` on a branch and open a pull request. Nothing is merged or deployed automatically. Needs `.cruft.json`,
+# which `cruft create` writes; a repository generated with plain cookiecutter has none and this job says so and stops.
+name: Template sync
+
+on:
+  schedule:
+    - cron: "0 21 * * 0"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: true
+          fetch-depth: 0
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Has the template moved?
+        id: check
+        run: |
+          if [ ! -f .cruft.json ]; then
+            echo "No .cruft.json: this repository was not generated with cruft, so there is nothing to sync."
+            echo "moved=no" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          pip install cruft
+          if cruft check; then
+            echo "moved=no" >> "$GITHUB_OUTPUT"
+          else
+            echo "moved=yes" >> "$GITHUB_OUTPUT"
+          fi
+      - name: Apply the template change and open a pull request
+        if: steps.check.outputs.moved == 'yes'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          branch="chore/template-sync-$(date +%Y%m%d)"
+          git config user.name "template-sync"
+          git config user.email "template-sync@users.noreply.github.com"
+          git checkout -b "$branch"
+          cruft update --skip-apply-ask --yes
+          git add -A
+          git commit -m "Sync with the master template"
+          git push --force origin "$branch"
+          gh pr create --base main --head "$branch" --title "Sync with the master template" \
+            --body "Automated \`cruft update\`. Review the diff: changes under bundles/, metadata/ and conf/ are yours and may conflict; everything else comes from the master template. Run \`make test\` and \`make validate-metadata\` before merging."

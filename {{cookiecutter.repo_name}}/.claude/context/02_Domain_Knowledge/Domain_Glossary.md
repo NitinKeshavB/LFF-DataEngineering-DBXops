@@ -58,6 +58,22 @@ advisory but still read.
 | Placeholder | A tracked value written `PLACEHOLDER-<what>` in `conf/`, `metadata/` or `bundles/`; blocks deployment until replaced. | (avoid) TODO |
 | Quarantine | Rows failing a drop expectation, written to `<table>_quarantine` instead of the target. | |
 | Gate | A threshold a model or agent must meet to be promoted to `@champion`. | |
+| Asset | Anything deployable or queryable that the platform tracks, with the id `<asset_type>/<repo_id>/<resource_key>` (a dataset keeps `<schema>.<table>`). Every asset has exactly one parent, a Workload and a Layer. | (avoid) object, artifact, resource (a *resource* is a bundle YAML entry) |
+| Workload | The class of work an asset belongs to: `de` (data engineering), `ml`, `ai` (generative AI and agents) or `platform` (shared platform jobs). Declared once per bundle as the `workload` variable; shown on every job and pipeline as a tag. | (avoid) type, family, tier |
+| Layer | Where a dataset, flow or pipeline sits in the medallion: bronze, silver, gold, publish, or the `ml` and `ai` schemas. | (avoid) stage, zone |
+| Bundle | The deploy unit of one workload: `bundles/<name>/databricks.yml` with its resources and source. | (avoid) project (a *project* is one repository) |
+| Workflow | A Lakeflow **Job**: a schedule or trigger, tasks and notifications. Never a pipeline. | (use) job where the Databricks API name is meant · (avoid) DAG, orchestration |
+| Job Task | One step of a Workflow: a pipeline, wheel, notebook, SQL, sub-workflow (`run_job`) or condition task. | (avoid) step, stage |
+| ETL Pipeline | A Lakeflow declarative pipeline that runs one flow group (a layer). | (avoid) DLT job, workflow |
+| Ingestion Pipeline | A Lakeflow Connect managed ingestion pipeline (has an `ingestion_definition`). | (avoid) connector job |
+| Flow | One source-to-target transformation of a Dataflow Spec: `append`, `cdc_scd1`, `cdc_scd2`, `cdc_snapshot`, `mv` or `view`. | (avoid) transform, mapping |
+| Dataset | The table or view a Flow writes, with its quarantine table. | (avoid) entity |
+| Model | A machine-learning model in Unity Catalog, with versions and aliases. | (avoid) artifact |
+| Agent | A model logged as an agent (ResponsesAgent or LangGraph), tagged `model_kind=agent`. | (avoid) bot, assistant (a Knowledge Assistant is a different asset) |
+| Serving Endpoint | Serves a Model, an Agent or a foundation model. | (avoid) deployment |
+| MCP Server | An app or managed endpoint that exposes tools over MCP, tagged `app_kind=mcp_server`. | (avoid) tool server |
+| Tool | A Unity Catalog function an Agent calls. | (avoid) skill (a *skill* is a Claude Code file) |
+| Governance Tag | A tag the platform requires and publishes: owners, `classification`, data domain and product, and the provenance and `workload` tags on jobs and pipelines. | (avoid) label, metadata field |
 
 <!-- Example rows from a hypothetical order-management package — delete these and
      write your own:

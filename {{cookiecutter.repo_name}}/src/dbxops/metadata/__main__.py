@@ -15,6 +15,7 @@ from dbxops.metadata.contracts import (
     write_contracts,
 )
 from dbxops.metadata.export_ontos import export_ontos
+from dbxops.metadata.hierarchy import WORKLOADS
 from dbxops.metadata.repo import RepoContext
 from dbxops.metadata.rules import (
     GitBaseline,
@@ -22,6 +23,8 @@ from dbxops.metadata.rules import (
     validate,
 )
 from dbxops.metadata.scaffold import (
+    CONNECTOR_KINDS,
+    MODES,
     ScaffoldError,
     scaffold_bundle,
 )
@@ -68,9 +71,9 @@ def _substitutions(ctx: RepoContext, check: bool) -> int:
     return 1 if (check and changed) else 0
 
 
-def _new_bundle(root: Path, name: str, data_domain: str) -> int:
+def _new_bundle(root: Path, name: str, data_domain: str, workload: str, connector: str | None) -> int:
     try:
-        files = scaffold_bundle(root, name, data_domain)
+        files = scaffold_bundle(root, name, data_domain, workload, connector)
     except ScaffoldError as error:
         print(f"error: {error}")
         return 1
@@ -103,6 +106,23 @@ def main(argv: list[str] | None = None) -> int:
         required=True,
         help="data-domain path of the example table, e.g. claims__litigation__claim_litigation",
     )
+    new_cmd.add_argument(
+        "--workload",
+        default="de",
+        choices=WORKLOADS,
+        help="workload class of the bundle: de (data engineering), ml, ai or platform",
+    )
+    new_cmd.add_argument(
+        "--connector",
+        choices=CONNECTOR_KINDS,
+        help="also scaffold a job that lands a source with this connector (jdbc needs a hand-wired JdbcSource, so it is not offered here)",
+    )
+    new_cmd.add_argument(
+        "--mode",
+        choices=MODES,
+        help="custom (a dbxops.connectors job task) or lakeflow (a managed Lakeflow Connect pipeline); "
+        "defaults to whichever one the chosen connector supports",
+    )
     export_cmd = commands.add_parser("export-ontos", help="write Ontos upload files for one target")
     export_cmd.add_argument("--target", required=True)
     export_cmd.add_argument("--out", type=Path, help="output directory (default: build/ontos/<target>)")
@@ -113,7 +133,8 @@ def main(argv: list[str] | None = None) -> int:
     if args.command == "contracts":
         return _contracts(ctx, args.check)
     if args.command == "new-bundle":
-        return _new_bundle(args.root.resolve(), args.name, args.data_domain)
+        connector = f"{args.connector}:{args.mode}" if args.connector and args.mode else args.connector
+        return _new_bundle(args.root.resolve(), args.name, args.data_domain, args.workload, connector)
     if args.command == "substitutions":
         return _substitutions(ctx, args.check)
     out = args.out or ctx.root / "build" / "ontos" / args.target

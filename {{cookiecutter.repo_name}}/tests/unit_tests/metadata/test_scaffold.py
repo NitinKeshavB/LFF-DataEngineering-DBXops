@@ -12,6 +12,7 @@ from dbxops.metadata.__main__ import main
 from dbxops.metadata.repo import RepoContext
 from dbxops.metadata.rules import validate
 from dbxops.metadata.scaffold import (
+    CUSTOM_CONNECTOR_KINDS,
     ScaffoldError,
     scaffold_bundle,
 )
@@ -127,3 +128,206 @@ def test__a_scaffolded_bundle_tags_its_jobs_and_pipelines_for_governance(real_co
     tagged = [*doc["resources"]["jobs"].values(), *doc["resources"]["pipelines"].values()]
     assert tagged and all(expected <= set(item["tags"]) for item in tagged)
     assert doc["variables"]["workload"]["default"] == "de"
+
+
+@pytest.mark.parametrize("workload", ["de", "ml", "ai", "platform"])
+def test__a_scaffolded_bundle_declares_the_workload_it_was_asked_for(real_conf_root: Path, workload: str):
+    """`make new-bundle ... WORKLOAD=` becomes the bundle's workload variable, and the bundle still validates."""
+    scaffold_bundle(real_conf_root, "sandbox", DOMAIN, workload)
+    assert load_bundle(real_conf_root / "bundles/sandbox")["variables"]["workload"]["default"] == workload
+    assert not has_errors(validate(RepoContext.load(real_conf_root)))
+
+
+def test__an_unknown_workload_is_refused(real_conf_root: Path):
+    """Only de, ml, ai and platform are workloads."""
+    with pytest.raises(ScaffoldError, match="workload"):
+        scaffold_bundle(real_conf_root, "sandbox", DOMAIN, "etl")
+
+
+def _task(tasks: list, key: str) -> dict:
+    return next(t for t in tasks if t["task_key"] == key)
+
+
+@pytest.mark.parametrize("connector", CUSTOM_CONNECTOR_KINDS)
+def test__a_custom_connector_adds_a_land_task_that_runs_dbxops_land(real_conf_root: Path, connector: str):
+    """With a custom-mode connector, the job gains a land_<name> task running dbxops-land for that connector."""
+    scaffold_bundle(real_conf_root, "sandbox", DOMAIN, connector=f"{connector}:custom")
+    tasks = load_bundle(real_conf_root / "bundles/sandbox")["resources"]["jobs"]["sandbox_run"]["tasks"]
+    assert {t["task_key"] for t in tasks} == {"land_sandbox", "silver", "publish_run_metadata"}
+    land = _task(tasks, "land_sandbox")
+    assert land["python_wheel_task"]["entry_point"] == "dbxops-land"
+    assert land["python_wheel_task"]["parameters"][:2] == ["--connector", connector]
+
+
+@pytest.mark.parametrize("connector", CUSTOM_CONNECTOR_KINDS)
+def test__a_custom_connector_keeps_the_bundle_valid_and_waited_on(
+    real_conf_root: Path, connector: str, cli_bundle_validator
+):
+    """publish_run_metadata waits for the land task too, and the bundle still validates with a connector."""
+    scaffold_bundle(real_conf_root, "sandbox", DOMAIN, connector=f"{connector}:custom")
+    doc = load_bundle(real_conf_root / "bundles/sandbox")
+    publish = _task(doc["resources"]["jobs"]["sandbox_run"]["tasks"], "publish_run_metadata")
+    assert {d["task_key"] for d in publish["depends_on"]} == {"silver", "land_sandbox"}
+    assert not has_errors(validate(RepoContext.load(real_conf_root)))
+    assert not list(cli_bundle_validator.iter_errors(doc))
+
+
+@pytest.mark.parametrize("connector", CUSTOM_CONNECTOR_KINDS)
+def test__a_custom_connector_writes_a_placeholder_config_for_dbxops_land(real_conf_root: Path, connector: str):
+    """The land task's config file is PLACEHOLDER-blocked until a person fills in the real source."""
+    scaffold_bundle(real_conf_root, "sandbox", DOMAIN, connector=f"{connector}:custom")
+    config = yaml.safe_load((real_conf_root / "bundles/sandbox/src/config/land_sandbox.yml").read_text())
+    assert any("PLACEHOLDER-" in str(value) for value in config.values())
+
+
+def test__sftp_defaults_to_custom_mode_when_mode_is_omitted(real_conf_root: Path):
+    """SFTP supports both modes; a bare --connector sftp keeps the old custom-mode default."""
+    scaffold_bundle(real_conf_root, "sandbox", DOMAIN, connector="sftp")
+    tasks = load_bundle(real_conf_root / "bundles/sandbox")["resources"]["jobs"]["sandbox_run"]["tasks"]
+    assert "python_wheel_task" in _task(tasks, "land_sandbox")
+
+
+def test__sftp_lakeflow_mode_runs_dbxops_land_sftp_with_no_extra_dependency(
+    real_conf_root: Path, cli_bundle_validator
+):
+    """SFTP + mode=lakeflow runs dbxops-land-sftp (Auto Loader), a connection setup note, and still validates."""
+    scaffold_bundle(real_conf_root, "sandbox", DOMAIN, connector="sftp:lakeflow")
+    doc = load_bundle(real_conf_root / "bundles/sandbox")
+    tasks = doc["resources"]["jobs"]["sandbox_run"]["tasks"]
+    land = _task(tasks, "land_sandbox")
+    assert land["python_wheel_task"]["entry_point"] == "dbxops-land-sftp"
+    environments = {e["environment_key"]: e for e in doc["resources"]["jobs"]["sandbox_run"]["environments"]}
+    assert environments[land["environment_key"]]["spec"]["dependencies"] == ["${var.dbxops_wheel_path}"]
+    assert (real_conf_root / "bundles/sandbox/src/config/land_sandbox_connection.md").exists()
+    assert not has_errors(validate(RepoContext.load(real_conf_root)))
+    assert not list(cli_bundle_validator.iter_errors(doc))
+
+
+@pytest.mark.parametrize("connector", ["sqlserver", "postgresql"])
+def test__db_cdc_lakeflow_mode_scaffolds_a_gateway_and_an_ingestion_pipeline(
+    real_conf_root: Path, connector: str, cli_bundle_validator
+):
+    """sqlserver/postgresql in lakeflow mode get a gateway pipeline, an ingestion pipeline, and two job tasks."""
+    scaffold_bundle(real_conf_root, "sandbox", DOMAIN, connector=f"{connector}:lakeflow")
+    doc = load_bundle(real_conf_root / "bundles/sandbox")
+    pipelines = doc["resources"]["pipelines"]
+    assert "gateway_definition" in pipelines["sandbox_gateway"]
+    assert "ingestion_definition" in pipelines["sandbox_ingestion"]
+    assert pipelines["sandbox_ingestion"]["ingestion_definition"]["ingestion_gateway_id"] == (
+        "${resources.pipelines.sandbox_gateway.id}"
+    )
+    tasks = doc["resources"]["jobs"]["sandbox_run"]["tasks"]
+    ingestion_task = _task(tasks, "sandbox_ingestion")
+    assert {d["task_key"] for d in ingestion_task["depends_on"]} == {"sandbox_gateway"}
+    publish = _task(tasks, "publish_run_metadata")
+    assert {d["task_key"] for d in publish["depends_on"]} == {"silver", "sandbox_gateway", "sandbox_ingestion"}
+    assert (real_conf_root / "bundles/sandbox/src/config/land_sandbox_connection.md").exists()
+    assert not has_errors(validate(RepoContext.load(real_conf_root)))
+    assert not list(cli_bundle_validator.iter_errors(doc))
+
+
+def test__sharepoint_lakeflow_mode_scaffolds_one_preview_channel_ingestion_pipeline(
+    real_conf_root: Path, cli_bundle_validator
+):
+    """The sharepoint connector in lakeflow mode gets one ingestion pipeline on the preview channel and a task."""
+    scaffold_bundle(real_conf_root, "sandbox", DOMAIN, connector="sharepoint:lakeflow")
+    doc = load_bundle(real_conf_root / "bundles/sandbox")
+    pipeline = doc["resources"]["pipelines"]["sandbox_ingestion"]
+    assert pipeline["channel"] == "PREVIEW"
+    sharepoint_options = pipeline["ingestion_definition"]["objects"][0]["table"]["connector_options"][
+        "sharepoint_options"
+    ]
+    assert sharepoint_options["entity_type"] == "FILE"
+    tasks = doc["resources"]["jobs"]["sandbox_run"]["tasks"]
+    assert "sandbox_ingestion" in {t["task_key"] for t in tasks}
+    assert (real_conf_root / "bundles/sandbox/src/config/land_sandbox_connection.md").exists()
+    assert not has_errors(validate(RepoContext.load(real_conf_root)))
+    assert not list(cli_bundle_validator.iter_errors(doc))
+
+
+def test__no_connector_leaves_the_job_exactly_as_before(real_conf_root: Path):
+    """Without a connector, the job keeps its original two tasks and no landing config is written."""
+    files = scaffold_bundle(real_conf_root, "sandbox", DOMAIN)
+    assert not any("land_" in p.name for p in files)
+    assert not (real_conf_root / "bundles/sandbox/src/config/land_sandbox.yml").exists()
+
+
+def test__an_unknown_connector_is_refused(real_conf_root: Path):
+    """JDBC needs a hand-wired JdbcSource, so it is not one of the offered connectors."""
+    with pytest.raises(ScaffoldError, match="connector"):
+        scaffold_bundle(real_conf_root, "sandbox", DOMAIN, connector="jdbc")
+    assert not (real_conf_root / "bundles").exists()
+
+
+@pytest.mark.parametrize(
+    "connector, mode",
+    [
+        ("xlsx", "lakeflow"),
+        ("zip", "lakeflow"),
+        ("sqlserver", "custom"),
+        ("postgresql", "custom"),
+        ("sharepoint", "custom"),
+    ],
+)
+def test__a_mode_the_connector_does_not_support_is_refused(real_conf_root: Path, connector: str, mode: str):
+    """xlsx/zip have no Lakeflow pattern; sqlserver/postgresql/sharepoint have no custom implementation."""
+    with pytest.raises(ScaffoldError, match="mode|connector"):
+        scaffold_bundle(real_conf_root, "sandbox", DOMAIN, connector=f"{connector}:{mode}")
+    assert not (real_conf_root / "bundles").exists()
+
+
+def test__an_unknown_mode_is_refused(real_conf_root: Path):
+    """Only custom and lakeflow are modes."""
+    with pytest.raises(ScaffoldError, match="mode"):
+        scaffold_bundle(real_conf_root, "sandbox", DOMAIN, connector="sftp:managed")
+
+
+def test__cli_new_bundle_accepts_the_connector_and_mode_flags(real_conf_root: Path, capsys):
+    """`new-bundle --connector --mode` reaches scaffold_bundle and the land config lands on disk."""
+    assert (
+        main(
+            [
+                "--root",
+                str(real_conf_root),
+                "new-bundle",
+                "--name",
+                "sandbox",
+                "--data-domain",
+                DOMAIN,
+                "--connector",
+                "zip",
+                "--mode",
+                "custom",
+            ]
+        )
+        == 0
+    )
+    assert "created bundles/sandbox" in capsys.readouterr().out
+    assert (real_conf_root / "bundles/sandbox/src/config/land_sandbox.yml").exists()
+
+
+def test__cli_new_bundle_accepts_a_lakeflow_only_connector_with_no_mode_flag(real_conf_root: Path, capsys):
+    """Omitting --mode for a Lakeflow-only connector still works: it defaults to lakeflow."""
+    assert (
+        main(
+            [
+                "--root",
+                str(real_conf_root),
+                "new-bundle",
+                "--name",
+                "sandbox",
+                "--data-domain",
+                DOMAIN,
+                "--connector",
+                "sharepoint",
+            ]
+        )
+        == 0
+    )
+    assert "created bundles/sandbox" in capsys.readouterr().out
+    assert (
+        "sandbox_ingestion"
+        in yaml.safe_load((real_conf_root / "bundles/sandbox/resources/sandbox.lakeflow.yml").read_text())[
+            "resources"
+        ]["pipelines"]
+    )

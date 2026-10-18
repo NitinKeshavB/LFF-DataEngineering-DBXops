@@ -36,6 +36,16 @@ jobs:
       - run: make install
       - run: make lint-ci
       - run: make test
+      - name: Upload coverage report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage
+          path: |
+            test-reports/coverage.xml
+            test-reports/report.xml
+          if-no-files-found: ignore
+      - run: make perf-lint
       - name: Metadata, contracts and substitutions
         env:
           BASELINE: ${{ github.event_name == 'pull_request' && format('origin/{0}', github.base_ref) || '' }}

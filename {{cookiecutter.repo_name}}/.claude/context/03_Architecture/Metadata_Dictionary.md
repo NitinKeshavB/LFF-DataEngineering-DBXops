@@ -3,7 +3,7 @@
 Generated from the model by `python -m dbxops.metastore dictionary` (`make metadata-dictionary`). Do not edit by hand:
 a test fails when this file differs from the model. Narrative and rules are in `Metadata_Model.md`.
 
-Schema `platform_meta`; 31 tables and 21 views.
+Schema `platform_meta`; 34 tables and 24 views.
 
 ### Pattern A: versioned definitions (parents)
 
@@ -234,6 +234,10 @@ Owner: squad repo (its `project_id`). Primary key: `entity_id, record_version`.
 | `bundle` | TEXT | yes |  |
 | `resource_key` | TEXT | yes |  |
 | `product_id` | TEXT | yes |  |
+| `parent_asset_id` | TEXT | yes |  |
+| `workload` | TEXT | yes |  |
+| `layer` | TEXT | yes |  |
+| `subtype` | TEXT | yes |  |
 
 ### Pattern A: child tables
 
@@ -387,6 +391,19 @@ A full snapshot of the children per parent version; no version columns of their 
 | `target_asset_id` | TEXT | yes |  |
 | `target_kind` | TEXT | yes |  |
 
+#### `md_job_task`
+
+ Primary key: `asset_id, record_version, task_key`.
+
+| column | type | null | key |
+|---|---|---|---|
+| `asset_id` | TEXT | no | PK |
+| `record_version` | INTEGER | no | PK |
+| `task_key` | TEXT | no | PK |
+| `task_kind` | TEXT | yes |  |
+| `depends_on` | JSON | yes |  |
+| `target_asset_id` | TEXT | yes |  |
+
 ### Pattern B: derived current state
 
 Replaced as a set per publisher; rows missing from the next publish become `is_active = false`.
@@ -432,6 +449,20 @@ Replaced as a set per publisher; rows missing from the next publish become `is_a
 | `target_asset_id` | TEXT | no | PK |
 | `origin` | TEXT | no | PK |
 | `via` | TEXT | yes |  |
+| `repo_id` | TEXT | no |  |
+| `is_active` | BOOLEAN | no |  |
+| `first_seen_at` | TIMESTAMP (UTC) | no |  |
+| `last_seen_at` | TIMESTAMP (UTC) | no |  |
+
+#### `md_asset_edge`
+
+ Primary key: `parent_asset_id, child_asset_id, relation`.
+
+| column | type | null | key |
+|---|---|---|---|
+| `parent_asset_id` | TEXT | no | PK |
+| `child_asset_id` | TEXT | no | PK |
+| `relation` | TEXT | no | PK |
 | `repo_id` | TEXT | no |  |
 | `is_active` | BOOLEAN | no |  |
 | `first_seen_at` | TIMESTAMP (UTC) | no |  |
@@ -506,6 +537,23 @@ Runtime fact, purged after `retention_days`. Primary key: `target, run_id`.
 | `started_at` | TIMESTAMP (UTC) | yes |  |
 | `ended_at` | TIMESTAMP (UTC) | yes |  |
 | `git_sha` | TEXT | yes |  |
+| `repo_id` | TEXT | no |  |
+| `recorded_at` | TIMESTAMP (UTC) | no |  |
+
+#### `md_task_run`
+
+Runtime fact, purged after `retention_days`. Primary key: `target, run_id, task_key`.
+
+| column | type | null | key |
+|---|---|---|---|
+| `target` | TEXT | no | PK |
+| `run_id` | TEXT | no | PK |
+| `task_key` | TEXT | no | PK |
+| `status` | TEXT | yes |  |
+| `started_at` | TIMESTAMP (UTC) | yes |  |
+| `ended_at` | TIMESTAMP (UTC) | yes |  |
+| `attempt` | INTEGER | yes |  |
+| `error_class` | TEXT | yes |  |
 | `repo_id` | TEXT | no |  |
 | `recorded_at` | TIMESTAMP (UTC) | no |  |
 
@@ -622,6 +670,8 @@ Schema version bookkeeping.
 Read through these; they join each parent's current row to its children at the matching version.
 
 - `v_asset_current`
+- `v_asset_inventory`
+- `v_asset_tree`
 - `v_contract_object_current`
 - `v_contract_property_current`
 - `v_contract_server_current`
@@ -631,6 +681,7 @@ Read through these; they join each parent's current row to its children at the m
 - `v_dataflow_spec_current`
 - `v_domain_current`
 - `v_glossary_concept_current`
+- `v_job_task_current`
 - `v_lineage`
 - `v_lineage_drift`
 - `v_port_input_contract_current`

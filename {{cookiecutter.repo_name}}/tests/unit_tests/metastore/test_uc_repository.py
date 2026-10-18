@@ -282,7 +282,7 @@ def test__ensure_schema_creates_tables_with_cdf_then_records_the_version_then_vi
     uc.ensure_schema()
     tags = executor.tags
     assert tags[0] == "session" and tags[1] == "create"
-    assert tags.count("create") == 32 and tags.count("alter") == 31
+    assert tags.count("create") == 35 and tags.count("alter") == 34
     statements = [sql for sql, _ in executor.calls]
     version_read = next(i for i, sql in enumerate(statements) if "max(version)" in sql)
     version_write = next(
@@ -346,8 +346,8 @@ def test__reads_and_upkeep_statements(uc, executor):
     assert uc.list_current_entity_ids("data_contract", SQUAD) == ["dc_a", "dc_b"]
     assert "status <> 'retired'" in executor.calls[-1][0]
     assert uc.current_quality_rules(SQUAD)[0].record_version == 2
-    assert uc.cleanup_orphans() == 10
-    assert uc.purge_runtime(400) == 20
+    assert uc.cleanup_orphans() == 11
+    assert uc.purge_runtime(400) == 24
     assert "INTERVAL 400 DAYS" in executor.calls[-1][0]
 
 

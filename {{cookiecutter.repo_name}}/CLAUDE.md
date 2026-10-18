@@ -207,7 +207,7 @@ All tool config lives in `pyproject.toml`. Read it before assuming a convention.
 | Import style | `isort` profile `black`, `force_grid_wrap = 2` | `[tool.isort]` |
 | Cyclomatic complexity | `radon` max **10** per function | `[tool.flake8]` |
 | Python floor | `>=3.11` — do not use syntax newer than that without raising it | `[project]` |
-| Coverage gate | `MINIMUM_TEST_COVERAGE_PERCENT=0` | `run.sh` |
+| Coverage gate | `MINIMUM_TEST_COVERAGE_PERCENT=85` | `run.sh` |
 
 **Five traps worth knowing before you hit them:**
 
@@ -264,6 +264,8 @@ in `run.sh` and expose it in the `Makefile`.
 | `make onboard-check` | squad readiness check before deploy (currently: strict placeholder check) |
 | `make validate-metadata [BASELINE=ref]` | every metadata rule over the repo (offline) |
 | `make contracts [CHECK=1]` / `make sync-substitutions [CHECK=1]` | generate, or check, contracts and each bundle's substitution and config files |
+| `make upstream-check` | is this repo behind the master template? (needs cruft and a `.cruft.json`; see `conf/upstream.yml`) |
+| `make perf-lint` | static check: `collect`, `toPandas`, `count()`, `display`, `coalesce(1)`, global sorts, unpartitioned windows, row-wise UDFs and unpartitioned JDBC reads in pipeline and task code; allow a line with `# perf-lint: allow <rule> -- <why>` |
 | `make validate-specs` / `validate-domains` / `validate-registry [STRICT=1]` | spec, taxonomy and registry checks |
 | `make tags-plan TARGET= [CATALOG=]` | print the governance tags of every contract table as a `metadata_sync` section (no workspace access) |
 | `make sync-table-tags BUNDLE=` | regenerate `bundles/<bundle>/src/config/table_tags.yml`, which the bundle's job applies |

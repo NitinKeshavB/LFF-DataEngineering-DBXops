@@ -18,6 +18,7 @@ from dbxops.metastore.model import (
 )
 from dbxops.metastore.records import (
     PLATFORM_REPO_ID,
+    AssetEdgeRow,
     DefinitionRecord,
     DeploymentRecord,
     EvalResultRecord,
@@ -31,6 +32,7 @@ from dbxops.metastore.records import (
     RunRecord,
     SemanticLinkRow,
     TagRow,
+    TaskRunRecord,
 )
 from dbxops.metastore.repository import MetadataRepository
 
@@ -105,6 +107,12 @@ class WriterGuard:
                 raise WriterError(f"repo {self.repo_id!r} may not write {row.entity_type!r} tags")
         return self._inner.upsert_tags(rows, ctx, required_keys)
 
+    def upsert_asset_edges(self, rows: Sequence[AssetEdgeRow], ctx: PublishContext) -> int:
+        """Write asset edges; only squads own them."""
+        self._check_ctx(ctx)
+        self._require_squad("asset edges")
+        return self._inner.upsert_asset_edges(rows, ctx)
+
     def record_lineage(self, edges: Sequence[LineageEdge], ctx: PublishContext, *, target: str, origin: str) -> int:
         """Write lineage edges; only squads own them."""
         self._check_ctx(ctx)
@@ -128,6 +136,12 @@ class WriterGuard:
         self._check_ctx(ctx)
         self._require_squad("runs")
         return self._inner.record_run(run, ctx)
+
+    def record_task_runs(self, tasks: Sequence[TaskRunRecord], ctx: PublishContext) -> int:
+        """Write task rows; only squads own them."""
+        self._check_ctx(ctx)
+        self._require_squad("task runs")
+        return self._inner.record_task_runs(tasks, ctx)
 
     def record_quality(self, results: Sequence[QualityResultRecord], ctx: PublishContext) -> int:
         """Write quality results; only squads own them."""

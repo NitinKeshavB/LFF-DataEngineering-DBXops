@@ -77,7 +77,7 @@ Then look harder than the exit code:
 - **Did the new test actually exercise the change?** Check `test-reports/htmlcov/`, or
   run `python -m pytest --cov=src --cov-report=term-missing`. A passing suite with the
   changed lines uncovered proves nothing about the change. `MINIMUM_TEST_COVERAGE_PERCENT`
-  is `0`, so coverage never fails the build — you have to look.
+  is `85`, which only gates the total — look at the changed lines yourself.
 - **Would the new test fail without the fix?** The decisive check for a bug fix. If
   you can cheaply revert the change, confirm the test fails, and restore it — do that,
   and say so. If you cannot, say that the test's discriminating power is unverified.

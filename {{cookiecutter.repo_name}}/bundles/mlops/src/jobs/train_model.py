@@ -160,7 +160,7 @@ def train_challenger(
     """Build the training set, train, evaluate on the held-out split and register the challenger."""
     labels = spark.table(config.features_table).select(KEY, LABEL)
     training_set = fe.create_training_set(df=labels, feature_lookups=list(lookups), label=LABEL, exclude_columns=[KEY])
-    trained = fit(training_set.load_df().toPandas(), config.seed)
+    trained = fit(training_set.load_df().toPandas(), config.seed)  # perf-lint: allow toPandas -- single-node fit
     version = log_and_register(mlflow, fe, trained, training_set, config.model_name)
     return TrainingResult(config.model_name, version, trained.metrics)
 

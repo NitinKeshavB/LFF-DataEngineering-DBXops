@@ -25,7 +25,9 @@ from dbxops.metastore.model import (
     TAG_TABLE,
 )
 from dbxops.metastore.records import (
+    EDGE_RELATIONS,
     ORIGINS,
+    AssetEdgeRow,
     DeploymentRecord,
     EvalResultRecord,
     LineageEdge,
@@ -36,6 +38,7 @@ from dbxops.metastore.records import (
     RunRecord,
     SemanticLinkRow,
     TagRow,
+    TaskRunRecord,
     is_owned_tag_key,
 )
 
@@ -115,6 +118,45 @@ def tag_set(rows: Iterable[TagRow], required_keys: Sequence[str] = ()) -> Derive
             }
         )
     return DerivedSet(TAG_TABLE, items, required_keys=required_keys)
+
+
+def edge_set(edges: Iterable[AssetEdgeRow]) -> DerivedSet:
+    """Return the replace-set of asset edges; a relation outside ``RELATIONS`` is rejected."""
+    items = []
+    for edge in edges:
+        if edge.relation not in EDGE_RELATIONS:
+            raise PublishError(
+                f"unknown asset relation {edge.relation!r}; expected one of {', '.join(EDGE_RELATIONS)}"
+            )
+        items.append(
+            {
+                "parent_asset_id": edge.parent_asset_id,
+                "child_asset_id": edge.child_asset_id,
+                "relation": edge.relation,
+            }
+        )
+    return DerivedSet("md_asset_edge", items)
+
+
+def task_run_rows(tasks: Iterable[TaskRunRecord], ctx: PublishContext) -> list[FactRow]:
+    """Return the ``md_task_run`` rows of the tasks of a run."""
+    return [
+        (
+            "md_task_run",
+            _fact(
+                ctx,
+                target=task.target,
+                run_id=task.run_id,
+                task_key=task.task_key,
+                status=task.status,
+                started_at=task.timing.started_at,
+                ended_at=task.timing.ended_at,
+                attempt=task.attempt,
+                error_class=task.error_class,
+            ),
+        )
+        for task in tasks
+    ]
 
 
 def lineage_set(edges: Sequence[LineageEdge], target: str, origin: str) -> DerivedSet:

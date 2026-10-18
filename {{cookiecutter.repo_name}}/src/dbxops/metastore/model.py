@@ -36,9 +36,12 @@ from sqlalchemy import (
     case,
     exists,
     false,
+    func,
+    literal,
     select,
     text,
     true,
+    union_all,
 )
 from sqlalchemy.dialects import (
     postgresql,
@@ -62,7 +65,7 @@ from dbxops.metastore.types import (
 )
 
 DEFAULT_SCHEMA = "platform_meta"
-SCHEMA_VERSION = 1
+SCHEMA_VERSION = 2
 UC_SCHEMA_PLACEHOLDER = "dbxops_uc_ns"
 
 WRITER_PLATFORM = "platform"
@@ -191,6 +194,10 @@ _PARENTS: dict[str, tuple[str, str, bool, tuple[tuple[str, str], ...]]] = {
             ("bundle", "text"),
             ("resource_key", "text"),
             ("product_id", "text"),
+            ("parent_asset_id", "text"),
+            ("workload", "text"),
+            ("layer", "text"),
+            ("subtype", "text"),
         ),
     ),
 }
@@ -272,6 +279,12 @@ _CHILDREN: dict[str, tuple[str, str, tuple[str, ...], tuple[tuple[str, str], ...
             ("spec_id", "text"),
         ),
     ),
+    "md_job_task": (
+        "md_asset",
+        "asset_id",
+        ("task_key",),
+        (("task_kind", "text"), ("depends_on", "json"), ("target_asset_id", "text")),
+    ),
     "md_dataflow_flow": (
         "md_dataflow_spec",
         "spec_id",
@@ -290,6 +303,7 @@ _DERIVED: dict[str, tuple[tuple[str, ...], tuple[tuple[str, str], ...]]] = {
     "md_semantic_link": (("entity_type", "entity_id", "iri"), (("label", "text"),)),
     "md_tag": (("entity_type", "entity_id", "tag_key"), (("tag_value", "text"),)),
     "md_lineage_edge": (("target", "source_asset_id", "target_asset_id", "origin"), (("via", "text"),)),
+    "md_asset_edge": (("parent_asset_id", "child_asset_id", "relation"), ()),
 }
 
 DERIVED_KEYS: dict[str, tuple[str, ...]] = {name: keys for name, (keys, _) in _DERIVED.items()}
@@ -333,6 +347,16 @@ _FACTS: dict[str, tuple[tuple[tuple[str, str], ...], tuple[tuple[str, str], ...]
             ("started_at", "ts"),
             ("ended_at", "ts"),
             ("git_sha", "text"),
+        ),
+    ),
+    "md_task_run": (
+        (("target", "text"), ("run_id", "text"), ("task_key", "text")),
+        (
+            ("status", "text"),
+            ("started_at", "ts"),
+            ("ended_at", "ts"),
+            ("attempt", "int"),
+            ("error_class", "text"),
         ),
     ),
     "md_pipeline_update": (
@@ -404,6 +428,7 @@ _FACTS: dict[str, tuple[tuple[tuple[str, str], ...], tuple[tuple[str, str], ...]
 # runtime facts purged after retention_days; definitions and deployments are kept forever
 RUNTIME_TABLES = (
     "md_run",
+    "md_task_run",
     "md_pipeline_update",
     "md_dataset_metrics",
     "md_quality_result",
@@ -555,7 +580,160 @@ class MetaModel:
         views["v_lineage"] = self._lineage_view()
         views["v_lineage_drift"] = self._lineage_drift_view()
         views["v_project_directory"] = self._project_directory_view()
+        views["v_asset_inventory"] = self._asset_inventory_view()
+        views["v_asset_tree"] = self._asset_tree_view()
         return views
+
+    def _asset_inventory_view(self) -> Select:
+        asset = self.table("md_asset")
+        return (
+            select(asset.c.repo_id, asset.c.workload, asset.c.asset_type, func.count().label("assets"))
+            .where(asset.c.is_current.is_(true()))
+            .group_by(asset.c.repo_id, asset.c.workload, asset.c.asset_type)
+        )
+
+    def _last_runs(self):
+        """Return the newest run, pipeline update or dataset write of each asset per target, keyed by the asset's own id."""
+        run, update = self.table("md_run"), self.table("md_pipeline_update")
+        metric, deployed = self.table("md_dataset_metrics"), self.table("md_deployed_asset")
+        deployment = self.table("md_deployment")
+        # runs and pipeline updates record the workspace object id, which md_deployed_asset maps to the asset id
+        jobs = (
+            select(
+                deployed.c.asset_id.label("asset_id"),
+                run.c.target.label("target"),
+                run.c.started_at.label("run_at"),
+                run.c.status.label("run_status"),
+                literal(None).label("rows_written"),
+            )
+            .select_from(
+                run.join(
+                    deployed, run.c.job_asset_id == "uc_job/" + run.c.repo_id + "/" + deployed.c.workspace_object_id
+                ).join(deployment, deployment.c.deployment_id == deployed.c.deployment_id)
+            )
+            .where(deployment.c.target == run.c.target)
+        )
+        pipelines = (
+            select(
+                deployed.c.asset_id,
+                update.c.target,
+                update.c.started_at,
+                update.c.status,
+                literal(None),
+            )
+            .select_from(
+                update.join(
+                    deployed, update.c.pipeline_asset_id == "uc_pipeline/" + deployed.c.workspace_object_id
+                ).join(deployment, deployment.c.deployment_id == deployed.c.deployment_id)
+            )
+            .where(deployment.c.target == update.c.target)
+        )
+        datasets = select(
+            metric.c.asset_id, metric.c.target, update.c.started_at, update.c.status, metric.c.rows_written
+        ).select_from(
+            metric.join(update, and_(update.c.update_id == metric.c.update_id, update.c.target == metric.c.target))
+        )
+        both = union_all(jobs, pipelines, datasets).subquery("runs")
+        ranked = select(
+            both,
+            func.row_number()
+            .over(partition_by=[both.c.asset_id, both.c.target], order_by=both.c.run_at.desc())
+            .label("rn"),
+        ).subquery("ranked_runs")
+        return select(ranked).where(ranked.c.rn == 1).subquery("last_runs")
+
+    def _last_deployments(self):
+        """Return the newest deployment of each asset per target."""
+        deployed, deployment = self.table("md_deployed_asset"), self.table("md_deployment")
+        joined = (
+            select(
+                deployed.c.asset_id.label("asset_id"),
+                deployment.c.target.label("target"),
+                deployment.c.git_sha.label("git_sha"),
+                deployment.c.deployed_at.label("deployed_at"),
+                func.row_number()
+                .over(
+                    partition_by=[deployed.c.asset_id, deployment.c.target],
+                    order_by=deployment.c.deployed_at.desc(),
+                )
+                .label("rn"),
+            )
+            .select_from(deployed.join(deployment, deployment.c.deployment_id == deployed.c.deployment_id))
+            .subquery("deployments")
+        )
+        return select(joined).where(joined.c.rn == 1).subquery("last_deployments")
+
+    def _asset_tree_view(self) -> Select:
+        """
+        Return every current asset with its path, and whether it is designed, deployed and running, per target.
+
+        The path runs bundle > workflow > task > pipeline > spec > flow > dataset, up to six levels. State is
+        ``running`` when a run, pipeline update or dataset write is recorded, ``deployed`` when only a deployment is,
+        ``designed`` when neither, and ``contained`` for tasks, specs and flows, which are deployed with their parent.
+        """
+        asset = self.table("md_asset")
+        levels = [asset.alias(f"l{n}") for n in range(6)]
+        joined = levels[0].outerjoin(
+            levels[1],
+            and_(levels[1].c.entity_id == levels[0].c.parent_asset_id, levels[1].c.is_current.is_(true())),
+        )
+        for n in range(2, 6):
+            joined = joined.outerjoin(
+                levels[n],
+                and_(levels[n].c.entity_id == levels[n - 1].c.parent_asset_id, levels[n].c.is_current.is_(true())),
+            )
+        deployments, runs = self._last_deployments(), self._last_runs()
+        joined = joined.outerjoin(deployments, deployments.c.asset_id == levels[0].c.entity_id).outerjoin(
+            runs, and_(runs.c.asset_id == levels[0].c.entity_id, runs.c.target == deployments.c.target)
+        )
+        segments = [
+            case(
+                (lvl.c.entity_id.is_(None), ""),
+                else_=func.coalesce(func.nullif(lvl.c.resource_key, ""), lvl.c.entity_id) + " > ",
+            )
+            for lvl in reversed(levels[1:])
+        ]
+        path = segments[0]
+        for segment in segments[1:]:
+            path = path + segment
+        path = path + func.coalesce(func.nullif(levels[0].c.resource_key, ""), levels[0].c.entity_id)
+        contained = levels[0].c.asset_type.in_(("uc_job_task", "dataflow_spec", "dataflow_flow"))
+        state = case(
+            (contained, "contained"),
+            (runs.c.run_at.is_not(None), "running"),
+            (deployments.c.deployed_at.is_not(None), "deployed"),
+            else_="designed",
+        )
+        depth = (
+            case((levels[1].c.entity_id.is_not(None), 1), else_=0)
+            + case((levels[2].c.entity_id.is_not(None), 1), else_=0)
+            + case((levels[3].c.entity_id.is_not(None), 1), else_=0)
+            + case((levels[4].c.entity_id.is_not(None), 1), else_=0)
+            + case((levels[5].c.entity_id.is_not(None), 1), else_=0)
+        )
+        top = levels[0]
+        return (
+            select(
+                top.c.entity_id.label("asset_id"),
+                top.c.repo_id,
+                top.c.asset_type,
+                top.c.subtype,
+                top.c.workload,
+                top.c.layer,
+                top.c.parent_asset_id,
+                path.label("path"),
+                depth.label("depth"),
+                deployments.c.target.label("target"),
+                deployments.c.git_sha.label("deployed_commit"),
+                deployments.c.deployed_at,
+                runs.c.run_status.label("last_run_status"),
+                runs.c.run_at.label("last_run_at"),
+                runs.c.rows_written.label("last_rows_written"),
+                state.label("state"),
+            )
+            .select_from(joined)
+            .where(top.c.is_current.is_(true()))
+        )
 
     def _child_view(self, parent: Table, child: ChildSpec) -> Select:
         table = self.table(child.table)

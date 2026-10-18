@@ -17,6 +17,7 @@ from typing import Sequence
 from dbxops.metastore import rows as row_builders
 from dbxops.metastore.model import ENTITIES
 from dbxops.metastore.records import (
+    AssetEdgeRow,
     DefinitionRecord,
     DeploymentRecord,
     EvalResultRecord,
@@ -29,6 +30,7 @@ from dbxops.metastore.records import (
     RunRecord,
     SemanticLinkRow,
     TagRow,
+    TaskRunRecord,
 )
 from dbxops.metastore.scd2 import retired_copy
 
@@ -87,6 +89,10 @@ class BaseRepository(ABC):
         """Replace the owned tags of ``ctx.repo_id``; tags with other keys are rejected and never deactivated."""
         return self._replace_derived(row_builders.tag_set(rows, required_keys), ctx)
 
+    def upsert_asset_edges(self, rows: Sequence[AssetEdgeRow], ctx: PublishContext) -> int:
+        """Replace the asset edges of ``ctx.repo_id``."""
+        return self._replace_derived(row_builders.edge_set(rows), ctx)
+
     def record_lineage(self, edges: Sequence[LineageEdge], ctx: PublishContext, *, target: str, origin: str) -> int:
         """Replace the ``origin`` lineage edges of ``ctx.repo_id`` on ``target``."""
         return self._replace_derived(row_builders.lineage_set(edges, target, origin), ctx)
@@ -102,6 +108,10 @@ class BaseRepository(ABC):
     def record_run(self, run: RunRecord, ctx: PublishContext) -> int:
         """Insert a run, its pipeline updates and dataset metrics if absent."""
         return self._insert_absent(row_builders.run_rows(run, ctx))
+
+    def record_task_runs(self, tasks: Sequence[TaskRunRecord], ctx: PublishContext) -> int:
+        """Insert the task rows of a run if absent."""
+        return self._insert_absent(row_builders.task_run_rows(tasks, ctx))
 
     def record_quality(self, results: Sequence[QualityResultRecord], ctx: PublishContext) -> int:
         """Insert quality results if absent."""

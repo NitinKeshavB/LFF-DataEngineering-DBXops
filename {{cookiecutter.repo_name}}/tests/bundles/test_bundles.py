@@ -120,6 +120,32 @@ def test__jobs_only_reference_pipelines_the_bundle_defines_and_are_tagged(bundle
 
 
 @pytest.mark.parametrize("bundle", BUNDLES)
+def test__the_notification_destinations_are_placeholders_until_set(bundle: Path):
+    """The destination ids and the alert address are bundle variables that stay tracked placeholders."""
+    variables = load_bundle(bundle)["variables"]
+    assert variables["teams_destination_id"]["default"] == "PLACEHOLDER-teams-destination-id"
+    assert variables["email_destination_id"]["default"] == "PLACEHOLDER-email-destination-id"
+    assert variables["alert_email"]["default"] == "PLACEHOLDER-alert-email"
+
+
+@pytest.mark.parametrize("bundle", BUNDLES)
+def test__every_job_notifies_teams_and_email_and_warns_on_duration(bundle: Path):
+    """Each job has email and webhook notifications for failure and a duration rule, wired to bundle variables."""
+    for job in load_bundle(bundle)["resources"]["jobs"].values():
+        email, webhook = job["email_notifications"], job["webhook_notifications"]
+        assert email["on_failure"] == ["${var.alert_email}"]
+        assert [item["id"] for item in webhook["on_failure"]] == [
+            "${var.teams_destination_id}",
+            "${var.email_destination_id}",
+        ]
+        assert (
+            "on_duration_warning_threshold_exceeded" in email and "on_duration_warning_threshold_exceeded" in webhook
+        )
+        rule = job["health"]["rules"][0]
+        assert (rule["metric"], rule["value"]) == ("RUN_DURATION_SECONDS", "${var.duration_warning_seconds}")
+
+
+@pytest.mark.parametrize("bundle", BUNDLES)
 def test__the_workload_variable_matches_the_bundle_family(bundle: Path):
     """A bundle declares its workload once (de, ml or ai) and every job and pipeline tag takes it from there."""
     loaded = load_bundle(bundle)
