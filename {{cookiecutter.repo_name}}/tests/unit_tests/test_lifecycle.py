@@ -79,6 +79,26 @@ def test__reconcile_dry_run_writes_nothing_and_exits_zero(fake_gateway, factory,
     assert "dry run" in capsys.readouterr().out
 
 
+@pytest.mark.parametrize(
+    ("flag", "writes"),
+    [(["--dry-run"], False), (["--dry-run", "true"], False), (["--dry-run", "false"], True), ([], True)],
+)
+def test__dry_run_takes_an_optional_true_or_false_so_a_bundle_variable_can_set_it(
+    fake_gateway, factory, reconcile_config, flag, writes
+):
+    """`--dry-run`, `--dry-run true` plan only; `--dry-run false` and no flag apply."""
+    fake_gateway.tags[("table", "main_cat.claims_silver.fact_claim")] = {}
+    argv = ["reconcile", "--target", "dev", "--config", reconcile_config, "--catalog", "main_cat", *flag]
+    assert main(argv, gateway_factory=factory) == 0
+    assert bool(fake_gateway.writes) is writes
+
+
+def test__a_bad_dry_run_value_is_a_usage_error(factory, reconcile_config):
+    """Anything but true or false after --dry-run exits 2."""
+    argv = ["reconcile", "--target", "dev", "--config", reconcile_config, "--catalog", "c", "--dry-run", "maybe"]
+    assert main(argv, gateway_factory=factory) == 2
+
+
 def test__reconcile_exits_one_when_a_section_reports_errors(factory, reconcile_config, capsys):
     """A tagged table that does not exist is a reconcile error, so the task fails with exit code 1."""
     code = main(_reconcile(reconcile_config), gateway_factory=factory)

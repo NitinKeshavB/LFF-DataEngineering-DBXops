@@ -45,38 +45,47 @@ schema:
     logicalType: string
     physicalType: string
     required: true
+    classification: internal
   - name: policy_id
     logicalType: string
     physicalType: string
     required: true
+    classification: internal
   - name: period_start
     logicalType: date
     physicalType: date
     required: true
+    classification: internal
   - name: period_end
     logicalType: date
     physicalType: date
     required: false
+    classification: internal
   - name: written_premium
     logicalType: number
     physicalType: decimal(18,2)
     required: false
+    classification: confidential
   - name: earned_premium
     logicalType: number
     physicalType: decimal(18,2)
     required: false
+    classification: confidential
   - name: billed_at
     logicalType: timestamp
     physicalType: timestamp
     required: false
+    classification: internal
   - name: _op
     logicalType: string
     physicalType: string
     required: true
+    classification: internal
   - name: _seq
     logicalType: integer
     physicalType: long
     required: true
+    classification: internal
   customProperties:
   - property: dbx.asset_id
     value: example_claims_bronze.premium

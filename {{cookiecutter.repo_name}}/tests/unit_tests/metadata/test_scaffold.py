@@ -117,3 +117,13 @@ def test__cli_new_bundle_reports_success_and_errors(real_conf_root: Path, capsys
     assert "created bundles/sandbox" in capsys.readouterr().out
     assert main(["--root", str(real_conf_root), "new-bundle", "--name", "other", "--data-domain", "nope"]) == 1
     assert "error:" in capsys.readouterr().out
+
+
+def test__a_scaffolded_bundle_tags_its_jobs_and_pipelines_for_governance(real_conf_root: Path):
+    """Registry tags, provenance from the bundle's git substitutions and the workload reach every job and pipeline."""
+    scaffold_bundle(real_conf_root, "sandbox", DOMAIN)
+    doc = load_bundle(real_conf_root / "bundles/sandbox")
+    expected = {"project_id", "bundle", "target", "workload", "git_repo", "git_ref", "git_sha"}
+    tagged = [*doc["resources"]["jobs"].values(), *doc["resources"]["pipelines"].values()]
+    assert tagged and all(expected <= set(item["tags"]) for item in tagged)
+    assert doc["variables"]["workload"]["default"] == "de"

@@ -55,6 +55,10 @@ def _variables(tag_keys: list[str]) -> dict[str, Any]:
     }
     for key in tag_keys:
         variables[key] = {"description": f"{key} tag (metadata/_platform/repo.yaml tags)"}
+    variables["workload"] = {
+        "description": "Workload class of this bundle (de, ml, ai or platform); applied as a tag to every job and pipeline",
+        "default": "de",
+    }
     variables["dbxops_wheel_path"] = {
         "description": "Path of the dbxops wheel on a UC volume, set by CI (/Volumes/<catalog>/platform/wheels/<version>/...whl)",
         "default": "",
@@ -107,7 +111,16 @@ def _bundle_config(ctx: RepoContext, name: str) -> dict[str, Any]:
 
 
 def _tag_refs(ctx: RepoContext) -> dict[str, str]:
-    return {key: f"${{var.{key}}}" for key in ctx.repo["tags"]}
+    return {
+        **{key: f"${{var.{key}}}" for key in ctx.repo["tags"]},
+        "project_id": "${var.project_id}",
+        "bundle": "${bundle.name}",
+        "target": "${bundle.target}",
+        "workload": "${var.workload}",
+        "git_repo": "${bundle.git.origin_url}",
+        "git_ref": "${bundle.git.branch}",
+        "git_sha": "${bundle.git.commit}",
+    }
 
 
 def _pipeline(ctx: RepoContext, name: str) -> dict[str, Any]:

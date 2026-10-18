@@ -35,5 +35,5 @@ def test__the_framework_is_added_by_the_hook_not_shipped_in_the_template():
 def test__the_template_holds_the_whole_platform():
     """Everything a squad needs is under the template directory, not beside it."""
     expected = ["src/dbxops", "bundles", "conf", "metadata/_platform", "framework/local", "templates/registry-repo"]
-    expected += [".github/workflows", ".claude/skills", "context", "tests", "CLAUDE.md", "Makefile", "pyproject.toml"]
+    expected += [".github/workflows", ".claude/skills", ".claude/context", "tests", "CLAUDE.md", "Makefile", "pyproject.toml"]
     assert [path for path in expected if not (PROJECT_TEMPLATE / path).exists()] == []

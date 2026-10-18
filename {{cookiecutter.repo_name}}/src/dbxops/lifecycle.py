@@ -1,7 +1,7 @@
 """
 Task entry points for the lifecycle library, runnable as job tasks.
 
-    python -m dbxops.lifecycle reconcile --target dev --config conf/lifecycle.yml [--dry-run]
+    python -m dbxops.lifecycle reconcile --target dev --config conf/lifecycle.yml [--dry-run [true|false]] [--catalog C]
     python -m dbxops.lifecycle promote --model cat.schema.model --version 3 --gate conf/gates/fraud.yml \
         [--metric auc=0.91 ...]
 
@@ -106,18 +106,24 @@ def default_gateway(warehouse_id: str | None) -> WorkspaceGateway:
     return SdkWorkspaceGateway(WorkspaceClient(), warehouse_id=warehouse_id)
 
 
-def _substitute(value: Any, catalog: str) -> Any:
+def _substitute(value: Any, variables: dict[str, str]) -> Any:
     if isinstance(value, str):
-        return value.replace("{catalog}", catalog)
+        for name, text in variables.items():
+            value = value.replace("{" + name + "}", text)
+        return value
     if isinstance(value, list):
-        return [_substitute(item, catalog) for item in value]
+        return [_substitute(item, variables) for item in value]
     if isinstance(value, dict):
-        return {key: _substitute(item, catalog) for key, item in value.items()}
+        return {key: _substitute(item, variables) for key, item in value.items()}
     return value
 
 
-def load_reconcile_config(path: str, catalog: str) -> dict:
-    """Read a reconcile config file and substitute ``{catalog}``; raises ``ConfigError`` when it is invalid."""
+def load_reconcile_config(path: str, catalog: str, variables: dict[str, str] | None = None) -> dict:
+    """
+    Read a reconcile config file and substitute ``{catalog}`` and any ``variables``.
+
+    Raises ``ConfigError`` when the file is invalid.
+    """
     try:
         with open(path, encoding="utf-8") as file:
             data = yaml.safe_load(file)
@@ -128,7 +134,7 @@ def load_reconcile_config(path: str, catalog: str) -> dict:
     unknown = sorted(set(data) - _SECTIONS)
     if unknown:
         raise ConfigError(f"{path}: unknown section(s) {', '.join(unknown)}; allowed: {', '.join(sorted(_SECTIONS))}")
-    return _substitute(data, catalog)
+    return _substitute(data, {**(variables or {}), "catalog": catalog})
 
 
 def _build(factory: Callable[..., Any], entries: Any, section: str) -> list:
@@ -175,8 +181,8 @@ def _print_result(section: str, result: ReconcileResult) -> None:
 
 def run_reconcile(args: argparse.Namespace, gateway_factory: GatewayFactory) -> int:
     """Reconcile every section of the config against the workspace."""
-    environment = load_environment(args.target, args.environments)
-    config = load_reconcile_config(args.config, environment.catalog)
+    catalog = args.catalog or load_environment(args.target, args.environments).catalog
+    config = load_reconcile_config(args.config, catalog, _parse_vars(args.var))
     tasks = build_tasks(config, gateway_factory(config.get("warehouse_id")))
     failed = False
     for section, reconciler, desired in tasks:
@@ -217,6 +223,22 @@ def run_promote(args: argparse.Namespace, gateway_factory: GatewayFactory) -> in
     return EXIT_OK
 
 
+def _parse_vars(pairs: Sequence[str]) -> dict[str, str]:
+    variables = {}
+    for pair in pairs:
+        name, separator, value = pair.partition("=")
+        if not separator or not name:
+            raise ConfigError(f"--var expects name=value, got {pair!r}")
+        variables[name] = value
+    return variables
+
+
+def _flag(text: str) -> bool:
+    if text.lower() in ("true", "false"):
+        return text.lower() == "true"
+    raise argparse.ArgumentTypeError(f"expected true or false, got {text!r}")
+
+
 def build_parser() -> argparse.ArgumentParser:
     """Return the command line parser."""
     parser = argparse.ArgumentParser(prog="python -m dbxops.lifecycle", description=__doc__.split("\n")[1])
@@ -225,7 +247,16 @@ def build_parser() -> argparse.ArgumentParser:
     reconcile.add_argument("--target", required=True, help="a target of conf/environments.yml")
     reconcile.add_argument("--config", required=True, help="path to the reconcile config")
     reconcile.add_argument("--environments", default="conf/environments.yml", help="path to environments.yml")
-    reconcile.add_argument("--dry-run", action="store_true", help="plan and print the changes without applying them")
+    reconcile.add_argument("--catalog", help="catalog of the target; when given, conf/environments.yml is not read")
+    reconcile.add_argument("--var", action="append", default=[], help="name=value for a {name} token; may repeat")
+    reconcile.add_argument(
+        "--dry-run",
+        nargs="?",
+        const=True,
+        default=False,
+        type=_flag,
+        help="plan and print the changes without applying them; accepts true or false so a bundle variable can set it",
+    )
     promote = commands.add_parser("promote", help="promote a model version from challenger to champion")
     promote.add_argument("--model", required=True, help="full UC model name, catalog.schema.model")
     promote.add_argument("--version", required=True, type=int, help="model version")

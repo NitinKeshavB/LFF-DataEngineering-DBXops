@@ -13,6 +13,13 @@ resources:
       tags:
         cost_center: ${var.cost_center}
         region: ${var.region}
+        project_id: ${var.project_id}
+        bundle: ${bundle.name}
+        target: ${bundle.target}
+        workload: ${var.workload}
+        git_repo: ${bundle.git.origin_url}
+        git_ref: ${bundle.git.branch}
+        git_sha: ${bundle.git.commit}
       configuration:
         bundle.sourcePath: ${workspace.file_path}/src
         bundle.target: ${bundle.target}
@@ -34,6 +41,13 @@ resources:
       tags:
         cost_center: ${var.cost_center}
         region: ${var.region}
+        project_id: ${var.project_id}
+        bundle: ${bundle.name}
+        target: ${bundle.target}
+        workload: ${var.workload}
+        git_repo: ${bundle.git.origin_url}
+        git_ref: ${bundle.git.branch}
+        git_sha: ${bundle.git.commit}
       configuration:
         bundle.sourcePath: ${workspace.file_path}/src
         bundle.target: ${bundle.target}
@@ -55,6 +69,13 @@ resources:
       tags:
         cost_center: ${var.cost_center}
         region: ${var.region}
+        project_id: ${var.project_id}
+        bundle: ${bundle.name}
+        target: ${bundle.target}
+        workload: ${var.workload}
+        git_repo: ${bundle.git.origin_url}
+        git_ref: ${bundle.git.branch}
+        git_sha: ${bundle.git.commit}
       configuration:
         bundle.sourcePath: ${workspace.file_path}/src
         bundle.target: ${bundle.target}

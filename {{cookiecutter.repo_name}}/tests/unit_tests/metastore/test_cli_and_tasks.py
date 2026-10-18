@@ -119,6 +119,19 @@ def test__bad_arguments_and_errors_give_exit_codes(repo_root, repo, capsys, tmp_
     assert "error:" in capsys.readouterr().err
 
 
+def test__tags_plan_prints_the_governance_tags_of_each_table_with_the_catalog(repo_root, capsys):
+    """tags-plan writes a metadata_sync section (classification and owners, no placeholders); it needs a real catalog."""
+    assert main(["tags-plan", "--target", "dev", "--root", str(repo_root), "--catalog", "main_cat"]) == 0
+    tags = yaml.safe_load(capsys.readouterr().out)["metadata_sync"]["tags"]
+    fraud = {t["tag_key"]: t["tag_value"] for t in tags if t["entity_id"] == "main_cat.claims_fraud_ml.fraud_scores"}
+    assert fraud["classification"] == "restricted"
+    assert not any("PLACEHOLDER" in str(t["tag_value"]) for t in tags)
+    assert {t["entity_type"] for t in tags} == {"table"} and all(t["is_active"] for t in tags)
+    write_yaml(repo_root / "conf/environments.yml", {"targets": {"dev": {"catalog": "<PLACEHOLDER-dev-catalog>"}}})
+    assert main(["tags-plan", "--target", "dev", "--root", str(repo_root)]) == 1
+    assert "no real catalog" in capsys.readouterr().err
+
+
 def test__ensure_schema_command(sqlite_engine, capsys):
     """ensure-schema builds the repository for the target and creates the schema."""
     assert main(["ensure-schema", "--target", "dev"], build=lambda c, t: SqlAlchemyRepository(sqlite_engine)) == 0
@@ -169,7 +182,7 @@ def test__the_workspace_jobs_client_fetches_a_run_as_a_dict():
 
 
 def test__the_committed_data_dictionary_is_what_the_model_generates(capsys):
-    """context/03_Architecture/Metadata_Dictionary.md equals the generated dictionary (run make metadata-dictionary)."""
+    """.claude/context/03_Architecture/Metadata_Dictionary.md equals the generated dictionary (run make metadata-dictionary)."""
     assert main(["dictionary"]) == 0
-    committed = (PROJECT_DIR / "context/03_Architecture/Metadata_Dictionary.md").read_text(encoding="utf-8")
+    committed = (PROJECT_DIR / ".claude/context/03_Architecture/Metadata_Dictionary.md").read_text(encoding="utf-8")
     assert capsys.readouterr().out == committed

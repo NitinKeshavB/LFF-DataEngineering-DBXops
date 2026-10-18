@@ -45,30 +45,37 @@ schema:
     logicalType: string
     physicalType: string
     required: true
+    classification: internal
   - name: claim_id
     logicalType: string
     physicalType: string
     required: true
+    classification: internal
   - name: paid_at
     logicalType: timestamp
     physicalType: timestamp
     required: false
+    classification: internal
   - name: amount
     logicalType: number
     physicalType: decimal(18,2)
     required: false
+    classification: confidential
   - name: payment_type
     logicalType: string
     physicalType: string
     required: false
+    classification: internal
   - name: _op
     logicalType: string
     physicalType: string
     required: true
+    classification: internal
   - name: _seq
     logicalType: integer
     physicalType: long
     required: true
+    classification: internal
   customProperties:
   - property: dbx.asset_id
     value: example_claims_bronze.claim_payment

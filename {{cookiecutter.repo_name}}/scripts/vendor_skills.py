@@ -28,7 +28,7 @@ ROOT = Path(__file__).resolve().parent.parent
 LOCK_PATH = ".claude/skills/VENDORED.json"
 SKILLS_DIR = ".claude/skills"
 COMMANDS_DIR = ".claude/commands"
-THIRD_PARTY_DIR = "THIRD_PARTY"
+THIRD_PARTY_DIR = ".claude/THIRD_PARTY"
 _VARIANT = re.compile(r"\{\{(.*?)\|(.*?)\}\}", re.DOTALL)
 
 

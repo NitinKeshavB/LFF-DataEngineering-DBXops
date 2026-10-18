@@ -25,7 +25,7 @@ PLATFORM_REPO_ID = "_platform"
 
 # Tag keys the platform owns in Unity Catalog; a publish may add and remove only these (plan section C).
 OWNED_TAG_PREFIXES = ("data_domain_", "data_product_", "data_contract_")
-OWNED_TAG_KEYS = frozenset({"classification"})
+OWNED_TAG_KEYS = frozenset({"classification", "technical_owner", "data_owner", "data_steward"})
 
 STATUS_RETIRED = "retired"
 ORIGIN_SPEC = "spec"

@@ -1,5 +1,5 @@
 """
-Command line: ``python -m dbxops.metastore publish|ensure-schema``.
+Command line: ``python -m dbxops.metastore publish|ensure-schema|tags-plan``.
 
 A thin wrapper: parse arguments, build the repository with ``RepositoryFactory``, discover documents with
 ``sources``, map them with the collectors and hand them to ``MetadataPublisher``.
@@ -21,7 +21,10 @@ import yaml
 
 from dbxops.metastore import collectors
 from dbxops.metastore.dictionary import render_dictionary
-from dbxops.metastore.errors import MetastoreError
+from dbxops.metastore.errors import (
+    ConfigError,
+    MetastoreError,
+)
 from dbxops.metastore.factory import RepositoryFactory
 from dbxops.metastore.publisher import MetadataPublisher
 from dbxops.metastore.records import (
@@ -64,6 +67,15 @@ def build_parser() -> argparse.ArgumentParser:
         command.add_argument("--config", default=DEFAULT_CONFIG)
         command.add_argument("--root", default=".", help="repo root holding metadata/ and the bundles")
     commands.add_parser("dictionary", help="print the data dictionary (markdown) generated from the model")
+    plan = commands.add_parser(
+        "tags-plan", help="print the governance tags of every contract table as a metadata_sync section"
+    )
+    plan.add_argument("--target", help="a target of conf/environments.yml (not needed with --bundle)")
+    plan.add_argument("--root", default=".", help="repo root holding metadata/ and the bundles")
+    plan.add_argument(
+        "--catalog", help="catalog of the tables (default: the target's catalog in conf/environments.yml)"
+    )
+    plan.add_argument("--bundle", help="only this bundle's contracts; the catalog stays the {catalog} token")
     registry = commands.choices["publish-registry"]
     registry.add_argument("--registry", required=True, help="registry checkout: projects/, domains.yaml, glossary/")
     registry.add_argument("--git-sha", default=os.environ.get("GITHUB_SHA"))
@@ -104,7 +116,7 @@ def _publish_definitions(publisher: MetadataPublisher, found: Discovered, args: 
         records += collectors.asset_records(doc, source_path=path, **options)
     for _, doc in [*found.contracts, *found.products]:
         links += collectors.semantic_link_rows(doc)
-        tags += collectors.tag_rows(doc)
+        tags += collectors.tag_rows(doc, found.owners)
     retire = ("data_contract", "data_product") if args.retire_missing else ()
     return publisher.publish_definitions(records, links=links, tags=tags, retire_missing=retire)
 
@@ -134,6 +146,48 @@ def run_publish(args: argparse.Namespace, build: RepositoryBuilder, runner: Bund
     if "lineage" in what:
         edges = LineageCollector.spec_edges(_spec_records(found, context))
         print(f"lineage: {publisher.publish_lineage(edges, ORIGIN_SPEC)}")
+    return 0
+
+
+def _target_catalog(root: Path, target: str | None) -> str:
+    environments = yaml.safe_load((root / "conf/environments.yml").read_text(encoding="utf-8")) or {}
+    catalog = (environments.get("targets") or {}).get(target, {}).get("catalog", "")
+    if not catalog or "PLACEHOLDER" in catalog:
+        raise ConfigError(f"target {target!r} has no real catalog ({catalog!r}); pass --catalog")
+    return catalog
+
+
+def _with_logical_env(asset_id: str) -> str:
+    """Return ``<schema>{logical_env}.<table>``: a developer's schemas carry a suffix in dev."""
+    schema, _, table = asset_id.partition(".")
+    return f"{schema}{{logical_env}}.{table}"
+
+
+def run_tags_plan(args: argparse.Namespace) -> int:
+    """
+    Print the ``metadata_sync`` section that applies the governance tags of every contract table.
+
+    Save it in the reconcile config and run ``python -m dbxops.lifecycle reconcile --dry-run`` to see the changes.
+    With ``--bundle`` only that bundle's tables are listed and the catalog stays the ``{catalog}`` token, which the
+    bundle's job task fills from the target. Nothing is written to a workspace here.
+    """
+    root = Path(args.root)
+    catalog = args.catalog or ("{catalog}" if args.bundle else _target_catalog(root, args.target))
+    found = discover(root)
+    if args.bundle:
+        found.contracts = [(path, doc) for path, doc in found.contracts if f"bundles/{args.bundle}/" in path]
+    tags = [
+        {
+            "entity_type": "table",
+            "entity_id": f"{catalog}.{_with_logical_env(row.entity_id) if args.bundle else row.entity_id}",
+            "tag_key": row.tag_key,
+            "tag_value": row.tag_value,
+            "is_active": True,
+        }
+        for _, doc in found.contracts
+        for row in collectors.tag_rows(doc, found.owners)
+    ]
+    print(yaml.safe_dump({"metadata_sync": {"tags": tags}}, sort_keys=False), end="")
     return 0
 
 
@@ -170,6 +224,8 @@ def main(
         return 0
     builder = build or RepositoryFactory.from_config
     try:
+        if args.command == "tags-plan":
+            return run_tags_plan(args)
         if args.command == "ensure-schema":
             builder(args.config, args.target).ensure_schema()
             print("schema ready")

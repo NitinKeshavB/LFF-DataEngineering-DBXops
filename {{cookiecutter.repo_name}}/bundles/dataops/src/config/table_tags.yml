@@ -1,0 +1,302 @@
+metadata_sync:
+  tags:
+  - entity_type: table
+    entity_id: '{catalog}.example_claims_bronze{logical_env}.claim'
+    tag_key: data_domain_claims__lodgement_assessment_liability__claim
+    tag_value: ''
+    is_active: true
+  - entity_type: table
+    entity_id: '{catalog}.example_claims_bronze{logical_env}.claim'
+    tag_key: data_product_example_claims_claims_raw
+    tag_value: ''
+    is_active: true
+  - entity_type: table
+    entity_id: '{catalog}.example_claims_bronze{logical_env}.claim'
+    tag_key: data_contract_example_claims_bronze_claim
+    tag_value: ''
+    is_active: true
+  - entity_type: table
+    entity_id: '{catalog}.example_claims_bronze{logical_env}.claim'
+    tag_key: classification
+    tag_value: confidential
+    is_active: true
+  - entity_type: table
+    entity_id: '{catalog}.example_claims_bronze{logical_env}.claim_payment'
+    tag_key: data_domain_claims__settlement_payments__claim_payment
+    tag_value: ''
+    is_active: true
+  - entity_type: table
+    entity_id: '{catalog}.example_claims_bronze{logical_env}.claim_payment'
+    tag_key: data_product_example_claims_claims_raw
+    tag_value: ''
+    is_active: true
+  - entity_type: table
+    entity_id: '{catalog}.example_claims_bronze{logical_env}.claim_payment'
+    tag_key: data_contract_example_claims_bronze_claim_payment
+    tag_value: ''
+    is_active: true
+  - entity_type: table
+    entity_id: '{catalog}.example_claims_bronze{logical_env}.claim_payment'
+    tag_key: classification
+    tag_value: confidential
+    is_active: true
+  - entity_type: table
+    entity_id: '{catalog}.example_claims_bronze{logical_env}.coverage'
+    tag_key: data_domain_contract_underwriting__policy_admin_servicing__policy_coverage
+    tag_value: ''
+    is_active: true
+  - entity_type: table
+    entity_id: '{catalog}.example_claims_bronze{logical_env}.coverage'
+    tag_key: data_product_example_claims_claims_raw
+    tag_value: ''
+    is_active: true
+  - entity_type: table
+    entity_id: '{catalog}.example_claims_bronze{logical_env}.coverage'
+    tag_key: data_contract_example_claims_bronze_coverage
+    tag_value: ''
+    is_active: true
+  - entity_type: table
+    entity_id: '{catalog}.example_claims_bronze{logical_env}.coverage'
+    tag_key: classification
+    tag_value: confidential
+    is_active: true
+  - entity_type: table
+    entity_id: '{catalog}.example_claims_bronze{logical_env}.party'
+    tag_key: data_domain_customer__party_profile__client
+    tag_value: ''
+    is_active: true
+  - entity_type: table
+    entity_id: '{catalog}.example_claims_bronze{logical_env}.party'
+    tag_key: data_product_example_claims_claims_raw
+    tag_value: ''
+    is_active: true
+  - entity_type: table
+    entity_id: '{catalog}.example_claims_bronze{logical_env}.party'
+    tag_key: data_contract_example_claims_bronze_party
+    tag_value: ''
+    is_active: true
+  - entity_type: table
+    entity_id: '{catalog}.example_claims_bronze{logical_env}.party'
+    tag_key: classification
+    tag_value: restricted
+    is_active: true
+  - entity_type: table
+    entity_id: '{catalog}.example_claims_bronze{logical_env}.policy'
+    tag_key: data_domain_contract_underwriting__policy_admin_servicing__policy
+    tag_value: ''
+    is_active: true
+  - entity_type: table
+    entity_id: '{catalog}.example_claims_bronze{logical_env}.policy'
+    tag_key: data_product_example_claims_claims_raw
+    tag_value: ''
+    is_active: true
+  - entity_type: table
+    entity_id: '{catalog}.example_claims_bronze{logical_env}.policy'
+    tag_key: data_contract_example_claims_bronze_policy
+    tag_value: ''
+    is_active: true
+  - entity_type: table
+    entity_id: '{catalog}.example_claims_bronze{logical_env}.policy'
+    tag_key: classification
+    tag_value: confidential
+    is_active: true
+  - entity_type: table
+    entity_id: '{catalog}.example_claims_bronze{logical_env}.premium'
+    tag_key: data_domain_contract_underwriting__pricing_rating__premium
+    tag_value: ''
+    is_active: true
+  - entity_type: table
+    entity_id: '{catalog}.example_claims_bronze{logical_env}.premium'
+    tag_key: data_product_example_claims_claims_raw
+    tag_value: ''
+    is_active: true
+  - entity_type: table
+    entity_id: '{catalog}.example_claims_bronze{logical_env}.premium'
+    tag_key: data_contract_example_claims_bronze_premium
+    tag_value: ''
+    is_active: true
+  - entity_type: table
+    entity_id: '{catalog}.example_claims_bronze{logical_env}.premium'
+    tag_key: classification
+    tag_value: confidential
+    is_active: true
+  - entity_type: table
+    entity_id: '{catalog}.example_claims_gold{logical_env}.claims_frequency_severity'
+    tag_key: data_domain_claims__lodgement_assessment_liability__claim
+    tag_value: ''
+    is_active: true
+  - entity_type: table
+    entity_id: '{catalog}.example_claims_gold{logical_env}.claims_frequency_severity'
+    tag_key: data_product_example_claims_claims_analytics
+    tag_value: ''
+    is_active: true
+  - entity_type: table
+    entity_id: '{catalog}.example_claims_gold{logical_env}.claims_frequency_severity'
+    tag_key: data_contract_example_claims_gold_claims_frequency_severity
+    tag_value: ''
+    is_active: true
+  - entity_type: table
+    entity_id: '{catalog}.example_claims_gold{logical_env}.claims_frequency_severity'
+    tag_key: classification
+    tag_value: confidential
+    is_active: true
+  - entity_type: table
+    entity_id: '{catalog}.example_claims_gold{logical_env}.loss_ratio_monthly'
+    tag_key: data_domain_contract_underwriting__pricing_rating__premium
+    tag_value: ''
+    is_active: true
+  - entity_type: table
+    entity_id: '{catalog}.example_claims_gold{logical_env}.loss_ratio_monthly'
+    tag_key: data_product_example_claims_claims_analytics
+    tag_value: ''
+    is_active: true
+  - entity_type: table
+    entity_id: '{catalog}.example_claims_gold{logical_env}.loss_ratio_monthly'
+    tag_key: data_contract_example_claims_gold_loss_ratio_monthly
+    tag_value: ''
+    is_active: true
+  - entity_type: table
+    entity_id: '{catalog}.example_claims_gold{logical_env}.loss_ratio_monthly'
+    tag_key: classification
+    tag_value: confidential
+    is_active: true
+  - entity_type: table
+    entity_id: '{catalog}.example_claims_gold{logical_env}.policies_in_force'
+    tag_key: data_domain_contract_underwriting__policy_admin_servicing__policy
+    tag_value: ''
+    is_active: true
+  - entity_type: table
+    entity_id: '{catalog}.example_claims_gold{logical_env}.policies_in_force'
+    tag_key: data_product_example_claims_claims_analytics
+    tag_value: ''
+    is_active: true
+  - entity_type: table
+    entity_id: '{catalog}.example_claims_gold{logical_env}.policies_in_force'
+    tag_key: data_contract_example_claims_gold_policies_in_force
+    tag_value: ''
+    is_active: true
+  - entity_type: table
+    entity_id: '{catalog}.example_claims_gold{logical_env}.policies_in_force'
+    tag_key: classification
+    tag_value: confidential
+    is_active: true
+  - entity_type: table
+    entity_id: '{catalog}.example_claims_silver{logical_env}.dim_policy'
+    tag_key: data_domain_contract_underwriting__policy_admin_servicing__policy
+    tag_value: ''
+    is_active: true
+  - entity_type: table
+    entity_id: '{catalog}.example_claims_silver{logical_env}.dim_policy'
+    tag_key: data_product_example_claims_claims_conformed
+    tag_value: ''
+    is_active: true
+  - entity_type: table
+    entity_id: '{catalog}.example_claims_silver{logical_env}.dim_policy'
+    tag_key: data_contract_example_claims_silver_dim_policy
+    tag_value: ''
+    is_active: true
+  - entity_type: table
+    entity_id: '{catalog}.example_claims_silver{logical_env}.dim_policy'
+    tag_key: classification
+    tag_value: confidential
+    is_active: true
+  - entity_type: table
+    entity_id: '{catalog}.example_claims_silver{logical_env}.dim_policy_coverage'
+    tag_key: data_domain_contract_underwriting__policy_admin_servicing__policy_coverage
+    tag_value: ''
+    is_active: true
+  - entity_type: table
+    entity_id: '{catalog}.example_claims_silver{logical_env}.dim_policy_coverage'
+    tag_key: data_product_example_claims_claims_conformed
+    tag_value: ''
+    is_active: true
+  - entity_type: table
+    entity_id: '{catalog}.example_claims_silver{logical_env}.dim_policy_coverage'
+    tag_key: data_contract_example_claims_silver_dim_policy_coverage
+    tag_value: ''
+    is_active: true
+  - entity_type: table
+    entity_id: '{catalog}.example_claims_silver{logical_env}.dim_policy_coverage'
+    tag_key: classification
+    tag_value: confidential
+    is_active: true
+  - entity_type: table
+    entity_id: '{catalog}.example_claims_silver{logical_env}.dim_policyholder'
+    tag_key: data_domain_customer__party_profile__client
+    tag_value: ''
+    is_active: true
+  - entity_type: table
+    entity_id: '{catalog}.example_claims_silver{logical_env}.dim_policyholder'
+    tag_key: data_product_example_claims_claims_conformed
+    tag_value: ''
+    is_active: true
+  - entity_type: table
+    entity_id: '{catalog}.example_claims_silver{logical_env}.dim_policyholder'
+    tag_key: data_contract_example_claims_silver_dim_policyholder
+    tag_value: ''
+    is_active: true
+  - entity_type: table
+    entity_id: '{catalog}.example_claims_silver{logical_env}.dim_policyholder'
+    tag_key: classification
+    tag_value: restricted
+    is_active: true
+  - entity_type: table
+    entity_id: '{catalog}.example_claims_silver{logical_env}.fact_claim'
+    tag_key: data_domain_claims__lodgement_assessment_liability__claim
+    tag_value: ''
+    is_active: true
+  - entity_type: table
+    entity_id: '{catalog}.example_claims_silver{logical_env}.fact_claim'
+    tag_key: data_product_example_claims_claims_conformed
+    tag_value: ''
+    is_active: true
+  - entity_type: table
+    entity_id: '{catalog}.example_claims_silver{logical_env}.fact_claim'
+    tag_key: data_contract_example_claims_silver_fact_claim
+    tag_value: ''
+    is_active: true
+  - entity_type: table
+    entity_id: '{catalog}.example_claims_silver{logical_env}.fact_claim'
+    tag_key: classification
+    tag_value: confidential
+    is_active: true
+  - entity_type: table
+    entity_id: '{catalog}.example_claims_silver{logical_env}.fact_claim_payment'
+    tag_key: data_domain_claims__settlement_payments__claim_payment
+    tag_value: ''
+    is_active: true
+  - entity_type: table
+    entity_id: '{catalog}.example_claims_silver{logical_env}.fact_claim_payment'
+    tag_key: data_product_example_claims_claims_conformed
+    tag_value: ''
+    is_active: true
+  - entity_type: table
+    entity_id: '{catalog}.example_claims_silver{logical_env}.fact_claim_payment'
+    tag_key: data_contract_example_claims_silver_fact_claim_payment
+    tag_value: ''
+    is_active: true
+  - entity_type: table
+    entity_id: '{catalog}.example_claims_silver{logical_env}.fact_claim_payment'
+    tag_key: classification
+    tag_value: confidential
+    is_active: true
+  - entity_type: table
+    entity_id: '{catalog}.example_claims_silver{logical_env}.fact_premium'
+    tag_key: data_domain_contract_underwriting__pricing_rating__premium
+    tag_value: ''
+    is_active: true
+  - entity_type: table
+    entity_id: '{catalog}.example_claims_silver{logical_env}.fact_premium'
+    tag_key: data_product_example_claims_claims_conformed
+    tag_value: ''
+    is_active: true
+  - entity_type: table
+    entity_id: '{catalog}.example_claims_silver{logical_env}.fact_premium'
+    tag_key: data_contract_example_claims_silver_fact_premium
+    tag_value: ''
+    is_active: true
+  - entity_type: table
+    entity_id: '{catalog}.example_claims_silver{logical_env}.fact_premium'
+    tag_key: classification
+    tag_value: confidential
+    is_active: true

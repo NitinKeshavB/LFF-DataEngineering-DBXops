@@ -73,7 +73,7 @@ def test__sync_copies_files_renders_commands_and_records_checksums(repo: Path, s
         ".claude/skills/demo-skill/SKILL.md",
         ".claude/skills/demo-skill/references/a.md",
         ".claude/commands/demo-command.md",
-        "THIRD_PARTY/demo/LICENSE",
+        ".claude/THIRD_PARTY/demo/LICENSE",
     }
     assert files[".claude/skills/demo-skill/SKILL.md"] == vendor_skills.sha256(
         repo / ".claude/skills/demo-skill/SKILL.md"
@@ -121,10 +121,10 @@ def test__the_real_vendored_tree_matches_its_lock():
 
 
 def test__every_vendored_source_ships_its_licence():
-    """Each source in the lock has its licence file recorded under THIRD_PARTY/<source>/."""
+    """Each source in the lock has its licence file recorded under .claude/THIRD_PARTY/<source>/."""
     lock = json.loads((PROJECT_DIR / vendor_skills.LOCK_PATH).read_text(encoding="utf-8"))
     for source_id, source in lock["sources"].items():
-        assert any(f.startswith(f"THIRD_PARTY/{source_id}/") for f in source["files"]), source_id
+        assert any(f.startswith(f".claude/THIRD_PARTY/{source_id}/") for f in source["files"]), source_id
 
 
 def test__main_check_returns_success_on_the_real_tree(capsys):

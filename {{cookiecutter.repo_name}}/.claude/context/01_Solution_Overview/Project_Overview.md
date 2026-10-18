@@ -34,7 +34,7 @@ catalogued asset types; row-level security on `platform_meta`; creating Unity Ca
 | `.github/workflows/` | CI, CD, framework deploy, upstream check |
 | `.claude/` | commands and skills, including vendored Databricks, MLflow and framework skills (`VENDORED.json` locks them) |
 | `tests/` | `unit_tests/` mirrors `src/`; `bundles/` checks the example bundles |
-| `context/` | this spec layer |
+| `.claude/context/` | this spec layer |
 
 **Import name vs distribution name.** Installed as `cookie-cutter-dbx`, imported as `dbxops`. Jobs run `dbxops-publish-run` from the
 wheel with `python_wheel_task` (package `cookie-cutter-dbx`).

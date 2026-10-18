@@ -60,6 +60,7 @@ _PHYSICAL_TO_ASSET_TYPE = {
 }
 CLASSIFICATION_ORDER = ("public", "internal", "confidential", "restricted")
 _CONTACT_ROLES = ("technical_owner", "data_owner", "executive_owner", "data_steward")
+OWNER_TAG_KEYS = ("technical_owner", "data_owner", "data_steward")
 
 
 # ---------------------------------------------------------------------- helpers
@@ -436,16 +437,17 @@ def _links(entity_type: str, entity_id: str, item: Mapping[str, Any]) -> list[Se
 # -------------------------------------------------------------------------- tags
 
 
-def tag_rows(doc: Mapping[str, Any]) -> list[TagRow]:
+def tag_rows(doc: Mapping[str, Any], owners: Mapping[str, str] | None = None) -> list[TagRow]:
     """
     Map a contract or product to the owned tags of its assets.
 
     Each asset gets ``data_domain_<path>``, ``data_product_<name>`` and ``data_contract_<name>`` (the id without its
     ``dp_``/``dc_`` prefix, value empty) and, for contract tables, ``classification`` set to the highest
-    classification among the table's properties.
+    classification among the table's properties. ``owners`` maps ``technical_owner``, ``data_owner`` and
+    ``data_steward`` to a contact; each one that is set (not a ``PLACEHOLDER-`` value) becomes a tag of that name.
     """
     if doc.get("kind") == "DataProduct":
-        return _product_tags(doc)
+        return _product_tags(doc, owners)
     rows: list[TagRow] = []
     for obj in doc.get("schema") or ():
         if not obj.get("physicalName"):
@@ -455,13 +457,23 @@ def tag_rows(doc: Mapping[str, Any]) -> list[TagRow]:
         level = _highest_classification(obj.get("properties") or ())
         if level:
             rows.append(TagRow("asset", asset_id, "classification", level))
+        rows += _owner_tags(asset_id, owners)
     return rows
 
 
-def _product_tags(doc: Mapping[str, Any]) -> list[TagRow]:
+def _owner_tags(asset_id: str, owners: Mapping[str, str] | None) -> list[TagRow]:
+    return [
+        TagRow("asset", asset_id, role, str(owners[role]))
+        for role in OWNER_TAG_KEYS
+        if owners and owners.get(role) and not str(owners[role]).startswith("PLACEHOLDER-")
+    ]
+
+
+def _product_tags(doc: Mapping[str, Any], owners: Mapping[str, str] | None) -> list[TagRow]:
     rows: list[TagRow] = []
     for asset in _product_assets(doc):
         rows += _asset_tags(asset["asset_id"], doc.get("domain"), doc["id"], None)
+        rows += _owner_tags(asset["asset_id"], owners)
     return rows
 
 

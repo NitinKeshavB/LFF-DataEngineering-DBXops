@@ -177,7 +177,10 @@ def scaffold(ctx: RepoContext, info: SpecInfo, target: SpecTarget) -> dict[str, 
 
 def _merge_properties(generated: list[dict], existing: list[dict]) -> list[dict]:
     by_name = {p["name"]: p for p in existing}
-    return [{**by_name.get(p["name"], {}), **p} for p in generated]
+    merged = [{**by_name.get(p["name"], {}), **p} for p in generated]
+    for prop in merged:
+        prop.setdefault("classification", "PLACEHOLDER-classification")
+    return merged
 
 
 def _merge_quality(generated: list[dict], existing: list[dict]) -> list[dict]:

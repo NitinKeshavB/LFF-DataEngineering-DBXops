@@ -22,4 +22,4 @@ behind `enable_agent_bricks`. For API details use the vendored `databricks-ai-fu
 ## Known risks
 
 The Knowledge Assistant REST paths and the agent wrapper have not run against a workspace; if `agents.deploy` creates more than one served entity, the reconciler
-would replace the deployed config, so run `--dry-run` after the first deployment (`context/06_Operations/Known_Gaps.md`).
+would replace the deployed config, so run `--dry-run` after the first deployment (`.claude/context/06_Operations/Known_Gaps.md`).

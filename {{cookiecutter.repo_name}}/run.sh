@@ -178,9 +178,20 @@ function check-upstream {
     bash "$THIS_DIR/scripts/check_upstream.sh"
 }
 
-# regenerate context/03_Architecture/Metadata_Dictionary.md from the metadata model
+# regenerate .claude/context/03_Architecture/Metadata_Dictionary.md from the metadata model
 function metadata-dictionary {
-    python -m dbxops.metastore dictionary > "$THIS_DIR/context/03_Architecture/Metadata_Dictionary.md"
+    python -m dbxops.metastore dictionary > "$THIS_DIR/.claude/context/03_Architecture/Metadata_Dictionary.md"
+}
+
+# print the governance tags of every contract table as a metadata_sync section: make tags-plan TARGET=dev [CATALOG=]
+function tags-plan {
+    python -m dbxops.metastore tags-plan --root "$THIS_DIR" --target "${TARGET:?set TARGET=<target>}" ${CATALOG:+--catalog "$CATALOG"}
+}
+
+# regenerate bundles/<BUNDLE>/src/config/table_tags.yml, the table tags the bundle's job applies: make sync-table-tags BUNDLE=dataops
+function sync-table-tags {
+    local bundle="${BUNDLE:?set BUNDLE=<bundle name>}"
+    python -m dbxops.metastore tags-plan --root "$THIS_DIR" --bundle "$bundle" > "$THIS_DIR/bundles/$bundle/src/config/table_tags.yml"
 }
 
 # stage the pinned framework plus framework/local into framework/build (or the directory given)

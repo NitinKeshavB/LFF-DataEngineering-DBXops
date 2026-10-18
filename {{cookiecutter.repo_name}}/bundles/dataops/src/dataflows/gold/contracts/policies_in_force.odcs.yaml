@@ -45,14 +45,17 @@ schema:
     logicalType: string
     physicalType: string
     required: false
+    classification: internal
   - name: policies_in_force
     logicalType: integer
     physicalType: long
     required: true
+    classification: internal
   - name: annual_premium
     logicalType: number
     physicalType: decimal(38,2)
     required: false
+    classification: confidential
   customProperties:
   - property: dbx.asset_id
     value: example_claims_gold.policies_in_force

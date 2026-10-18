@@ -134,7 +134,7 @@ PASS on reading alone.
    so plainly with evidence (P0 #7).
 
 On a FAIL or ISSUES verdict for a Tier 2+ change, write the lesson to
-`LOCAL-MEMORY/LESSONS/` per `CLAUDE.md` (full doctrine) so it is not relearned.
+`.claude/LOCAL-MEMORY/LESSONS/` per `CLAUDE.md` (full doctrine) so it is not relearned.
 
 ## 8. Pre-send checks
 

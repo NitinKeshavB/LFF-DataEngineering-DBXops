@@ -202,8 +202,8 @@
         ".claude/skills/databricks-vector-search/references/index-types.md": "1ed91a8b37be3b6c39dacd18f4f4c5c34712f4b8f0146a13b1ae50ee40ecc5fc",
         ".claude/skills/databricks-vector-search/references/search-modes.md": "f6b0c3c981b10cbd2ab450b47117f12b66fb379d4878b4de87cad4f94e3ef237",
         ".claude/skills/databricks-vector-search/references/troubleshooting-and-operations.md": "80dd3859ce99ae4428fe29a5c01b1dd85436afaeeeef9a340f1ec70ca9dc2117",
-        "THIRD_PARTY/databricks-agent-skills/LICENSE": "df8afbfd34830a45f85dff044550a913a3355be1c61ab756417e7670cb48fa1c",
-        "THIRD_PARTY/databricks-agent-skills/NOTICE": "0c4c03b0de159e6308cfbb17a96c708b742e3c85887e9debb84dcd270315371e"
+        ".claude/THIRD_PARTY/databricks-agent-skills/LICENSE": "df8afbfd34830a45f85dff044550a913a3355be1c61ab756417e7670cb48fa1c",
+        ".claude/THIRD_PARTY/databricks-agent-skills/NOTICE": "0c4c03b0de159e6308cfbb17a96c708b742e3c85887e9debb84dcd270315371e"
       },
       "kind": "tarball",
       "license": "Databricks License",
@@ -284,8 +284,8 @@
         ".claude/skills/dataflowspec-builder/scripts/deploy_pipeline_bundle.sh": "10cb276347d2f6bd3ee8327d3e83a881413ebc38377d41786801ee4585d2a118",
         ".claude/skills/dataflowspec-builder/scripts/scaffold_lakeflow_bundle.py": "04ca5db09947d6a728758d34c3f6e710e40cb78097b25bb5069a0b7d93c195e1",
         ".claude/skills/dataflowspec-builder/scripts/validate_specs.py": "3128199c3301d9275043cf093600a81bd2653a8335d4d52e4ac198e77810953a",
-        "THIRD_PARTY/lakeflow-dataflowspec-builder/LICENSE.md": "2226e340ee0e21b738c762ecb5c08260401667d65ea456c70150d2da28cfe856",
-        "THIRD_PARTY/lakeflow-dataflowspec-builder/NOTICE.md": "63eaa38367d7f7a70eb3580ec9ed1fbccc8c520b21a663d9ff4815b33185dfc7"
+        ".claude/THIRD_PARTY/lakeflow-dataflowspec-builder/LICENSE.md": "2226e340ee0e21b738c762ecb5c08260401667d65ea456c70150d2da28cfe856",
+        ".claude/THIRD_PARTY/lakeflow-dataflowspec-builder/NOTICE.md": "63eaa38367d7f7a70eb3580ec9ed1fbccc8c520b21a663d9ff4815b33185dfc7"
       },
       "kind": "local",
       "license": "Databricks License",
@@ -331,7 +331,7 @@
         ".claude/skills/instrumenting-with-mlflow-tracing/references/python.md": "e9a3b8ba9c2af251dbaa32b1054b3fd19521185b961c296310e0ab9c229edcd3",
         ".claude/skills/instrumenting-with-mlflow-tracing/references/root-span-previews.md": "f55e40eefaf5e4c19e24d81d69860cdce03ef4341bc0e184b9a972fd4d0d7324",
         ".claude/skills/instrumenting-with-mlflow-tracing/references/typescript.md": "d41ebf3cad424b07bb1a21defa328060f980b299e04c933671f01d7432a8551d",
-        "THIRD_PARTY/mlflow-skills/LICENSE": "c71d239df91726fc519c6eb72d318ec65820627232b2f796219e87dcf35d0ab4"
+        ".claude/THIRD_PARTY/mlflow-skills/LICENSE": "c71d239df91726fc519c6eb72d318ec65820627232b2f796219e87dcf35d0ab4"
       },
       "kind": "tarball",
       "license": "Apache-2.0",

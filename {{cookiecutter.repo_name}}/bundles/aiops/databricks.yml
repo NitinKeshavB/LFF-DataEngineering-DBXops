@@ -33,6 +33,9 @@ variables:
     description: Cost centre tag (metadata/_platform/repo.yaml tags)
   region:
     description: Region tag (metadata/_platform/repo.yaml tags)
+  workload:
+    description: Workload class of this bundle (de, ml, ai or platform); applied as a tag to every job and pipeline
+    default: ai
   performance_target:
     description: Serverless job performance target
     default: STANDARD

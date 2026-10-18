@@ -1,7 +1,7 @@
 # Harness attribution
 
 The agent harness in this project — `CLAUDE.md`, `.claude/commands/`,
-`.claude/skills/`, `context/` and `LOCAL-MEMORY/` — is **adapted from the Claude Code
+`.claude/skills/`, `.claude/context/` and `.claude/LOCAL-MEMORY/` — is **adapted from the Claude Code
 Agent Harness** by Viacheslav Tronko, used under the MIT License.
 
 | | |
@@ -23,7 +23,7 @@ What changed for this project:
   language-agnostic placeholders a human must fill in.
 - Frontend patterns, ORM layers and Jira/Atlassian assumptions removed.
 - Skills consolidated to five, each specific to this toolchain.
-- `context/` ships **pre-seeded** with this project's real layout, toolchain and
+- `.claude/context/` ships **pre-seeded** with this project's real layout, toolchain and
   patterns instead of blank templates, because the generator that created this project
   already knew them.
 - Doctrine weight chosen at generation time (`lean` or `full`).

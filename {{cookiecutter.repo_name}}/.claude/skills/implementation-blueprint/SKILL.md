@@ -56,7 +56,7 @@ ls tests/unit_tests/ tests/fixtures/            # test and fixture conventions
 git log --oneline -15                           # recent direction
 ```
 
-Also read `context/01_Solution_Overview/Project_Overview.md`, and the glossary and
+Also read `.claude/context/01_Solution_Overview/Project_Overview.md`, and the glossary and
 patterns index if they have content (`CLAUDE.md` §10). **Cite a working example in
 this repo** as the style anchor for anything new. If no precedent exists, say so
 explicitly and justify the new shape rather than importing habits from elsewhere.
@@ -136,7 +136,7 @@ Lead with the `CLAUDE.md` §4 Checkpoint. Then:
 11. **Rollback** — how to undo this if it goes wrong.
 12. **Confidence + Refuter** (P0 #8).
 
-On Tier 2+, write the blueprint to `LOCAL-MEMORY/CURRENT_TASK/` so implementation can
+On Tier 2+, write the blueprint to `.claude/LOCAL-MEMORY/CURRENT_TASK/` so implementation can
 consume it.
 
 ## 8. Pre-send checks

@@ -45,22 +45,27 @@ schema:
     logicalType: date
     physicalType: date
     required: true
+    classification: internal
   - name: earned_premium
     logicalType: number
     physicalType: decimal(38,2)
     required: false
+    classification: confidential
   - name: paid_amount
     logicalType: number
     physicalType: decimal(38,2)
     required: false
+    classification: confidential
   - name: outstanding_reserve
     logicalType: number
     physicalType: decimal(38,2)
     required: false
+    classification: confidential
   - name: loss_ratio
     logicalType: number
     physicalType: decimal(38,6)
     required: false
+    classification: confidential
   customProperties:
   - property: dbx.asset_id
     value: example_claims_gold.loss_ratio_monthly
