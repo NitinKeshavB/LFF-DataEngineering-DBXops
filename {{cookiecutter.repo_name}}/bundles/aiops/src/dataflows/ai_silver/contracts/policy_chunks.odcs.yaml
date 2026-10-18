@@ -9,7 +9,8 @@ dataProduct: dp_example_claims_policy_assistant
 description:
   purpose: Policy wording passages with a stable chunk id, ready to embed; the source table of the policy vector search index.
   usage: Delta Sync source for the vector index; change data feed is on, and chunk_id is the primary key.
-  limitations: Passages are paragraph-sized splits of the parsed text, not semantic chunks; a passage shorter than 41 characters is dropped.
+  limitations: Passages are paragraph-sized splits of the parsed text, not semantic chunks; a passage shorter than 41 characters
+    is dropped.
 servers:
 - server: dev
   type: databricks
@@ -46,26 +47,32 @@ schema:
     physicalType: string
     required: true
     primaryKey: true
+    classification: internal
   - name: document_path
     logicalType: string
     physicalType: string
     required: true
+    classification: internal
   - name: document_name
     logicalType: string
     physicalType: string
     required: false
+    classification: internal
   - name: chunk_index
     logicalType: integer
     physicalType: integer
     required: true
+    classification: internal
   - name: chunk_text
     logicalType: string
     physicalType: string
     required: true
+    classification: internal
   - name: modified_at
     logicalType: timestamp
     physicalType: timestamp
     required: false
+    classification: internal
   quality:
   - id: policy_chunks_chunk_id_not_null
     name: chunk_id not null

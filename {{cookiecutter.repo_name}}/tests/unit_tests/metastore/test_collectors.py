@@ -174,6 +174,18 @@ def test__owned_tags_follow_the_naming_rule_and_classification_is_the_highest_le
     assert "data_product_claims_fraud_fraud_detection" in {t.tag_key for t in endpoint_tags}
 
 
+def test__owner_tags_use_the_team_contacts_and_skip_placeholders(contract_doc, product_doc):
+    """Each real contact becomes an owner tag on every asset; a PLACEHOLDER- or missing contact is not published."""
+    owners = {"technical_owner": "t@x.com", "data_owner": "PLACEHOLDER-data-owner-email"}
+    rows = {(r.entity_id, r.tag_key): r.tag_value for r in tag_rows(contract_doc, owners)}
+    assert rows[("claims_fraud_ml.fraud_scores", "technical_owner")] == "t@x.com"
+    assert not any(key in {"data_owner", "data_steward"} for _, key in rows)
+    assert ("serving_endpoint/claims_fraud/fraud_scorer", "technical_owner") in {
+        (r.entity_id, r.tag_key) for r in tag_rows(product_doc, owners)
+    }
+    assert not any(r.tag_key == "technical_owner" for r in tag_rows(contract_doc))
+
+
 def test__registration_maps_team_project_contacts_and_groups(registration_doc):
     """A registration yields a team with members and a project with five contacts and three groups."""
     team, project = registration_records(

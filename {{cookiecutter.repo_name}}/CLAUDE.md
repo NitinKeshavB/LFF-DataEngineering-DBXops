@@ -1,7 +1,7 @@
 # CLAUDE.md — Operational Doctrine (cookie-cutter-dbx)
 
 **Authority:** SYSTEM > this file > code. Override only by explicit user intent.
-**Read order:** this file → `context/` on demand → code.
+**Read order:** this file → `.claude/context/` on demand → code.
 **Tagline:** Rules guide. Tools do. Evidence decides.
 **Doctrine weight:** `full` (set at generation time).
 
@@ -184,8 +184,8 @@ cookie-cutter-dbx/
   .pre-commit-config.yaml  <- the lint/format toolchain
   CLAUDE.md                <- this file
   .claude/                 <- settings, commands, skills
-  context/                 <- the project's spec layer (§10)
-  LOCAL-MEMORY/            <- where agent artifacts are written
+  .claude/context/         <- the project's spec layer (§10)
+  .claude/LOCAL-MEMORY/    <- where agent artifacts are written
 ```
 
 **`src/` layout matters.** The package is not importable from the repo root; it is
@@ -265,6 +265,8 @@ in `run.sh` and expose it in the `Makefile`.
 | `make validate-metadata [BASELINE=ref]` | every metadata rule over the repo (offline) |
 | `make contracts [CHECK=1]` / `make sync-substitutions [CHECK=1]` | generate, or check, contracts and each bundle's substitution and config files |
 | `make validate-specs` / `validate-domains` / `validate-registry [STRICT=1]` | spec, taxonomy and registry checks |
+| `make tags-plan TARGET= [CATALOG=]` | print the governance tags of every contract table as a `metadata_sync` section (no workspace access) |
+| `make sync-table-tags BUNDLE=` | regenerate `bundles/<bundle>/src/config/table_tags.yml`, which the bundle's job applies |
 | `make new-bundle NAME= DOMAIN=` | scaffold a bundle that validates from the first commit |
 | `make export-ontos TARGET=` | write Ontos upload files |
 | `make stage-framework` / `make deploy-framework TARGET= PROFILE=` | stage / deploy the pinned framework (platform team; needs approval) |
@@ -283,15 +285,15 @@ reads it via `[tool.setuptools.dynamic]`. Never hardcode a version anywhere else
 
 ## 10. The context layer
 
-`context/` is this project's spec layer. It starts pre-seeded with what the
+`.claude/context/` is this project's spec layer. It starts pre-seeded with what the
 generator knew and is meant to grow as the project does.
 
 | File | Purpose |
 |---|---|
-| `context/01_Solution_Overview/Project_Overview.md` | what this package does, its layout and toolchain |
-| `context/02_Domain_Knowledge/Domain_Glossary.md` | canonical domain terms — **highest ROI file in the repo** |
-| `context/07_Code_Patterns/Code_Patterns_Index.md` | repeating patterns to reuse rather than reinvent |
-| `context/05_AI_Rules_And_Context/FAILURE-MODE-REGISTRY.md` | the failure modes this doctrine defends against |
+| `.claude/context/01_Solution_Overview/Project_Overview.md` | what this package does, its layout and toolchain |
+| `.claude/context/02_Domain_Knowledge/Domain_Glossary.md` | canonical domain terms — **highest ROI file in the repo** |
+| `.claude/context/07_Code_Patterns/Code_Patterns_Index.md` | repeating patterns to reuse rather than reinvent |
+| `.claude/context/05_AI_Rules_And_Context/FAILURE-MODE-REGISTRY.md` | the failure modes this doctrine defends against |
 
 **Fill the glossary as soon as the package has domain concepts.** One agreed name
 per concept, with the synonyms to avoid, is what stops the same idea being called
@@ -301,7 +303,7 @@ three things across four modules.
 
 ## 11. Vocabulary lock (full doctrine)
 
-Once `context/02_Domain_Knowledge/Domain_Glossary.md` has entries, it is binding.
+Once `.claude/context/02_Domain_Knowledge/Domain_Glossary.md` has entries, it is binding.
 
 - Use the canonical term from the glossary. **Never a synonym.** Honor `(use)` and
   `(avoid)` tags.
@@ -317,7 +319,7 @@ modules. It is cheap now and very expensive to retrofit.
 
 ## 12. Pattern reuse (full doctrine)
 
-Before writing new code, read `context/07_Code_Patterns/Code_Patterns_Index.md`.
+Before writing new code, read `.claude/context/07_Code_Patterns/Code_Patterns_Index.md`.
 
 - Reuse a registered `B-XXX` (library/backend) or `D-XXX` (data) pattern rather than
   reinventing one. Cite the pattern ID and its state in the Checkpoint.
@@ -333,7 +335,7 @@ Turn "careful argument" into "tested claim". Before diagnosing a bug, write the
 smallest thing that reproduces it:
 
 ```
-LOCAL-MEMORY/REPRO/<issue>/scenario.md   <- given / when / then, expected vs actual
+.claude/LOCAL-MEMORY/REPRO/<issue>/scenario.md   <- given / when / then, expected vs actual
 ```
 
 1. The repro **must fail on current code** before analysis proceeds. If it cannot be
@@ -349,13 +351,13 @@ the moment of correction is the highest-signal moment to capture it. Be specific
 (`file:line`, the exact wrong behavior, the exact corrected behavior).
 
 After a failed verification or a revision cycle on Tier 2+, write
-`LOCAL-MEMORY/LESSONS/<YYYY-MM-DD>-<topic>.md` recording: what was tried, why it
+`.claude/LOCAL-MEMORY/LESSONS/<YYYY-MM-DD>-<topic>.md` recording: what was tried, why it
 failed, which signal was missed, and the one-line rule for next time. Scan that
 folder when starting a Tier 2+ task on a related topic.
 
 ## 15. Artifact output contract (full doctrine)
 
-Analyses and plans are written under `LOCAL-MEMORY/`, each starting with:
+Analyses and plans are written under `.claude/LOCAL-MEMORY/`, each starting with:
 
 ```yaml
 ---
@@ -399,6 +401,6 @@ stale plan.
 ## 17. Attribution
 
 Adapted from the **Claude Code Agent Harness** by Viacheslav Tronko (MIT),
-rewritten for Python packaging. See `HARNESS-ATTRIBUTION.md`.
+rewritten for Python packaging. See `.claude/HARNESS-ATTRIBUTION.md`.
 
 **Rules guide. Tools do. Evidence decides.**

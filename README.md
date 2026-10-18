@@ -10,7 +10,7 @@ harness. Then you start building.
 
 > **Status.** The generated project is verified offline: its tests, the Databricks CLI's own bundle schema, the Lakeflow Framework's own
 > validator, `actionlint` and `shellcheck` all pass. **Nothing has run against a real workspace, database, GitHub organisation or Ontos
-> instance.** The honest list of gaps ships with every project, in `context/06_Operations/Known_Gaps.md`.
+> instance.** The honest list of gaps ships with every project, in `.claude/context/06_Operations/Known_Gaps.md`.
 
 ## Features
 
@@ -50,7 +50,7 @@ harness. Then you start building.
 - A Claude Code harness: an operational doctrine (`CLAUDE.md`), slash commands (`/qa`, `/explain`, `/bug-fix`, `/implement`, `/verify`, `/new-bundle`, ...),
   project skills for DataOps, MLOps, AIOps and the metadata model, and vendored Databricks, MLflow and framework skills locked by checksum.
 
-**Not done yet** (full list in the generated `context/06_Operations/Known_Gaps.md`): nothing has run against a live workspace; Unity Catalog schema and
+**Not done yet** (full list in the generated `.claude/context/06_Operations/Known_Gaps.md`): nothing has run against a live workspace; Unity Catalog schema and
 grant setup, tag application from the metadata database, and the retention purge are not built.
 
 ## Quick start
@@ -115,7 +115,7 @@ dbx-claims-fraud/
 ├── templates/registry-repo/ # scaffold of the platform team's registry repository
 ├── .github/workflows/       # ci, cd, deploy-bundle, deploy-framework, lakeflow-upstream, build-test-publish
 ├── .claude/                 # settings, commands, skills (project + vendored Databricks, MLflow, framework skills)
-├── context/                 # the spec layer: architecture, conventions, operations runbooks, glossary
+├── .claude/context/                 # the spec layer: architecture, conventions, operations runbooks, glossary
 ├── tests/  scripts/  CLAUDE.md  Makefile  run.sh  pyproject.toml  version.txt
 └── .git/  .gitmodules       # initialised for you; the framework submodule is added at the pinned commit
 ```

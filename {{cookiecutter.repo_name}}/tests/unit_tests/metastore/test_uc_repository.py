@@ -235,8 +235,15 @@ def test__tags_use_one_merge_with_not_matched_by_source_limited_to_owned_keys(uc
     assert executor.tags == ["session", "foreign-check", "merge:md_tag"]
     sql, params = executor.calls[-1]
     assert "WHEN NOT MATCHED BY SOURCE AND t.repo_id = :stale_repo_id AND t.is_active = true" in sql
-    assert "t.tag_key IN (:owned_key_0, :owned_key_1)" in sql and "startswith(t.tag_key, :owned_prefix_0)" in sql
-    assert params["owned_key_0"] == "classification" and params["owned_key_1"] == "cost_center"
+    assert "t.tag_key IN (:owned_key_0, :owned_key_1, :owned_key_2, :owned_key_3, :owned_key_4)" in sql
+    assert "startswith(t.tag_key, :owned_prefix_0)" in sql
+    assert [params[f"owned_key_{i}"] for i in range(5)] == [
+        "classification",
+        "cost_center",
+        "data_owner",
+        "data_steward",
+        "technical_owner",
+    ]
     assert params["stale_repo_id"] == SQUAD
 
 

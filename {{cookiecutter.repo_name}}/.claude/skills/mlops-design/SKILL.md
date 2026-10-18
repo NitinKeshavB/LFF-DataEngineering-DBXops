@@ -22,4 +22,4 @@ config reconciled only in uat, preprod and prod. For model API details use the v
 
 ## Known risk
 
-`FeatureLookup` may need a declared Unity Catalog primary key on the feature table, which the contract tooling cannot express from a JSON schema yet (`context/06_Operations/Known_Gaps.md`).
+`FeatureLookup` may need a declared Unity Catalog primary key on the feature table, which the contract tooling cannot express from a JSON schema yet (`.claude/context/06_Operations/Known_Gaps.md`).

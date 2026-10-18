@@ -32,7 +32,7 @@ from dbxops.workspace import (
 )
 
 OWNED_TAG_PREFIXES = ("data_domain_", "data_product_", "data_contract_")
-OWNED_TAG_KEYS = frozenset({"classification"})
+OWNED_TAG_KEYS = frozenset({"classification", "technical_owner", "data_owner", "data_steward"})
 ONTOS_TAG_PREFIX = "ontos_"
 MAX_TAG_KEY_LENGTH = 128
 _TAG_KEY_PATTERN = re.compile(r"^[a-z][a-z0-9_]*$")

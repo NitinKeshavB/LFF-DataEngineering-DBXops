@@ -33,12 +33,18 @@ variables:
     description: Cost centre tag (metadata/_platform/repo.yaml tags)
   region:
     description: Region tag (metadata/_platform/repo.yaml tags)
+  workload:
+    description: Workload class of this bundle (de, ml, ai or platform); applied as a tag to every job and pipeline
+    default: de
   dbxops_wheel_path:
     description: Path of the dbxops wheel on a UC volume, set by CI (/Volumes/<catalog>/platform/wheels/<version>/...whl)
     default: ""
   performance_target:
     description: Serverless job performance target
     default: STANDARD
+  table_tags_dry_run:
+    description: "'true' plans the governance table tags without writing them; dev sets 'false' so they are applied"
+    default: 'true'
 targets:
   dev:
     mode: development
@@ -51,6 +57,7 @@ targets:
       cost_center: <PLACEHOLDER-cost-center>
       region: <PLACEHOLDER-region>
       logical_env: _${workspace.current_user.short_name}
+      table_tags_dry_run: 'false'
     default: true
   test:
     mode: production

@@ -141,7 +141,7 @@ Lead with the `CLAUDE.md` §4 Checkpoint. Then:
    public API is affected (P0 #5).
 8. **Confidence + Refuter** — the specific observation that would overturn this (P0 #8).
 
-On Tier 2+, write the full analysis to `LOCAL-MEMORY/CURRENT_TASK/` so the fix step
+On Tier 2+, write the full analysis to `.claude/LOCAL-MEMORY/CURRENT_TASK/` so the fix step
 can consume it.
 
 ## 8. Pre-send checks

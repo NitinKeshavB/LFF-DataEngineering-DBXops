@@ -50,21 +50,25 @@ schema:
     required: true
     primaryKey: true
     description: Claim scored.
+    classification: internal
   - name: fraud_score
     logicalType: number
     physicalType: double
     required: false
     description: Probability of the suspected-fraud class from the champion model.
+    classification: confidential
   - name: model_version
     logicalType: string
     physicalType: string
     required: false
     description: Version of the champion model that produced the score.
+    classification: internal
   - name: scored_at
     logicalType: timestamp
     physicalType: timestamp
     required: false
     description: When the scoring job wrote the row.
+    classification: internal
   customProperties:
   - property: dbx.asset_id
     value: example_claims_ml.claims_fraud_scores

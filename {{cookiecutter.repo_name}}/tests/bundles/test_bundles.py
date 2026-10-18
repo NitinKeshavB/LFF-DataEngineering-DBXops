@@ -17,6 +17,7 @@ import yaml
 from dbxops.findings import has_errors
 from dbxops.metadata.repo import RepoContext
 from dbxops.metadata.rules import validate
+from dbxops.metastore.cli import main as metastore_main
 from tests.consts import PROJECT_DIR
 from tests.fixtures.bundle_schema import (
     bundle_dirs,
@@ -28,6 +29,18 @@ TEAM = yaml.safe_load((PROJECT_DIR / "metadata/_platform/teams.yaml").read_text(
 REPO = yaml.safe_load((PROJECT_DIR / "metadata/_platform/repo.yaml").read_text(encoding="utf-8"))
 UPSTREAM_VALIDATOR = PROJECT_DIR / "framework/lakeflow_framework/scripts/validate_dataflows.py"
 BUNDLES = [pytest.param(path, id=path.name) for path in bundle_dirs()]
+GOVERNANCE_TAGS = {
+    "cost_center",
+    "region",
+    "project_id",
+    "bundle",
+    "target",
+    "workload",
+    "git_repo",
+    "git_ref",
+    "git_sha",
+}
+WORKLOADS = {"dataops": "de", "mlops": "ml", "aiops": "ai"}
 
 
 def unbracket(value: str) -> str:
@@ -95,7 +108,7 @@ def test__jobs_only_reference_pipelines_the_bundle_defines_and_are_tagged(bundle
     resources = load_bundle(bundle)["resources"]
     for job in resources["jobs"].values():
         keys = {t["task_key"] for t in job["tasks"]}
-        assert set(job["tags"]) == {"cost_center", "region"}
+        assert set(job["tags"]) == GOVERNANCE_TAGS
         for task in job["tasks"]:
             assert {d["task_key"] for d in task.get("depends_on", [])} <= keys
             if "pipeline_task" in task:
@@ -103,7 +116,16 @@ def test__jobs_only_reference_pipelines_the_bundle_defines_and_are_tagged(bundle
                     r"\$\{resources\.pipelines\.(\w+)\.id\}", task["pipeline_task"]["pipeline_id"]
                 ).group(1)
                 assert name in resources["pipelines"]
-    assert all(set(p["tags"]) == {"cost_center", "region"} for p in resources["pipelines"].values())
+    assert all(set(p["tags"]) == GOVERNANCE_TAGS for p in resources["pipelines"].values())
+
+
+@pytest.mark.parametrize("bundle", BUNDLES)
+def test__the_workload_variable_matches_the_bundle_family(bundle: Path):
+    """A bundle declares its workload once (de, ml or ai) and every job and pipeline tag takes it from there."""
+    loaded = load_bundle(bundle)
+    assert loaded["variables"]["workload"]["default"] == WORKLOADS[bundle.name]
+    tagged = [*loaded["resources"]["jobs"].values(), *loaded["resources"]["pipelines"].values()]
+    assert all(item["tags"]["workload"] == "${var.workload}" for item in tagged)
 
 
 def test__the_repository_metadata_is_valid():
@@ -148,3 +170,23 @@ def test__every_job_records_its_run_after_everything_else_even_on_failure(bundle
         publish = next(t for t in job["tasks"] if t["task_key"] == "publish_run_metadata")
         assert publish["run_if"] == "ALL_DONE"
         assert not any(publish["task_key"] in [d["task_key"] for d in t.get("depends_on", [])] for t in job["tasks"])
+
+
+def test__the_dataops_table_tags_file_matches_the_contracts(capsys):
+    """bundles/dataops/src/config/table_tags.yml is what `make sync-table-tags BUNDLE=dataops` generates."""
+    assert metastore_main(["tags-plan", "--root", str(PROJECT_DIR), "--bundle", "dataops"]) == 0
+    committed = (PROJECT_DIR / "bundles/dataops/src/config/table_tags.yml").read_text(encoding="utf-8")
+    assert capsys.readouterr().out == committed, "out of date (run: make sync-table-tags BUNDLE=dataops)"
+
+
+def test__table_tags_are_applied_in_dev_only_and_planned_everywhere_else():
+    """The dataops job runs the tag task after gold; only the dev target turns the dry run off."""
+    doc = load_bundle(PROJECT_DIR / "bundles/dataops")
+    task = next(t for t in doc["resources"]["jobs"]["dataops_run"]["tasks"] if t["task_key"] == "apply_table_tags")
+    assert task["depends_on"] == [{"task_key": "gold"}]
+    assert task["python_wheel_task"]["parameters"][-2:] == ["--dry-run", "${var.table_tags_dry_run}"]
+    assert doc["variables"]["table_tags_dry_run"]["default"] == "true"
+    applied = [
+        name for name, target in doc["targets"].items() if target["variables"].get("table_tags_dry_run") == "false"
+    ]
+    assert applied == ["dev"]

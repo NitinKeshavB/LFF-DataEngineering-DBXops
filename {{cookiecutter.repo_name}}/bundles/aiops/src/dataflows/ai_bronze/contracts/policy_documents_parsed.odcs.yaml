@@ -7,9 +7,11 @@ status: active
 domain: product__wordings_pds__product_wording
 dataProduct: dp_example_claims_policy_assistant
 description:
-  purpose: Policy wording PDFs parsed to text with ai_parse_document, one row per document; documents that fail to parse are quarantined.
+  purpose: Policy wording PDFs parsed to text with ai_parse_document, one row per document; documents that fail to parse
+    are quarantined.
   usage: Source for the policy_chunks table that feeds the policy vector search index.
-  limitations: Text only; tables and figures inside a PDF are flattened to the order the parser returns them. A PDF rewritten in place is not read again.
+  limitations: Text only; tables and figures inside a PDF are flattened to the order the parser returns them. A PDF rewritten
+    in place is not read again.
 servers:
 - server: dev
   type: databricks
@@ -45,26 +47,32 @@ schema:
     logicalType: string
     physicalType: string
     required: true
+    classification: internal
   - name: document_name
     logicalType: string
     physicalType: string
     required: false
+    classification: internal
   - name: modified_at
     logicalType: timestamp
     physicalType: timestamp
     required: false
+    classification: internal
   - name: size_bytes
     logicalType: integer
     physicalType: long
     required: false
+    classification: internal
   - name: parsed_text
     logicalType: string
     physicalType: string
     required: false
+    classification: internal
   - name: parse_error
     logicalType: string
     physicalType: string
     required: false
+    classification: internal
   quality:
   - id: policy_documents_parsed_document_parsed_without_errors
     name: document parsed without errors

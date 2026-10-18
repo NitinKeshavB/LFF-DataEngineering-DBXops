@@ -28,6 +28,12 @@ validate-specs:
 metadata-dictionary:
 	bash run.sh metadata-dictionary
 
+tags-plan:
+	bash run.sh tags-plan
+
+sync-table-tags:
+	bash run.sh sync-table-tags
+
 upgrade-lakeflow:
 	bash run.sh upgrade-lakeflow $(TAG)
 

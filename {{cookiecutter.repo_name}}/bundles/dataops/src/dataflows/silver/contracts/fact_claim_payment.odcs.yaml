@@ -45,22 +45,27 @@ schema:
     logicalType: string
     physicalType: string
     required: true
+    classification: internal
   - name: claim_id
     logicalType: string
     physicalType: string
     required: true
+    classification: internal
   - name: paid_at
     logicalType: timestamp
     physicalType: timestamp
     required: false
+    classification: internal
   - name: amount
     logicalType: number
     physicalType: decimal(18,2)
     required: false
+    classification: confidential
   - name: payment_type
     logicalType: string
     physicalType: string
     required: false
+    classification: internal
   quality:
   - id: fact_claim_payment_payment_id_not_null
     name: payment_id not null

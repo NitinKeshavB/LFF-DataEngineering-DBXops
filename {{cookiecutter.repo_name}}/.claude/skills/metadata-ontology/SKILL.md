@@ -5,7 +5,7 @@ description: Author, change or publish the Ontos-ready metadata of this platform
 
 # Metadata and ontology
 
-Read `context/03_Architecture/Metadata_Model.md` and `context/04_Spec_Reference/Spec_Conventions.md` first; this skill is the working loop.
+Read `.claude/context/03_Architecture/Metadata_Model.md` and `.claude/context/04_Spec_Reference/Spec_Conventions.md` first; this skill is the working loop.
 
 ## The loop for a new or changed table
 
@@ -33,8 +33,8 @@ Read `context/03_Architecture/Metadata_Model.md` and `context/04_Spec_Reference/
 ## Publishing and exporting
 
 `python -m dbxops.metastore publish --target <t>` (squad records), `publish-registry` (registry), `make export-ontos TARGET=<t>` (Ontos files).
-Details: `context/06_Operations/Metadata_DB.md`, `Ontos_Onboarding.md`. What is unverified live: `Known_Gaps.md`.
+Details: `.claude/context/06_Operations/Metadata_DB.md`, `Ontos_Onboarding.md`. What is unverified live: `Known_Gaps.md`.
 
 ## Reporting
 
-Cite the exact rule or file when explaining a failure. If a term is not in `context/02_Domain_Knowledge/Domain_Glossary.md`, propose a row instead of inventing usage.
+Cite the exact rule or file when explaining a failure. If a term is not in `.claude/context/02_Domain_Knowledge/Domain_Glossary.md`, propose a row instead of inventing usage.

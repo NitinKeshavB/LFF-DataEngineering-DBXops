@@ -45,34 +45,42 @@ schema:
     logicalType: string
     physicalType: string
     required: true
+    classification: internal
   - name: party_id
     logicalType: string
     physicalType: string
     required: true
+    classification: internal
   - name: product
     logicalType: string
     physicalType: string
     required: false
+    classification: internal
   - name: start_date
     logicalType: date
     physicalType: date
     required: false
+    classification: internal
   - name: end_date
     logicalType: date
     physicalType: date
     required: false
+    classification: internal
   - name: status
     logicalType: string
     physicalType: string
     required: false
+    classification: internal
   - name: sum_insured
     logicalType: number
     physicalType: decimal(18,2)
     required: false
+    classification: confidential
   - name: annual_premium
     logicalType: number
     physicalType: decimal(18,2)
     required: false
+    classification: confidential
   customProperties:
   - property: dbx.asset_id
     value: example_claims_silver.dim_policy

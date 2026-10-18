@@ -7,7 +7,7 @@
 exclude: |
   (?x)^(
       framework/lakeflow_framework/|
-      THIRD_PARTY/|
+      .claude/THIRD_PARTY/|
       metadata/_platform/|
       \.claude/commands/databricks-(doctor|setup)\.md$|
       \.claude/skills/(databricks-[a-z-]+|agent-evaluation|instrumenting-with-mlflow-tracing|dataflowspec-builder)/

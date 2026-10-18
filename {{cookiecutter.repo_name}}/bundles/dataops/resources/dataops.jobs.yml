@@ -5,6 +5,13 @@ resources:
       tags:
         cost_center: ${var.cost_center}
         region: ${var.region}
+        project_id: ${var.project_id}
+        bundle: ${bundle.name}
+        target: ${bundle.target}
+        workload: ${var.workload}
+        git_repo: ${bundle.git.origin_url}
+        git_ref: ${bundle.git.branch}
+        git_sha: ${bundle.git.commit}
       performance_target: ${var.performance_target}
       queue:
         enabled: true
@@ -43,6 +50,25 @@ resources:
         - task_key: silver
         pipeline_task:
           pipeline_id: ${resources.pipelines.dataops_gold.id}
+      - task_key: apply_table_tags
+        depends_on:
+        - task_key: gold
+        environment_key: platform
+        python_wheel_task:
+          package_name: cookie-cutter-dbx
+          entry_point: dbxops-lifecycle
+          parameters:
+          - reconcile
+          - --target
+          - ${bundle.target}
+          - --config
+          - ${workspace.file_path}/src/config/table_tags.yml
+          - --catalog
+          - ${var.catalog}
+          - --var
+          - logical_env=${var.logical_env}
+          - --dry-run
+          - ${var.table_tags_dry_run}
       - task_key: publish_run_metadata
         run_if: ALL_DONE
         environment_key: platform
@@ -60,3 +86,4 @@ resources:
           - ${workspace.file_path}/src/config/metastore.yml
         depends_on:
         - task_key: gold
+        - task_key: apply_table_tags

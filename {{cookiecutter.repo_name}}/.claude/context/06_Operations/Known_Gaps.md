@@ -20,7 +20,9 @@ configuration, the Lakeflow Framework's own validator for specs, `actionlint` an
 ## Not built
 
 - Workspace setup: creating schemas, applying the privilege matrix, grants on `platform_meta`, applying tags in Unity Catalog. The
-  reconcilers that would do it exist (`MetadataSyncReconciler`) but no job task or command reads `md_tag` and runs them.
+  reconciler exists (`MetadataSyncReconciler`) and the dataops job applies the table tags in dev (`apply_table_tags`, dry run elsewhere), but nothing has run
+  against a workspace, so whether Unity Catalog accepts tags on streaming tables and materialized views is unverified. The mlops and aiops
+  bundles have no tag task. Column-level tags and the `budget_policy_id` job setting are not built.
 - Recording registrations (`md_registration`) from the provisioning workflow.
 - A scheduler for the retention purge; SQL Server; observed-lineage reader.
 - Consolidating the MLOps and AIOps lifecycle wrappers into the package (a `--catalog` option on `dbxops.lifecycle reconcile` would remove them).

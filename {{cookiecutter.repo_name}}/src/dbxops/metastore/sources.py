@@ -35,6 +35,7 @@ class Discovered:
     contracts: list[tuple[str, Mapping[str, Any]]] = field(default_factory=list)
     products: list[tuple[str, Mapping[str, Any]]] = field(default_factory=list)
     specs: list[SpecInfo] = field(default_factory=list)
+    owners: dict[str, str] = field(default_factory=dict)
 
 
 def read_repo_id(root: Path) -> str:
@@ -58,7 +59,15 @@ def discover(root: Path) -> Discovered:
         contracts=[(doc.path.as_posix(), doc.data) for doc in ctx.contracts],
         products=[(doc.path.as_posix(), doc.data) for doc in ctx.products],
         specs=ctx.specs,
+        owners=_owner_contacts(ctx),
     )
+
+
+def _owner_contacts(ctx: RepoContext) -> dict[str, str]:
+    """Return the contacts of the project's owner team, by role."""
+    team_name = (ctx.repo.get("project") or {}).get("owner_team")
+    team: dict[str, Any] = next((t for t in ctx.teams.get("teams") or () if t.get("name") == team_name), {})
+    return {role: str(value) for role, value in (team.get("contacts") or {}).items() if isinstance(value, str)}
 
 
 class SubprocessBundleRunner:

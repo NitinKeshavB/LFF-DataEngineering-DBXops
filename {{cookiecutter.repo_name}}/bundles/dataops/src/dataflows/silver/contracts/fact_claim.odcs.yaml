@@ -45,34 +45,42 @@ schema:
     logicalType: string
     physicalType: string
     required: true
+    classification: internal
   - name: policy_id
     logicalType: string
     physicalType: string
     required: true
+    classification: internal
   - name: loss_date
     logicalType: date
     physicalType: date
     required: false
+    classification: internal
   - name: reported_date
     logicalType: date
     physicalType: date
     required: false
+    classification: internal
   - name: status
     logicalType: string
     physicalType: string
     required: false
+    classification: internal
   - name: cause
     logicalType: string
     physicalType: string
     required: false
+    classification: internal
   - name: reserve_amount
     logicalType: number
     physicalType: decimal(18,2)
     required: false
+    classification: confidential
   - name: state
     logicalType: string
     physicalType: string
     required: false
+    classification: confidential
   quality:
   - id: fact_claim_reserve_non_negative
     name: reserve non-negative

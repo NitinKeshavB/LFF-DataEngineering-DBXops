@@ -25,6 +25,7 @@ from dbxops.hashing import content_hash
 from dbxops.metadata.contracts import (
     ASSET_ID,
     PRODUCER,
+    SPEC_ID,
     get_custom,
     plan_contracts,
 )
@@ -48,6 +49,8 @@ ODCS_VERSION = "v3.1.0"
 ODPS_VERSION = "v1.0.0"
 SEMANTIC_ASSIGNMENT = "http://databricks.com/ontology/uc/semanticAssignment"
 MAX_ID_LENGTH = 128
+CLASSIFICATION_LEVELS = ("public", "internal", "confidential", "restricted")
+REQUIRED_OWNER_ROLES = ("technical_owner", "data_owner", "data_steward")
 _ID = re.compile(r"^[a-z][a-z0-9_]*$")
 _SEMVER = re.compile(r"^(\d+)\.(\d+)\.(\d+)$")
 
@@ -441,6 +444,71 @@ def rule_substitutions(ctx: RepoContext, _: Options) -> list[Finding]:
     ]
 
 
+def _owner_findings(ctx: RepoContext) -> list[Finding]:
+    path = "metadata/_platform/teams.yaml"
+    team_name = (ctx.repo.get("project") or {}).get("owner_team")
+    team = next((t for t in ctx.teams.get("teams") or () if t.get("name") == team_name), None)
+    if team is None:
+        return [Finding("governance", path, f"owner team {team_name!r} of the project is not in teams.yaml")]
+    contacts = team.get("contacts") or {}
+    return [
+        Finding("governance", path, f"team {team_name!r} has no {role}: ownership tags need an owner")
+        for role in REQUIRED_OWNER_ROLES
+        if not contacts.get(role)
+    ]
+
+
+def _classification_findings(doc: Doc) -> list[Finding]:
+    findings = []
+    for obj in doc.data.get("schema") or ():
+        for prop in obj.get("properties") or ():
+            level = prop.get("classification")
+            if level in CLASSIFICATION_LEVELS or str(level).startswith("PLACEHOLDER-"):
+                continue
+            findings.append(
+                Finding(
+                    "governance",
+                    str(doc.path),
+                    f"{obj.get('name')}.{prop.get('name')}: classification must be one of "
+                    f"{', '.join(CLASSIFICATION_LEVELS)}, got {level!r}",
+                )
+            )
+    return findings
+
+
+def _spec_tag_findings(ctx: RepoContext, doc: Doc) -> list[Finding]:
+    tags_by_spec = {info.spec.spec_id: info.spec.tags for info in ctx.specs}
+    findings = []
+    for obj in doc.data.get("schema") or ():
+        tags = tags_by_spec.get(get_custom(obj, SPEC_ID))
+        if tags is None:
+            continue
+        for tag, field in (("data_domain", "domain"), ("data_product", "dataProduct")):
+            if tags.get(tag) != doc.data.get(field):
+                findings.append(
+                    Finding(
+                        "governance",
+                        str(doc.path),
+                        f"{field} {doc.data.get(field)!r} differs from the spec tag {tag} {tags.get(tag)!r}",
+                    )
+                )
+    return findings
+
+
+def rule_governance(ctx: RepoContext, _: Options) -> list[Finding]:
+    """
+    Check the governance tags: owners, a classification per column, and spec tags that agree with the contract.
+
+    The project's owner team needs a technical owner, a data owner and a data steward; every contract property
+    carries a classification (a `PLACEHOLDER-` value is allowed until deploy); a contract names the same domain
+    and data product as the spec tags of the dataflow that writes it.
+    """
+    findings = _owner_findings(ctx)
+    for doc in ctx.contracts:
+        findings += _classification_findings(doc) + _spec_tag_findings(ctx, doc)
+    return findings
+
+
 DEFAULT_RULES: tuple[Rule, ...] = (
     rule_platform_integrity,
     rule_repo_kind,
@@ -455,6 +523,7 @@ DEFAULT_RULES: tuple[Rule, ...] = (
     rule_products,
     rule_semantics,
     rule_semver,
+    rule_governance,
 )
 
 

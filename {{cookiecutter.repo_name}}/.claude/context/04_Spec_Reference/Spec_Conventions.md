@@ -48,9 +48,26 @@ port `type` is the asset type (`uc_streaming_table`, `uc_materialized_view`, `uc
 A changed contract or product needs a higher semver; removing or retyping a column needs a major bump (checked against a git
 ref: `BASELINE=origin/main make validate-metadata`).
 
+## Governance tags
+
+| Where | Tags | Source |
+|---|---|---|
+| Dataflow spec `tags` | `data_domain`, `data_product` (the contract must name the same ones) | the squad |
+| Contract property | `classification`: `public`, `internal`, `confidential` or `restricted`. New columns get `PLACEHOLDER-classification`, which blocks deploy | the squad |
+| Contract table, in `md_tag` | `classification` (the highest of its columns), `data_domain_<path>`, `data_product_<name>`, `data_contract_<name>` | derived |
+| Contract table and product assets, in `md_tag` | `technical_owner`, `data_owner`, `data_steward` from the owner team in `metadata/_platform/teams.yaml` (a `PLACEHOLDER-` contact is not published) | registry |
+| Every job and pipeline | `cost_center`, `region` (registry), `project_id`, `bundle`, `target`, `workload` (`de`, `ml` or `ai`, a bundle variable), `git_repo`, `git_ref`, `git_sha` (the bundle's git substitutions) | the bundle |
+
+`make tags-plan TARGET=<target>` prints the `metadata_sync` section for the table tags. The dataops bundle keeps its own copy in
+`src/config/table_tags.yml` (`make sync-table-tags BUNDLE=dataops`; a test fails when it is out of date), and its job runs the
+`apply_table_tags` task after `gold` (`dbxops-lifecycle reconcile`). `table_tags_dry_run` is `true` in every target except dev, so
+test, uat, preprod and prod only print the plan; set it to `false` there when you approve writing tags to that target.
+Tags show in `system.lakeflow.jobs` and `system.lakeflow.pipelines` (`tags`) once deployed, and on tables in Unity Catalog once
+the task has run.
+
 ## Rules, in one place
 
 `make validate-metadata` runs: platform snapshot integrity, repo kind, generated-file drift, JSON schemas, pinned
 `apiVersion`s, ids and prefixes, domains (data-domain level; inside the repo's domain for a domain repo), restricted
-classification, one contract per spec target, contract/spec drift, product ports, semantic assignments against the glossary,
+classification, governance tags (owners, a classification per column, spec tags that match the contract), one contract per spec target, contract/spec drift, product ports, semantic assignments against the glossary,
 and semver.

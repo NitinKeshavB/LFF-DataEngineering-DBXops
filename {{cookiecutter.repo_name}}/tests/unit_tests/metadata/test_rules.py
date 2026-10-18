@@ -309,3 +309,25 @@ def test__a_contract_for_a_table_a_job_writes_is_not_an_orphan(repo_root: Path, 
     scores["schema"][0]["customProperties"].append({"property": "dbx.producer", "value": "job"})
     write_yaml(path, scores)
     assert not any("scores" in m for m in errors(repo_root, "spec-coverage"))
+
+
+def test__a_contract_property_needs_a_known_classification_or_a_placeholder(repo_root: Path, contract_file: Path):
+    """A generated contract passes with its PLACEHOLDER classification; a made-up level is reported."""
+    assert errors(repo_root, "governance") == []
+    edit_yaml(contract_file, lambda d: d["schema"][0]["properties"][0].update(classification="secret"))
+    assert any("classification must be one of" in m and "'secret'" in m for m in errors(repo_root, "governance"))
+    edit_yaml(contract_file, lambda d: d["schema"][0]["properties"][0].update(classification="internal"))
+    assert errors(repo_root, "governance") == []
+
+
+def test__the_owner_team_needs_a_technical_owner_a_data_owner_and_a_steward(repo_root: Path):
+    """A team without a data steward cannot own tagged assets."""
+    teams = repo_root / "metadata/_platform/teams.yaml"
+    edit_yaml(teams, lambda d: d["teams"][0]["contacts"].pop("data_steward"))
+    assert any("has no data_steward" in m for m in errors(repo_root, "governance"))
+
+
+def test__the_contract_domain_and_product_must_match_the_spec_tags(repo_root: Path, contract_file: Path):
+    """A contract that names another data product than the spec that writes it is reported."""
+    edit_yaml(contract_file, lambda d: d.update(dataProduct="dp_someone_else"))
+    assert any("differs from the spec tag data_product" in m for m in errors(repo_root, "governance"))

@@ -45,30 +45,37 @@ schema:
     logicalType: string
     physicalType: string
     required: true
+    classification: internal
   - name: policy_id
     logicalType: string
     physicalType: string
     required: true
+    classification: internal
   - name: period_start
     logicalType: date
     physicalType: date
     required: true
+    classification: internal
   - name: period_end
     logicalType: date
     physicalType: date
     required: false
+    classification: internal
   - name: written_premium
     logicalType: number
     physicalType: decimal(18,2)
     required: false
+    classification: confidential
   - name: earned_premium
     logicalType: number
     physicalType: decimal(18,2)
     required: false
+    classification: confidential
   - name: billed_at
     logicalType: timestamp
     physicalType: timestamp
     required: false
+    classification: internal
   quality:
   - id: fact_premium_earned_premium_within_written
     name: earned premium within written
