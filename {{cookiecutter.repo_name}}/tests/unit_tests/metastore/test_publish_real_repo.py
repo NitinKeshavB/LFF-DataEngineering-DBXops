@@ -5,12 +5,26 @@ This is the check that the metadata tooling (specs, contracts, products) and the
 agree on the same documents, using the example DataOps bundle rather than hand-made fixtures.
 """
 
+from datetime import (
+    datetime,
+    timezone,
+)
+
 import pytest
 
 from dbxops.metadata.specs import load_specs
 from dbxops.metastore.cli import main
 from dbxops.metastore.event_log import SparkPipelineEventLog
-from dbxops.metastore.records import PublishContext
+from dbxops.metastore.records import (
+    CiContext,
+    DeployedAssetRecord,
+    DeploymentRecord,
+    PipelineUpdateRecord,
+    PublishContext,
+    RunRecord,
+    TaskRunRecord,
+    Timing,
+)
 from dbxops.metastore.tasks import publish_run
 from tests.consts import PROJECT_DIR
 from tests.unit_tests.metastore.test_event_log import (
@@ -90,6 +104,114 @@ def test__ports_and_tags_use_the_project_prefixed_names(published):
     keys = {r["tag_key"] for r in rows(published, "SELECT tag_key FROM md_tag WHERE is_active")}
     assert "data_product_example_claims_claims_analytics" in keys
     assert any(k.startswith("data_contract_example_claims_silver_") for k in keys)
+
+
+def test__every_asset_is_published_with_its_workload_parent_and_layer(published):
+    """md_asset carries the tree columns: the workload per bundle family, a parent for every non-root asset, a layer."""
+    by_workload = {
+        r["workload"]: r["n"]
+        for r in rows(published, "SELECT workload, count(*) AS n FROM md_asset WHERE is_current GROUP BY workload")
+    }
+    assert set(by_workload) == {"de", "ml", "ai"} and all(by_workload.values())
+    assert count(published, "md_asset", "is_current AND (parent_asset_id IS NULL OR parent_asset_id = '')") == 0
+    table = rows(
+        published,
+        "SELECT workload, layer, subtype, parent_asset_id FROM md_asset "
+        "WHERE is_current AND entity_id = 'example_claims_silver.dim_policy'",
+    )
+    assert table == [
+        {
+            "workload": "de",
+            "layer": "silver",
+            "subtype": "",
+            "parent_asset_id": "dataflow_flow/example_claims/dim_policy/dim_policy",
+        }
+    ]
+
+
+def test__a_workflow_publishes_its_tasks_and_the_asset_edges(published):
+    """md_job_task has the workflow's tasks with kinds and dependencies; md_asset_edge has contains, runs and writes."""
+    tasks = rows(
+        published,
+        "SELECT task_key, task_kind, target_asset_id FROM v_job_task_current "
+        "WHERE asset_id = 'uc_job/example_claims/dataops_run' ORDER BY task_key",
+    )
+    assert {t["task_key"] for t in tasks} == {
+        "generate_data",
+        "bronze",
+        "silver",
+        "gold",
+        "apply_table_tags",
+        "publish_run_metadata",
+    }
+    assert {t["task_key"]: t["target_asset_id"] for t in tasks}[
+        "silver"
+    ] == "uc_pipeline/example_claims/dataops_silver"
+    relations = {r["relation"] for r in rows(published, "SELECT DISTINCT relation FROM md_asset_edge WHERE is_active")}
+    assert {"contains", "runs", "writes", "reads", "exposes", "serves", "indexes"} <= relations
+
+
+def tree_by_asset(engine, where: str = "1 = 1") -> dict:
+    """Return the rows of v_asset_tree keyed by asset id."""
+    return {r["asset_id"]: r for r in rows(engine, f"SELECT * FROM v_asset_tree WHERE {where}")}
+
+
+def test__the_asset_tree_gives_each_asset_a_path_and_a_designed_state(published):
+    """Before any deployment a workflow is designed, its tasks are contained, and a dataset has a full path."""
+    tree = tree_by_asset(published)
+    path = tree["example_claims_silver.dim_policy"]["path"]
+    assert path.startswith("dataops > ") and path.endswith(" > dim_policy")
+    assert tree["uc_job/example_claims/dataops_run"]["state"] == "designed"
+    assert tree["uc_job_task/example_claims/dataops_run/silver"]["state"] == "contained"
+
+
+def deploy(repo, context) -> None:
+    """Record a deployment of the dataops workflow (job 77) and its silver pipeline (pipeline 99)."""
+    ci = CiContext("ci-1", 1, "", "abc123", "someone")
+    deployed = [
+        DeployedAssetRecord("uc_job/example_claims/dataops_run", 1, "dataops run", "77"),
+        DeployedAssetRecord("uc_pipeline/example_claims/dataops_silver", 1, "silver", "99"),
+    ]
+    repo.record_deployment(DeploymentRecord("dev", "dataops", ci, "success", assets=deployed), context)
+
+
+def test__a_deployment_moves_an_asset_to_deployed_and_names_the_commit(repo, published):
+    """After a deployment the workflow is deployed, with the commit that deployed it, and not yet running."""
+    deploy(repo, PublishContext("example_claims", "test", "abc", "dev"))
+    job = tree_by_asset(published, "target = 'dev'")["uc_job/example_claims/dataops_run"]
+    assert (job["state"], job["deployed_commit"]) == ("deployed", "abc123")
+
+
+def test__a_run_and_a_pipeline_update_move_assets_to_running(repo, published):
+    """A recorded run of job 77 and an update of pipeline 99 make their assets running, with the last status."""
+    context = PublishContext("example_claims", "test", "abc", "dev")
+    deploy(repo, context)
+    started = Timing(datetime(2026, 1, 2, tzinfo=timezone.utc), datetime(2026, 1, 2, 1, tzinfo=timezone.utc))
+    update = PipelineUpdateRecord("u1", "uc_pipeline/99", "COMPLETED", timing=started)
+    repo.record_run(
+        RunRecord("dev", "5", "uc_job/example_claims/77", "SUCCESS", started, pipeline_updates=[update]), context
+    )
+    repo.record_task_runs([TaskRunRecord("dev", "5", "silver", "SUCCESS", started, 1)], context)
+    tree = tree_by_asset(published, "target = 'dev'")
+    assert (
+        tree["uc_job/example_claims/dataops_run"]["state"],
+        tree["uc_job/example_claims/dataops_run"]["last_run_status"],
+    ) == (
+        "running",
+        "SUCCESS",
+    )
+    assert tree["uc_pipeline/example_claims/dataops_silver"]["last_run_status"] == "COMPLETED"
+    assert count(published, "md_task_run", "task_key = 'silver' AND attempt = 1") == 1
+
+
+def test__the_asset_inventory_counts_assets_by_project_workload_and_type(published):
+    """v_asset_inventory groups the current assets, so an owner can see what a project is made of."""
+    inventory = {
+        (r["workload"], r["asset_type"]): r["assets"]
+        for r in rows(published, "SELECT * FROM v_asset_inventory WHERE repo_id = 'example_claims'")
+    }
+    assert inventory[("de", "uc_job")] == 1 and inventory[("ml", "uc_job")] == 1 and inventory[("ai", "uc_job")] == 1
+    assert inventory[("de", "uc_pipeline")] == 3
 
 
 def test__publishing_again_changes_nothing(repo, published, capsys):

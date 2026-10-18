@@ -42,6 +42,7 @@ from dbxops.metastore.records import (
     RuleCounts,
     RunOrigin,
     RunRecord,
+    TaskRunRecord,
     Timing,
 )
 
@@ -146,6 +147,7 @@ class RunCollection:
     """What a run collection produced; ``unmapped`` lists expectations that match no contract rule."""
 
     run: RunRecord
+    tasks: list[TaskRunRecord] = field(default_factory=list)
     quality: list[QualityResultRecord] = field(default_factory=list)
     unmapped: list[ExpectationInfo] = field(default_factory=list)
 
@@ -167,6 +169,22 @@ def _run_status(run: Mapping[str, Any]) -> str:
     if any(result in _FAILED_RESULTS for result in results):
         return "FAILED"
     return "SUCCESS" if results else (state.get("life_cycle_state") or "UNKNOWN")
+
+
+def _task_record(target: str, run_id: str, task: Mapping[str, Any]) -> TaskRunRecord:
+    """Map one task of ``runs/get`` to a record: its result (or live state), timing, attempt and failure code."""
+    state = task.get("state") or {}
+    details = (task.get("status") or {}).get("termination_details") or {}
+    failed = state.get("result_state") in _FAILED_RESULTS
+    return TaskRunRecord(
+        target=target,
+        run_id=run_id,
+        task_key=str(task.get("task_key", "")),
+        status=state.get("result_state") or state.get("life_cycle_state") or "UNKNOWN",
+        timing=Timing(_from_millis(task.get("start_time")), _from_millis(task.get("end_time"))),
+        attempt=int(task.get("attempt_number") or 1),
+        error_class=str(details.get("code") or state.get("state_message", "")[:80]) if failed else "",
+    )
 
 
 class RunCollector:
@@ -192,7 +210,10 @@ class RunCollector:
             ),
             pipeline_updates=[self._update(update) for update in updates],
         )
-        collection = RunCollection(record)
+        tasks = [
+            _task_record(record.target, record.run_id, task) for task in run.get("tasks") or () if task.get("task_key")
+        ]
+        collection = RunCollection(record, tasks)
         for update in updates:
             self._quality(target, update, collection)
         return collection

@@ -22,6 +22,7 @@ from dbxops.metadata.contracts import (
     contract_id,
     write_contracts,
 )
+from dbxops.metadata.hierarchy import WORKLOADS
 from dbxops.metadata.repo import RepoContext
 from dbxops.metadata.substitutions import write_substitutions
 from dbxops.registry.domains import DomainError
@@ -35,7 +36,7 @@ class ScaffoldError(ValueError):
     """Raised when a bundle cannot be scaffolded (bad name, domain, or the bundle already exists)."""
 
 
-def _variables(tag_keys: list[str]) -> dict[str, Any]:
+def _variables(tag_keys: list[str], workload: str = "de") -> dict[str, Any]:
     variables: dict[str, Any] = {
         "project_id": {
             "description": "Project id; every schema is <project_id>_<layer>. Must equal project_id in metadata/_platform/repo.yaml"
@@ -57,7 +58,23 @@ def _variables(tag_keys: list[str]) -> dict[str, Any]:
         variables[key] = {"description": f"{key} tag (metadata/_platform/repo.yaml tags)"}
     variables["workload"] = {
         "description": "Workload class of this bundle (de, ml, ai or platform); applied as a tag to every job and pipeline",
-        "default": "de",
+        "default": workload,
+    }
+    variables["teams_destination_id"] = {
+        "description": "Workspace notification destination (Microsoft Teams) that receives job alerts; create it under Settings > Notifications",
+        "default": "PLACEHOLDER-teams-destination-id",
+    }
+    variables["email_destination_id"] = {
+        "description": "Workspace notification destination (email) that receives job alerts",
+        "default": "PLACEHOLDER-email-destination-id",
+    }
+    variables["alert_email"] = {
+        "description": "Address for the job's own email notifications (usually the technical owner or a team list)",
+        "default": "PLACEHOLDER-alert-email",
+    }
+    variables["duration_warning_seconds"] = {
+        "description": "A run longer than this raises the duration warning; set it from the flow's SLA",
+        "default": 3600,
     }
     variables["dbxops_wheel_path"] = {
         "description": "Path of the dbxops wheel on a UC volume, set by CI (/Volumes/<catalog>/platform/wheels/<version>/...whl)",
@@ -96,10 +113,10 @@ def _targets(ctx: RepoContext, tags: dict[str, str]) -> dict[str, Any]:
     return targets
 
 
-def _bundle_config(ctx: RepoContext, name: str) -> dict[str, Any]:
+def _bundle_config(ctx: RepoContext, name: str, workload: str = "de") -> dict[str, Any]:
     groups = ctx.teams["teams"][0]["groups"]
     tags = {key: str(value) for key, value in ctx.repo["tags"].items()}
-    variables = _variables(list(tags))
+    variables = _variables(list(tags), workload)
     variables["project_id"]["default"] = ctx.project_id
     return {
         "bundle": {"name": name},
@@ -158,6 +175,23 @@ def _job(ctx: RepoContext, name: str) -> dict[str, Any]:
                 f"{name}_run": {
                     "name": f"[${{var.project_id}}] {name} run (${{bundle.target}}${{var.logical_env}})",
                     "tags": _tag_refs(ctx),
+                    "email_notifications": {
+                        "on_failure": ["${var.alert_email}"],
+                        "on_duration_warning_threshold_exceeded": ["${var.alert_email}"],
+                    },
+                    "webhook_notifications": {
+                        "on_failure": [{"id": "${var.teams_destination_id}"}, {"id": "${var.email_destination_id}"}],
+                        "on_duration_warning_threshold_exceeded": [{"id": "${var.teams_destination_id}"}],
+                    },
+                    "health": {
+                        "rules": [
+                            {
+                                "metric": "RUN_DURATION_SECONDS",
+                                "op": "GREATER_THAN",
+                                "value": "${var.duration_warning_seconds}",
+                            }
+                        ]
+                    },
                     "performance_target": "${var.performance_target}",
                     "queue": {"enabled": True},
                     "environments": [
@@ -276,14 +310,17 @@ def _dump(document: dict[str, Any]) -> str:
     return yaml.safe_dump(document, sort_keys=False, allow_unicode=True, width=140)
 
 
-def scaffold_bundle(root: Path, name: str, data_domain: str) -> list[Path]:
+def scaffold_bundle(root: Path, name: str, data_domain: str, workload: str = "de") -> list[Path]:
     """
     Create `bundles/<name>/` and return the files written.
 
     `data_domain` must be a data-domain path of the taxonomy (it is what the example table's contract rolls up
-    to). Raises `ScaffoldError` for an invalid name or domain, or when the bundle already exists.
+    to). `workload` is `de`, `ml`, `ai` or `platform` and is declared once as the bundle's `workload` variable. Raises
+    `ScaffoldError` for an invalid name, domain or workload, or when the bundle already exists.
     """
     ctx = RepoContext.load(root)
+    if workload not in WORKLOADS:
+        raise ScaffoldError(f"workload {workload!r} must be one of {', '.join(WORKLOADS)}")
     if not NAME_PATTERN.match(name):
         raise ScaffoldError(f"bundle name {name!r} must match {NAME_PATTERN.pattern}")
     bundle = root / "bundles" / name
@@ -296,7 +333,7 @@ def scaffold_bundle(root: Path, name: str, data_domain: str) -> list[Path]:
     product = _product(ctx, name)
     layer = bundle / "src/dataflows/silver"
     files = {
-        bundle / "databricks.yml": _dump(_bundle_config(ctx, name)),
+        bundle / "databricks.yml": _dump(_bundle_config(ctx, name, workload)),
         bundle / f"resources/{name}.pipelines.yml": _dump(_pipeline(ctx, name)),
         bundle / f"resources/{name}.jobs.yml": _dump(_job(ctx, name)),
         layer

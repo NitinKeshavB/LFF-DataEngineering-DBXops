@@ -35,6 +35,7 @@ make test                   # proves the fresh repo is green
 make validate-metadata      # contracts, products, specs: 0 errors expected
 make check-placeholders     # the list of config values you still have to fill in
 make tags-plan TARGET=dev   # the governance tags your tables will get in Unity Catalog (needs a real catalog)
+make perf-lint            # driver-side and shuffle-heavy patterns in pipeline and task code
 make sync-table-tags BUNDLE=dataops   # after adding a table or changing a classification: refresh the file the job applies
 make new-bundle NAME=<name> DOMAIN=<data-domain-path>   # only if you need a bundle beyond the examples
 ```

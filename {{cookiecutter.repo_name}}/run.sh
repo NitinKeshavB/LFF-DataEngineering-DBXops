@@ -7,7 +7,7 @@ set -e
 #####################
 
 THIS_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null 2>&1 && pwd )"
-MINIMUM_TEST_COVERAGE_PERCENT=0
+MINIMUM_TEST_COVERAGE_PERCENT=85
 
 
 ##########################
@@ -183,6 +183,17 @@ function metadata-dictionary {
     python -m dbxops.metastore dictionary > "$THIS_DIR/.claude/context/03_Architecture/Metadata_Dictionary.md"
 }
 
+# is this repository behind the master template? (needs `pip install cruft` and a `.cruft.json` from `cruft create`)
+function upstream-check {
+    [ -f "$THIS_DIR/.cruft.json" ] || { echo "no .cruft.json: generate with 'cruft create <template repo>' to track the template (conf/upstream.yml)"; return 1; }
+    cruft check --project-dir "$THIS_DIR"
+}
+
+# static check for driver-side and shuffle-heavy patterns in pipeline and task code
+function perf-lint {
+    python -m dbxops.perf_lint --root "$THIS_DIR"
+}
+
 # print the governance tags of every contract table as a metadata_sync section: make tags-plan TARGET=dev [CATALOG=]
 function tags-plan {
     python -m dbxops.metastore tags-plan --root "$THIS_DIR" --target "${TARGET:?set TARGET=<target>}" ${CATALOG:+--catalog "$CATALOG"}
@@ -237,7 +248,7 @@ function contracts {
 
 # scaffold bundles/<name> with a runnable example: ./run.sh new-bundle <name> <data-domain-path>
 function new-bundle {
-    python -m dbxops.metadata --root "$THIS_DIR" new-bundle --name "${1:?usage: ./run.sh new-bundle <name> <data-domain-path>}" --data-domain "${2:?a data-domain path is required, e.g. claims__litigation__claim_litigation}"
+    python -m dbxops.metadata --root "$THIS_DIR" new-bundle --name "${1:?usage: ./run.sh new-bundle <name> <data-domain-path> [workload]}" --data-domain "${2:?a data-domain path is required, e.g. claims__litigation__claim_litigation}" --workload "${3:-de}"
 }
 
 # write each bundle's <target>_substitutions.json from conf/environments.yml (pass --check to only report)

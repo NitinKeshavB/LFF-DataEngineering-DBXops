@@ -18,6 +18,7 @@ from typing import (
 from dbxops.metastore.errors import CollectError
 from dbxops.metastore.guard import WriterGuard
 from dbxops.metastore.records import (
+    AssetEdgeRow,
     DefinitionRecord,
     DeploymentRecord,
     LineageEdge,
@@ -111,6 +112,12 @@ class MetadataPublisher:
 
         return self._publish("definitions", action)
 
+    def publish_asset_edges(self, edges: Sequence[AssetEdgeRow]) -> PublishCounts:
+        """Replace this repo's asset edges (the tree, and the runs, reads and writes relations)."""
+        return self._publish(
+            "asset_edges", lambda ctx: PublishCounts(inserted=self._repository.upsert_asset_edges(edges, ctx))
+        )
+
     def _retire_missing(self, kind: str, present: set[str], ctx: PublishContext) -> PublishCounts:
         current = self._repository.list_current_entity_ids(kind, self.repo_id)
         missing = [entity_id for entity_id in current if entity_id not in present]
@@ -142,6 +149,7 @@ class MetadataPublisher:
 
         def action(ctx: PublishContext) -> PublishCounts:
             inserted = self._repository.record_run(collection.run, ctx)
+            inserted += self._repository.record_task_runs(collection.tasks, ctx)
             inserted += self._repository.record_quality(collection.quality, ctx)
             return PublishCounts(inserted=inserted)
 

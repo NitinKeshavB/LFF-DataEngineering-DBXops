@@ -15,6 +15,7 @@ from typing import (
 )
 
 from dbxops.metastore.records import (
+    AssetEdgeRow,
     DefinitionRecord,
     DeploymentRecord,
     EvalResultRecord,
@@ -28,6 +29,7 @@ from dbxops.metastore.records import (
     RunRecord,
     SemanticLinkRow,
     TagRow,
+    TaskRunRecord,
 )
 from dbxops.metastore.repository import MetadataRepository
 
@@ -77,6 +79,10 @@ class CompositeRepository:
         """Replace tags on every sink."""
         return self._fan_out(lambda sink: sink.upsert_tags(rows, ctx, required_keys))
 
+    def upsert_asset_edges(self, rows: Sequence[AssetEdgeRow], ctx: PublishContext) -> int:
+        """Replace asset edges on every sink."""
+        return self._fan_out(lambda sink: sink.upsert_asset_edges(rows, ctx))
+
     def record_lineage(self, edges: Sequence[LineageEdge], ctx: PublishContext, *, target: str, origin: str) -> int:
         """Replace lineage edges on every sink."""
         return self._fan_out(lambda sink: sink.record_lineage(edges, ctx, target=target, origin=origin))
@@ -92,6 +98,10 @@ class CompositeRepository:
     def record_run(self, run: RunRecord, ctx: PublishContext) -> int:
         """Insert a run on every sink."""
         return self._fan_out(lambda sink: sink.record_run(run, ctx))
+
+    def record_task_runs(self, tasks: Sequence[TaskRunRecord], ctx: PublishContext) -> int:
+        """Insert task rows on every sink."""
+        return self._fan_out(lambda sink: sink.record_task_runs(tasks, ctx))
 
     def record_quality(self, results: Sequence[QualityResultRecord], ctx: PublishContext) -> int:
         """Insert quality results on every sink."""

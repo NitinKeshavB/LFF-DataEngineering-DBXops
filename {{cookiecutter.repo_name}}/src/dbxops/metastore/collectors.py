@@ -19,7 +19,10 @@ The runtime collectors (runs, deployments, lineage) live in ``runtime_collectors
 
 from __future__ import annotations
 
-from dataclasses import asdict
+from dataclasses import (
+    asdict,
+    replace,
+)
 from typing import (
     Any,
     Iterator,
@@ -35,6 +38,11 @@ from rdflib import (
 from rdflib.namespace import SKOS
 
 from dbxops.metadata.export_ontos import ONTOS_NATIVE_TYPES
+from dbxops.metadata.hierarchy import (
+    Hierarchy,
+    HierarchyAsset,
+    JobTask,
+)
 from dbxops.metadata.repo import SpecInfo
 from dbxops.metadata.specs import (
     SpecError,
@@ -43,6 +51,7 @@ from dbxops.metadata.specs import (
 from dbxops.metastore.errors import CollectError
 from dbxops.metastore.records import (
     PLATFORM_REPO_ID,
+    AssetEdgeRow,
     DefinitionRecord,
     EntityRef,
     Provenance,
@@ -61,6 +70,19 @@ _PHYSICAL_TO_ASSET_TYPE = {
 CLASSIFICATION_ORDER = ("public", "internal", "confidential", "restricted")
 _CONTACT_ROLES = ("technical_owner", "data_owner", "executive_owner", "data_steward")
 OWNER_TAG_KEYS = ("technical_owner", "data_owner", "data_steward")
+ASSET_COLUMNS = (
+    "asset_type",
+    "ontos_asset_type",
+    "fqn_template",
+    "bundle",
+    "resource_key",
+    "product_id",
+    "parent_asset_id",
+    "workload",
+    "layer",
+    "subtype",
+)
+_PLACED = ("parent_asset_id", "workload", "layer", "subtype")
 
 
 # ---------------------------------------------------------------------- helpers
@@ -338,21 +360,100 @@ def asset_records(
         found = _product_assets(doc)
     else:
         raise CollectError(f"cannot derive assets from a document of kind {kind!r}")
-    columns = ("asset_type", "ontos_asset_type", "fqn_template", "bundle", "resource_key", "product_id")
     return [
         DefinitionRecord(
             EntityRef("asset", asset["asset_id"], repo_id),
             asset,
             "active",
-            columns={name: asset[name] for name in columns},
+            columns={name: asset[name] for name in ASSET_COLUMNS},
             provenance=Provenance(source_path, git_commit),
         )
         for asset in found
     ]
 
 
+def _enriched(record: DefinitionRecord, found: HierarchyAsset) -> DefinitionRecord:
+    """Return an ``asset`` record with the place the hierarchy found; its own type and non-empty values win."""
+    values = {
+        "parent_asset_id": found.parent_asset_id,
+        "workload": found.workload,
+        "layer": found.layer,
+        "subtype": record.columns.get("subtype") or found.subtype,
+        "resource_key": record.columns.get("resource_key") or found.resource_key,
+        "bundle": record.columns.get("bundle") or found.bundle,
+    }
+    return replace(record, payload={**record.payload, **values}, columns={**record.columns, **values})
+
+
+def _hierarchy_record(
+    found: HierarchyAsset, tasks: Sequence[JobTask], repo_id: str, git_commit: str | None
+) -> DefinitionRecord:
+    """Return the ``asset`` record of an asset only the bundles define; a workflow carries its tasks as children."""
+    asset = _asset(
+        found.asset_id,
+        found.asset_type,
+        bundle=found.bundle,
+        resource_key=found.resource_key,
+        parent_asset_id=found.parent_asset_id,
+        workload=found.workload,
+        layer=found.layer,
+        subtype=found.subtype,
+    )
+    rows = [
+        {
+            "task_key": task.task_key,
+            "task_kind": task.kind,
+            "depends_on": list(task.depends_on),
+            "target_asset_id": task.target_asset_id,
+        }
+        for task in tasks
+    ]
+    return DefinitionRecord(
+        EntityRef("asset", found.asset_id, repo_id),
+        asset,
+        "active",
+        columns={name: asset[name] for name in ASSET_COLUMNS},
+        children={"md_job_task": rows} if found.asset_type == "uc_job" else {},
+        provenance=Provenance(f"bundles/{found.bundle}", git_commit),
+    )
+
+
+def apply_hierarchy(
+    records: Sequence[DefinitionRecord], hierarchy: Hierarchy, *, repo_id: str, git_commit: str | None
+) -> list[DefinitionRecord]:
+    """
+    Give every asset its place in the tree, and add the assets that only the bundles define.
+
+    An ``asset`` record from a contract or product keeps its type and gets the parent, workload, layer and subtype the
+    hierarchy found for it. Every other hierarchy asset (bundle, workflow, task, pipeline, spec, flow, endpoint...) becomes
+    a new record; a workflow carries its tasks as ``md_job_task`` children.
+    """
+    result: list[DefinitionRecord] = []
+    seen: set[str] = set()
+    for record in records:
+        found = hierarchy.assets.get(record.entity_id) if record.kind == "asset" else None
+        if found is None:
+            result.append(record)
+            continue
+        seen.add(record.entity_id)
+        result.append(_enriched(record, found))
+    for key in sorted(set(hierarchy.assets) - seen):
+        result.append(_hierarchy_record(hierarchy.assets[key], hierarchy.tasks_of(key), repo_id, git_commit))
+    return result
+
+
+def asset_edge_rows(hierarchy: Hierarchy) -> list[AssetEdgeRow]:
+    """Return the edges of the hierarchy as rows, without repeats."""
+    unique = dict.fromkeys((e.parent_asset_id, e.child_asset_id, e.relation) for e in hierarchy.edges)
+    return [AssetEdgeRow(*key) for key in unique]
+
+
 def _asset(asset_id: str, asset_type: str, **extra: Any) -> dict[str, Any]:
     return {
+        "parent_asset_id": extra.pop("parent_asset_id", ""),
+        "workload": extra.pop("workload", ""),
+        "layer": extra.pop("layer", ""),
+        "subtype": extra.pop("subtype", ""),
         "asset_id": asset_id,
         "asset_type": asset_type,
         "ontos_asset_type": asset_type if asset_type in ONTOS_NATIVE_TYPES else "generic",

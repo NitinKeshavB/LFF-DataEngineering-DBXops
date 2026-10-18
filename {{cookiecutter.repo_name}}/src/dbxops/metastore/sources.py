@@ -16,6 +16,10 @@ from typing import (
 
 import yaml
 
+from dbxops.metadata.hierarchy import (
+    Hierarchy,
+    build_hierarchy,
+)
 from dbxops.metadata.repo import (
     RepoContext,
     SpecInfo,
@@ -36,6 +40,7 @@ class Discovered:
     products: list[tuple[str, Mapping[str, Any]]] = field(default_factory=list)
     specs: list[SpecInfo] = field(default_factory=list)
     owners: dict[str, str] = field(default_factory=dict)
+    hierarchy: Hierarchy = field(default_factory=Hierarchy)
 
 
 def read_repo_id(root: Path) -> str:
@@ -60,6 +65,7 @@ def discover(root: Path) -> Discovered:
         products=[(doc.path.as_posix(), doc.data) for doc in ctx.products],
         specs=ctx.specs,
         owners=_owner_contacts(ctx),
+        hierarchy=build_hierarchy(ctx),
     )
 
 

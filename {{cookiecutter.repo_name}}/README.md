@@ -112,6 +112,7 @@ cite `file:line` for claims, keep changes surgical, and prove a change by runnin
 | `/explain <target>` · `/bug-why <error>` · `/bug-fix <analysis>` | understand, diagnose, fix (failing test first) |
 | `/howto-implement <feature>` · `/implement <plan>` | plan before code, then a surgical change |
 | `/verify [target]` | adversarially check a change, plan or diagnosis |
+| `/review [base]` · `/review-runs <project>` | read-only review of a change by the `code-reviewer` agent · summary of how a project's runs went |
 | `/new-bundle <name> <domain>` · `/upgrade-lakeflow [tag]` · `/onboard-check` | platform tasks |
 | `/databricks-doctor` · `/databricks-setup` | vendored Databricks health check and CLI auth setup |
 

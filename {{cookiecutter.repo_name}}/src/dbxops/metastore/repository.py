@@ -21,6 +21,7 @@ from typing import (
 )
 
 from dbxops.metastore.records import (
+    AssetEdgeRow,
     DefinitionRecord,
     DeploymentRecord,
     EvalResultRecord,
@@ -34,6 +35,7 @@ from dbxops.metastore.records import (
     RunRecord,
     SemanticLinkRow,
     TagRow,
+    TaskRunRecord,
 )
 
 
@@ -71,6 +73,9 @@ class MetadataRepository(Protocol):
     def upsert_tags(self, rows: Sequence[TagRow], ctx: PublishContext, required_keys: Sequence[str] = ()) -> int:
         """Replace the tags of ``ctx.repo_id``; only owned keys are ever deactivated, and only owned keys accepted."""
 
+    def upsert_asset_edges(self, rows: Sequence[AssetEdgeRow], ctx: PublishContext) -> int:
+        """Replace the asset edges (the tree and the runs, reads, writes relations) of ``ctx.repo_id``."""
+
     def record_lineage(self, edges: Sequence[LineageEdge], ctx: PublishContext, *, target: str, origin: str) -> int:
         """Replace the ``origin`` lineage edges of ``ctx.repo_id`` on ``target``."""
 
@@ -82,6 +87,9 @@ class MetadataRepository(Protocol):
 
     def record_run(self, run: RunRecord, ctx: PublishContext) -> int:
         """Insert a run, its pipeline updates and dataset metrics if absent; return the rows inserted."""
+
+    def record_task_runs(self, tasks: Sequence[TaskRunRecord], ctx: PublishContext) -> int:
+        """Insert the task rows of a run if absent; return the number inserted."""
 
     def record_quality(self, results: Sequence[QualityResultRecord], ctx: PublishContext) -> int:
         """Insert quality results if absent; return the number inserted."""

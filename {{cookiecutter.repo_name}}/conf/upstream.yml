@@ -1,0 +1,15 @@
+# Where this repository gets its template and its shared library from (the master repository).
+#
+# template: the repository the project was generated from. Generate with `cruft create <repo>` (not plain `cookiecutter`)
+#   so `.cruft.json` records the template commit and `cruft update` can pull later changes. `.github/workflows/template-sync.yml`
+#   opens a pull request when the template moves; nothing merges automatically.
+# dbxops: the version of the shared library this repository was generated with. The master repository publishes `dbxops` as
+#   a versioned wheel to a private index (or a Unity Catalog volume); a squad bumps `pinned_version` to take a new release.
+#   Until the library is extracted from this tree (see .claude/context/06_Operations/Known_Gaps.md), the library source
+#   under src/dbxops is still carried here and must not be edited by a squad: the change goes to the master repository.
+template:
+  repo: https://github.com/NitinKeshavB/LFF-DataEngineering-DBXops
+  ref: main
+dbxops:
+  pinned_version: 0.0.0
+  index_url: PLACEHOLDER-private-index-url

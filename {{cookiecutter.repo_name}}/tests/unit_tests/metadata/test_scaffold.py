@@ -127,3 +127,17 @@ def test__a_scaffolded_bundle_tags_its_jobs_and_pipelines_for_governance(real_co
     tagged = [*doc["resources"]["jobs"].values(), *doc["resources"]["pipelines"].values()]
     assert tagged and all(expected <= set(item["tags"]) for item in tagged)
     assert doc["variables"]["workload"]["default"] == "de"
+
+
+@pytest.mark.parametrize("workload", ["de", "ml", "ai", "platform"])
+def test__a_scaffolded_bundle_declares_the_workload_it_was_asked_for(real_conf_root: Path, workload: str):
+    """`make new-bundle ... WORKLOAD=` becomes the bundle's workload variable, and the bundle still validates."""
+    scaffold_bundle(real_conf_root, "sandbox", DOMAIN, workload)
+    assert load_bundle(real_conf_root / "bundles/sandbox")["variables"]["workload"]["default"] == workload
+    assert not has_errors(validate(RepoContext.load(real_conf_root)))
+
+
+def test__an_unknown_workload_is_refused(real_conf_root: Path):
+    """Only de, ml, ai and platform are workloads."""
+    with pytest.raises(ScaffoldError, match="workload"):
+        scaffold_bundle(real_conf_root, "sandbox", DOMAIN, "etl")

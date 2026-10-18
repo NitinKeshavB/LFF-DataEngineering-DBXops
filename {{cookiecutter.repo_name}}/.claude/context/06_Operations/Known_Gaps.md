@@ -27,6 +27,18 @@ configuration, the Lakeflow Framework's own validator for specs, `actionlint` an
 - A scheduler for the retention purge; SQL Server; observed-lineage reader.
 - Consolidating the MLOps and AIOps lifecycle wrappers into the package (a `--catalog` option on `dbxops.lifecycle reconcile` would remove them).
 - A model monitor; contracts for inference, quarantine and trace tables.
+- **Schema migration.** `platform_meta` is schema version 2 (asset tree columns, `md_job_task`, `md_asset_edge`, `md_task_run`). `CREATE TABLE IF NOT EXISTS`
+  does not add columns, so a database created at version 1 must be recreated or altered by hand; there is no migration step.
+- **The shared library is still carried in each repository.** `conf/upstream.yml` records the pin and `.github/workflows/template-sync.yml` runs `cruft update`,
+  but `dbxops` is not yet published as a wheel to an index and generated repos still build their own copy from `src/dbxops`.
+- **Asset discovery.** Models, agents and Unity Catalog functions are placed in the tree only when a bundle resource, a `src/vector_search`, `src/serving` or
+  `src/functions` file or a product port declares them. A model registered by job code alone (`register_agent.py`) has no asset until it is declared.
+- **Notifications.** Every job notifies Teams and email on failure and on a duration warning; `on_success` for prod releases, `on_streaming_backlog_exceeded`
+  (no streaming task exists), the SQL alerts and the Teams deployment message are not built. The destination ids are placeholders and untested against a workspace.
+- **Review agent in CI.** `/review` and the `code-reviewer` agent run locally; CI does not yet post its report as a PR comment or block on its decisions.
+- **Run-to-asset joins.** `v_asset_tree` joins runs to assets through the workspace object ids that a deployment records (`md_deployed_asset`), so an asset
+  shows `running` only after `publish --what deployments` has run for that target. `deployed, not running` is "deployed with no run recorded", not "no run
+  inside the schedule window", because job schedules are not stored in `platform_meta`.
 
 ## Decisions to confirm
 

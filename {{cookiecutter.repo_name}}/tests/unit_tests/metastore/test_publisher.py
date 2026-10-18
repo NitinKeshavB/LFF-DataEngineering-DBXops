@@ -139,4 +139,4 @@ def test__deployments_lineage_and_runs_are_published_with_log_entries(publisher,
 def test__a_publisher_can_ensure_the_schema(sqlite_engine):
     """ensure_schema goes through the guard to the repository."""
     MetadataPublisher(SqlAlchemyRepository(sqlite_engine), PublishContext(SQUAD, target="dev")).ensure_schema()
-    assert rows(sqlite_engine, "SELECT version FROM md_schema_version") == [{"version": 1}]
+    assert rows(sqlite_engine, "SELECT version FROM md_schema_version") == [{"version": 2}]

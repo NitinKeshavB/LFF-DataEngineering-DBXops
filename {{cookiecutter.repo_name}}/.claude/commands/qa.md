@@ -44,7 +44,7 @@ Then check what the green actually covers:
 python -m pytest --cov=src --cov-report=term-missing
 ```
 
-`MINIMUM_TEST_COVERAGE_PERCENT` is `0`, so **coverage never fails the build**. A green
+`MINIMUM_TEST_COVERAGE_PERCENT` is `85`, which gates only the total, so **changed lines can still be uncovered**. A green
 suite with the changed lines uncovered proves nothing — look at the report.
 
 ## 3. Fix (`--fix` only)

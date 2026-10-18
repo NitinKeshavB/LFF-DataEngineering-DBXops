@@ -271,6 +271,31 @@ class RunOrigin:
     git_sha: str = ""
 
 
+EDGE_RELATIONS = ("contains", "runs", "reads", "writes", "serves", "indexes", "calls", "exposes")
+
+
+@dataclass(frozen=True)
+class AssetEdgeRow:
+    """A relation between two assets: ``contains`` is the tree, the rest are ``runs``, ``reads``, ``writes`` and so on."""
+
+    parent_asset_id: str
+    child_asset_id: str
+    relation: str
+
+
+@dataclass(frozen=True)
+class TaskRunRecord:
+    """One task of a job run."""
+
+    target: str
+    run_id: str
+    task_key: str
+    status: str
+    timing: Timing = field(default_factory=Timing)
+    attempt: int = 1
+    error_class: str = ""
+
+
 @dataclass(frozen=True)
 class RunRecord:
     """One job run and the pipeline updates it triggered."""

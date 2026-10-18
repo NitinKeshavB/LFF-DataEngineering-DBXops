@@ -117,6 +117,7 @@ def _publish_definitions(publisher: MetadataPublisher, found: Discovered, args: 
     for _, doc in [*found.contracts, *found.products]:
         links += collectors.semantic_link_rows(doc)
         tags += collectors.tag_rows(doc, found.owners)
+    records = collectors.apply_hierarchy(records, found.hierarchy, repo_id=publisher.repo_id, git_commit=args.git_sha)
     retire = ("data_contract", "data_product") if args.retire_missing else ()
     return publisher.publish_definitions(records, links=links, tags=tags, retire_missing=retire)
 
@@ -141,6 +142,7 @@ def run_publish(args: argparse.Namespace, build: RepositoryBuilder, runner: Bund
     found = discover(root)
     if "definitions" in what:
         print(f"definitions: {_publish_definitions(publisher, found, args)}")
+        print(f"asset edges: {publisher.publish_asset_edges(collectors.asset_edge_rows(found.hierarchy))}")
     if "deployments" in what:
         print(f"deployments: {_publish_deployments(publisher, args, runner)}")
     if "lineage" in what:

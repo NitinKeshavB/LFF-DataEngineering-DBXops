@@ -331,3 +331,21 @@ def test__the_contract_domain_and_product_must_match_the_spec_tags(repo_root: Pa
     """A contract that names another data product than the spec that writes it is reported."""
     edit_yaml(contract_file, lambda d: d.update(dataProduct="dp_someone_else"))
     assert any("differs from the spec tag data_product" in m for m in errors(repo_root, "governance"))
+
+
+def test__a_bundle_must_declare_its_workload_and_every_resource_must_classify(repo_root: Path):
+    """No workload variable and a resource type with no place in the tree are each an error of the hierarchy rule."""
+    bundle = repo_root / "bundles/dataops"
+    write_yaml(bundle / "databricks.yml", {"bundle": {"name": "dataops"}, "include": ["resources/*.yml"]})
+    write_yaml(bundle / "resources/c.yml", {"resources": {"clusters": {"big": {"num_workers": 2}}}})
+    messages = errors(repo_root, "hierarchy")
+    assert any("must declare variables.workload.default" in m for m in messages)
+    assert any("unclassified asset" in m and "clusters" in m for m in messages)
+    write_yaml(
+        bundle / "databricks.yml",
+        {"bundle": {"name": "dataops"}, "variables": {"workload": {"default": "de"}}, "include": ["resources/*.yml"]},
+    )
+    write_yaml(
+        bundle / "resources/c.yml", {"resources": {"jobs": {"run": {"tasks": [{"task_key": "t", "sql_task": {}}]}}}}
+    )
+    assert errors(repo_root, "hierarchy") == []

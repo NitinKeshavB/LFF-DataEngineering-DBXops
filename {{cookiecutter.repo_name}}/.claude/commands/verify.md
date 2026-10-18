@@ -27,7 +27,7 @@ With no argument, default to verifying the working tree: `git diff` plus
   missing from the wheel.
 - **Inspect coverage of the changed lines**, do not assume it:
   `python -m pytest --cov=src --cov-report=term-missing`. `MINIMUM_TEST_COVERAGE_PERCENT`
-  is `0`, so coverage never fails the build — you have to look. A green suite with the
+  is `85`, which only gates the total — look at the changed lines yourself. A green suite with the
   changed lines uncovered proves nothing.
 - **Assess whether a new test would fail without the fix.** If you can cheaply revert,
   confirm the failure and restore; otherwise state that its discriminating power is unverified.

@@ -12,6 +12,22 @@ resources:
         git_repo: ${bundle.git.origin_url}
         git_ref: ${bundle.git.branch}
         git_sha: ${bundle.git.commit}
+      email_notifications:
+        on_failure:
+        - ${var.alert_email}
+        on_duration_warning_threshold_exceeded:
+        - ${var.alert_email}
+      webhook_notifications:
+        on_failure:
+        - id: ${var.teams_destination_id}
+        - id: ${var.email_destination_id}
+        on_duration_warning_threshold_exceeded:
+        - id: ${var.teams_destination_id}
+      health:
+        rules:
+        - metric: RUN_DURATION_SECONDS
+          op: GREATER_THAN
+          value: ${var.duration_warning_seconds}
       performance_target: ${var.performance_target}
       queue:
         enabled: true

@@ -29,6 +29,10 @@ from dbxops.metadata.contracts import (
     get_custom,
     plan_contracts,
 )
+from dbxops.metadata.hierarchy import (
+    Hierarchy,
+    build_hierarchy,
+)
 from dbxops.metadata.repo import (
     LAYERS,
     Doc,
@@ -509,6 +513,38 @@ def rule_governance(ctx: RepoContext, _: Options) -> list[Finding]:
     return findings
 
 
+FOREIGN_SCHEMA_LAYERS = {"de": ("ml", "ai"), "ml": ("ai",), "ai": ("ml",)}
+
+
+def _schema_findings(hierarchy: Hierarchy, project_id: str) -> list[Finding]:
+    findings = []
+    for asset in hierarchy.assets.values():
+        if not asset.asset_type.startswith("uc_") or "." not in asset.asset_id or asset.asset_type == "uc_job":
+            continue
+        layer = asset.asset_id.split(".")[0].removeprefix(f"{project_id}_")
+        if layer in FOREIGN_SCHEMA_LAYERS.get(asset.workload, ()):
+            findings.append(
+                Finding(
+                    "hierarchy",
+                    f"bundles/{asset.bundle}",
+                    f"{asset.asset_id}: a {asset.workload} bundle may not write the {project_id}_{layer} schema",
+                )
+            )
+    return findings
+
+
+def rule_hierarchy(ctx: RepoContext, _: Options) -> list[Finding]:
+    """
+    Check that every asset has a place in the tree and every bundle declares its workload.
+
+    A bundle resource of a type the hierarchy does not know is an `unclassified asset`; a bundle without a
+    `workload` variable of de, ml, ai or platform is reported; a dataflow in a `de` bundle may not write an `ml` or
+    `ai` schema (and an `ml` bundle may not write `ai`, and the reverse).
+    """
+    hierarchy = build_hierarchy(ctx)
+    return [*hierarchy.problems, *_schema_findings(hierarchy, ctx.project_id)]
+
+
 DEFAULT_RULES: tuple[Rule, ...] = (
     rule_platform_integrity,
     rule_repo_kind,
@@ -524,6 +560,7 @@ DEFAULT_RULES: tuple[Rule, ...] = (
     rule_semantics,
     rule_semver,
     rule_governance,
+    rule_hierarchy,
 )
 
 
