@@ -246,9 +246,13 @@ function contracts {
     python -m dbxops.metadata --root "$THIS_DIR" contracts "$@"
 }
 
-# scaffold bundles/<name> with a runnable example: ./run.sh new-bundle <name> <data-domain-path>
+# scaffold bundles/<name> with a runnable example: ./run.sh new-bundle <name> <data-domain-path> [workload] [connector]
 function new-bundle {
-    python -m dbxops.metadata --root "$THIS_DIR" new-bundle --name "${1:?usage: ./run.sh new-bundle <name> <data-domain-path> [workload]}" --data-domain "${2:?a data-domain path is required, e.g. claims__litigation__claim_litigation}" --workload "${3:-de}"
+    local args=(--root "$THIS_DIR" new-bundle --name "${1:?usage: ./run.sh new-bundle <name> <data-domain-path> [workload] [connector]}" --data-domain "${2:?a data-domain path is required, e.g. claims__litigation__claim_litigation}" --workload "${3:-de}")
+    if [ -n "${4:-}" ]; then
+        args+=(--connector "$4")
+    fi
+    python -m dbxops.metadata "${args[@]}"
 }
 
 # write each bundle's <target>_substitutions.json from conf/environments.yml (pass --check to only report)

@@ -3,18 +3,19 @@
 import dbxops
 from tests.consts import PROJECT_DIR
 
-PUBLIC_API = frozenset(
-    """
-    Change ConfigError Environment EvalPassRate
-    Finding GatewayError GateConfigError GateDecision
-    GateReport KnowledgeAssistantReconciler MetadataPublisher MetadataRepository
+PUBLIC_API = frozenset("""
+    Change ConfigError Connector ConnectorEnv
+    ConnectorError Environment EvalPassRate Finding
+    GatewayError GateConfigError GateDecision GateReport
+    JdbcConnector JsonFileState KnowledgeAssistantReconciler LandResult
+    LandingState LandingTarget MetadataPublisher MetadataRepository
     MetadataSyncReconciler MetastoreError MetricThreshold ModelPromoter
     MonitorReconciler PromotionGate PromotionRefused PublishContext
     ReconcileResult Reconciler RepoConfig RepositoryFactory
-    SdkWorkspaceGateway ServingEndpointReconciler VectorSearchIndexReconciler WorkspaceGateway
+    SdkWorkspaceGateway ServingEndpointReconciler SftpConnector VectorSearchIndexReconciler
+    WorkspaceGateway XlsxConnector ZipConnector
     load_environment load_repo_config validate_metadata validate_registry
-    """.split()
-)
+    """.split())
 
 
 def test__the_exported_names_are_exactly_the_documented_public_api():

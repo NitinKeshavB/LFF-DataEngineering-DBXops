@@ -31,6 +31,24 @@ NAME_PATTERN = re.compile(r"^[a-z][a-z0-9_]{2,30}$")
 EXAMPLE_TABLE = "example"
 ROLE_LEVELS = (("admins", "CAN_MANAGE"), ("developers", "CAN_RUN"), ("readers", "CAN_VIEW"))
 
+# jdbc is not offered here: it needs a real Spark JdbcSource wired by hand, not a generic placeholder.
+CONNECTOR_PLACEHOLDER_CONFIG: dict[str, dict[str, Any]] = {
+    "xlsx": {"source_path": "PLACEHOLDER-source-path"},
+    "zip": {"source_path": "PLACEHOLDER-source-path"},
+    "sftp": {
+        "host": "PLACEHOLDER-sftp-host",
+        "username": "PLACEHOLDER-sftp-username",
+        "remote_path": "PLACEHOLDER-sftp-remote-path",
+        "password": "{{secrets/PLACEHOLDER-scope/PLACEHOLDER-key}}",
+    },
+}
+CONNECTOR_EXTRA_DEPENDENCIES: dict[str, list[str]] = {
+    "xlsx": ["openpyxl>=3.1", "pyarrow>=14"],
+    "zip": [],
+    "sftp": ["paramiko>=3"],
+}
+CONNECTOR_KINDS = tuple(CONNECTOR_PLACEHOLDER_CONFIG)
+
 
 class ScaffoldError(ValueError):
     """Raised when a bundle cannot be scaffolded (bad name, domain, or the bundle already exists)."""
@@ -168,7 +186,48 @@ def _pipeline(ctx: RepoContext, name: str) -> dict[str, Any]:
     }
 
 
-def _job(ctx: RepoContext, name: str) -> dict[str, Any]:
+def _land_task(name: str, connector: str) -> dict[str, Any]:
+    return {
+        "task_key": f"land_{name}",
+        "environment_key": "land",
+        "python_wheel_task": {
+            "package_name": "cookie-cutter-dbx",
+            "entry_point": "dbxops-land",
+            "parameters": [
+                "--connector",
+                connector,
+                "--config",
+                f"${{workspace.file_path}}/src/config/land_{name}.yml",
+                "--output",
+                "/Volumes/${var.catalog}/${var.project_id}_bronze${var.logical_env}/landing/_inbound",
+                "--state",
+                f"/Volumes/${{var.catalog}}/${{var.project_id}}_bronze${{var.logical_env}}/landing/_state/land_{name}.json",  # noqa: E501
+            ],
+        },
+    }
+
+
+def _job(ctx: RepoContext, name: str, connector: str | None = None) -> dict[str, Any]:
+    environments = [
+        {
+            "environment_key": "platform",
+            "spec": {"client": "4", "dependencies": ["databricks-sql-connector", "${var.dbxops_wheel_path}"]},
+        }
+    ]
+    tasks = [{"task_key": "silver", "pipeline_task": {"pipeline_id": f"${{resources.pipelines.{name}_silver.id}}"}}]
+    publish_depends_on = [{"task_key": "silver"}]
+    if connector is not None:
+        environments.append(
+            {
+                "environment_key": "land",
+                "spec": {
+                    "client": "4",
+                    "dependencies": ["${var.dbxops_wheel_path}", *CONNECTOR_EXTRA_DEPENDENCIES[connector]],
+                },
+            }
+        )
+        tasks.insert(0, _land_task(name, connector))
+        publish_depends_on.append({"task_key": f"land_{name}"})
     return {
         "resources": {
             "jobs": {
@@ -194,23 +253,12 @@ def _job(ctx: RepoContext, name: str) -> dict[str, Any]:
                     },
                     "performance_target": "${var.performance_target}",
                     "queue": {"enabled": True},
-                    "environments": [
-                        {
-                            "environment_key": "platform",
-                            "spec": {
-                                "client": "4",
-                                "dependencies": ["databricks-sql-connector", "${var.dbxops_wheel_path}"],
-                            },
-                        }
-                    ],
+                    "environments": environments,
                     "tasks": [
-                        {
-                            "task_key": "silver",
-                            "pipeline_task": {"pipeline_id": f"${{resources.pipelines.{name}_silver.id}}"},
-                        },
+                        *tasks,
                         {
                             "task_key": "publish_run_metadata",
-                            "depends_on": [{"task_key": "silver"}],
+                            "depends_on": publish_depends_on,
                             "run_if": "ALL_DONE",
                             "environment_key": "platform",
                             "python_wheel_task": {
@@ -310,38 +358,54 @@ def _dump(document: dict[str, Any]) -> str:
     return yaml.safe_dump(document, sort_keys=False, allow_unicode=True, width=140)
 
 
-def scaffold_bundle(root: Path, name: str, data_domain: str, workload: str = "de") -> list[Path]:
-    """
-    Create `bundles/<name>/` and return the files written.
-
-    `data_domain` must be a data-domain path of the taxonomy (it is what the example table's contract rolls up
-    to). `workload` is `de`, `ml`, `ai` or `platform` and is declared once as the bundle's `workload` variable. Raises
-    `ScaffoldError` for an invalid name, domain or workload, or when the bundle already exists.
-    """
-    ctx = RepoContext.load(root)
+def _check_scaffold_args(
+    ctx: RepoContext, bundle: Path, data_domain: str, workload: str, connector: str | None
+) -> None:
+    """Raise `ScaffoldError` for an invalid name, domain, workload or connector, or when the bundle already exists."""
     if workload not in WORKLOADS:
         raise ScaffoldError(f"workload {workload!r} must be one of {', '.join(WORKLOADS)}")
-    if not NAME_PATTERN.match(name):
-        raise ScaffoldError(f"bundle name {name!r} must match {NAME_PATTERN.pattern}")
-    bundle = root / "bundles" / name
+    if connector is not None and connector not in CONNECTOR_KINDS:
+        raise ScaffoldError(f"connector {connector!r} must be one of {', '.join(CONNECTOR_KINDS)}")
+    if not NAME_PATTERN.match(bundle.name):
+        raise ScaffoldError(f"bundle name {bundle.name!r} must match {NAME_PATTERN.pattern}")
     if bundle.exists():
         raise ScaffoldError(f"{bundle} already exists")
     try:
         ctx.taxonomy.resolve(data_domain, level="data_domain")
     except DomainError as error:
         raise ScaffoldError(str(error)) from error
+
+
+def scaffold_bundle(
+    root: Path, name: str, data_domain: str, workload: str = "de", connector: str | None = None
+) -> list[Path]:
+    """
+    Create `bundles/<name>/` and return the files written.
+
+    `data_domain` must be a data-domain path of the taxonomy (it is what the example table's contract rolls up
+    to). `workload` is `de`, `ml`, `ai` or `platform` and is declared once as the bundle's `workload` variable.
+    `connector` is one of `CONNECTOR_KINDS` (`sftp`, `xlsx`, `zip`); when given, the job also lands a source with
+    that connector into the bronze landing Volume, from a config file carrying `PLACEHOLDER-<what>` text for what
+    only a person can fill in. Raises `ScaffoldError` for an invalid name, domain, workload or connector, or when
+    the bundle already exists.
+    """
+    ctx = RepoContext.load(root)
+    bundle = root / "bundles" / name
+    _check_scaffold_args(ctx, bundle, data_domain, workload, connector)
     product = _product(ctx, name)
     layer = bundle / "src/dataflows/silver"
     files = {
         bundle / "databricks.yml": _dump(_bundle_config(ctx, name, workload)),
         bundle / f"resources/{name}.pipelines.yml": _dump(_pipeline(ctx, name)),
-        bundle / f"resources/{name}.jobs.yml": _dump(_job(ctx, name)),
+        bundle / f"resources/{name}.jobs.yml": _dump(_job(ctx, name, connector)),
         layer
         / f"dataflowspec/{EXAMPLE_TABLE}_main.json": json.dumps(_spec(name, data_domain, product["id"]), indent=2)
         + "\n",
         layer / f"schemas/{EXAMPLE_TABLE}_schema.json": json.dumps(EXAMPLE_SCHEMA, indent=2) + "\n",
         bundle / f"src/products/{name}.odps.yaml": _dump(product),
     }
+    if connector is not None:
+        files[bundle / f"src/config/land_{name}.yml"] = _dump(CONNECTOR_PLACEHOLDER_CONFIG[connector])
     for path, text in files.items():
         path.parent.mkdir(parents=True, exist_ok=True)
         path.write_text(text, encoding="utf-8")

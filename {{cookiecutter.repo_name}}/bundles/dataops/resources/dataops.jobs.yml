@@ -37,6 +37,13 @@ resources:
           client: '4'
           dependencies:
           - faker
+      - environment_key: land
+        spec:
+          client: '4'
+          dependencies:
+          - ${var.dbxops_wheel_path}
+          - openpyxl>=3.1
+          - pyarrow>=14
       - environment_key: platform
         spec:
           client: '4'
@@ -85,6 +92,20 @@ resources:
           - logical_env=${var.logical_env}
           - --dry-run
           - ${var.table_tags_dry_run}
+      - task_key: land_broker_extracts
+        environment_key: land
+        python_wheel_task:
+          package_name: cookie-cutter-dbx
+          entry_point: dbxops-land
+          parameters:
+          - --connector
+          - xlsx
+          - --config
+          - ${workspace.file_path}/src/config/land_broker_extracts.yml
+          - --output
+          - /Volumes/${var.catalog}/${var.project_id}_bronze${var.logical_env}/landing/_broker_extracts
+          - --state
+          - /Volumes/${var.catalog}/${var.project_id}_bronze${var.logical_env}/landing/_state/land_broker_extracts.json
       - task_key: publish_run_metadata
         run_if: ALL_DONE
         environment_key: platform
@@ -103,3 +124,4 @@ resources:
         depends_on:
         - task_key: gold
         - task_key: apply_table_tags
+        - task_key: land_broker_extracts

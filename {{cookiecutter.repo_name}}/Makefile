@@ -47,7 +47,7 @@ check-upstream:
 	bash run.sh check-upstream
 
 new-bundle:
-	bash run.sh new-bundle $(NAME) $(DOMAIN) $(WORKLOAD)
+	bash run.sh new-bundle $(NAME) $(DOMAIN) $(WORKLOAD) $(CONNECTOR)
 
 sync-substitutions:
 	bash run.sh sync-substitutions $(if $(CHECK),--check,)

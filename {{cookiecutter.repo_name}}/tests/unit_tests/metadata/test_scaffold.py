@@ -12,6 +12,7 @@ from dbxops.metadata.__main__ import main
 from dbxops.metadata.repo import RepoContext
 from dbxops.metadata.rules import validate
 from dbxops.metadata.scaffold import (
+    CONNECTOR_KINDS,
     ScaffoldError,
     scaffold_bundle,
 )
@@ -141,3 +142,75 @@ def test__an_unknown_workload_is_refused(real_conf_root: Path):
     """Only de, ml, ai and platform are workloads."""
     with pytest.raises(ScaffoldError, match="workload"):
         scaffold_bundle(real_conf_root, "sandbox", DOMAIN, "etl")
+
+
+def _task(tasks: list, key: str) -> dict:
+    return next(t for t in tasks if t["task_key"] == key)
+
+
+@pytest.mark.parametrize("connector", CONNECTOR_KINDS)
+def test__a_connector_option_adds_a_land_task_that_runs_dbxops_land(real_conf_root: Path, connector: str):
+    """With a connector, the job gains a land_<name> task running dbxops-land for that connector."""
+    scaffold_bundle(real_conf_root, "sandbox", DOMAIN, connector=connector)
+    tasks = load_bundle(real_conf_root / "bundles/sandbox")["resources"]["jobs"]["sandbox_run"]["tasks"]
+    assert {t["task_key"] for t in tasks} == {"land_sandbox", "silver", "publish_run_metadata"}
+    land = _task(tasks, "land_sandbox")
+    assert land["python_wheel_task"]["entry_point"] == "dbxops-land"
+    assert land["python_wheel_task"]["parameters"][:2] == ["--connector", connector]
+
+
+@pytest.mark.parametrize("connector", CONNECTOR_KINDS)
+def test__a_connector_option_keeps_the_bundle_valid_and_waited_on(
+    real_conf_root: Path, connector: str, cli_bundle_validator
+):
+    """publish_run_metadata waits for the land task too, and the bundle still validates with a connector."""
+    scaffold_bundle(real_conf_root, "sandbox", DOMAIN, connector=connector)
+    doc = load_bundle(real_conf_root / "bundles/sandbox")
+    publish = _task(doc["resources"]["jobs"]["sandbox_run"]["tasks"], "publish_run_metadata")
+    assert {d["task_key"] for d in publish["depends_on"]} == {"silver", "land_sandbox"}
+    assert not has_errors(validate(RepoContext.load(real_conf_root)))
+    assert not list(cli_bundle_validator.iter_errors(doc))
+
+
+@pytest.mark.parametrize("connector", CONNECTOR_KINDS)
+def test__a_connector_option_writes_a_placeholder_config_for_dbxops_land(real_conf_root: Path, connector: str):
+    """The land task's config file is PLACEHOLDER-blocked until a person fills in the real source."""
+    scaffold_bundle(real_conf_root, "sandbox", DOMAIN, connector=connector)
+    config = yaml.safe_load((real_conf_root / "bundles/sandbox/src/config/land_sandbox.yml").read_text())
+    assert any("PLACEHOLDER-" in str(value) for value in config.values())
+
+
+def test__no_connector_leaves_the_job_exactly_as_before(real_conf_root: Path):
+    """Without a connector, the job keeps its original two tasks and no landing config is written."""
+    files = scaffold_bundle(real_conf_root, "sandbox", DOMAIN)
+    assert not any("land_" in p.name for p in files)
+    assert not (real_conf_root / "bundles/sandbox/src/config/land_sandbox.yml").exists()
+
+
+def test__an_unknown_connector_is_refused(real_conf_root: Path):
+    """Only sftp, xlsx and zip are offered; jdbc needs a hand-wired JdbcSource, so it is not one of them."""
+    with pytest.raises(ScaffoldError, match="connector"):
+        scaffold_bundle(real_conf_root, "sandbox", DOMAIN, connector="jdbc")
+    assert not (real_conf_root / "bundles").exists()
+
+
+def test__cli_new_bundle_accepts_the_connector_flag(real_conf_root: Path, capsys):
+    """`new-bundle --connector` reaches scaffold_bundle and the land config lands on disk."""
+    assert (
+        main(
+            [
+                "--root",
+                str(real_conf_root),
+                "new-bundle",
+                "--name",
+                "sandbox",
+                "--data-domain",
+                DOMAIN,
+                "--connector",
+                "zip",
+            ]
+        )
+        == 0
+    )
+    assert "created bundles/sandbox" in capsys.readouterr().out
+    assert (real_conf_root / "bundles/sandbox/src/config/land_sandbox.yml").exists()

@@ -142,6 +142,7 @@ def test__a_workflow_publishes_its_tasks_and_the_asset_edges(published):
         "silver",
         "gold",
         "apply_table_tags",
+        "land_broker_extracts",
         "publish_run_metadata",
     }
     assert {t["task_key"]: t["target_asset_id"] for t in tasks}[

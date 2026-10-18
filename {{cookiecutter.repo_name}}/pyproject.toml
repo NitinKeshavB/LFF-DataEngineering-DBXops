@@ -20,6 +20,7 @@ dynamic = ["version"]
 [project.scripts]
 dbxops-publish-run = "dbxops.metastore.job_task:main"
 dbxops-lifecycle = "dbxops.lifecycle:main"
+dbxops-land = "dbxops.connectors.cli:main"
 
 # docs: https://setuptools.pypa.io/en/latest/userguide/pyproject_config.html#dynamic-metadata
 [tool.setuptools.dynamic]
@@ -32,6 +33,9 @@ release = ["build", "twine"]
 # metadata database backends (master plan §D); Lakebase uses the postgres extra
 uc = ["databricks-sql-connector>=4", "databricks-sqlalchemy>=2"]
 postgres = ["psycopg[binary]>=3"]
+# landing connectors (src/dbxops/connectors): only a job that uses one needs its extra
+sftp = ["paramiko>=3"]
+xlsx = ["openpyxl>=3.1", "pyarrow>=14"]
 static-code-qa = [
     "pre-commit<4.6.1",  # 4.6.1+ calls `git ls-files --deduplicate`, which needs git >= 2.31
     "pylint",
@@ -47,7 +51,7 @@ static-code-qa = [
 # - automatically apply formatting
 # - show enhanced autocompletion for stubs libraries
 # See .vscode/settings.json to see how VS Code is configured to use these tools
-dev = ["cookie-cutter-dbx[test,release,static-code-qa,uc,postgres]"]
+dev = ["cookie-cutter-dbx[test,release,static-code-qa,uc,postgres,sftp,xlsx]"]
 
 [build-system]
 # Minimum requirements for the build system to execute.
